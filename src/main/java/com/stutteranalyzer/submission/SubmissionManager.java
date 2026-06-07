@@ -9,7 +9,9 @@ import com.stutteranalyzer.guard.EmergencyGuardManager;
 import com.stutteranalyzer.guard.EmergencyGuardReport;
 import com.stutteranalyzer.report.FreezeReport;
 import com.stutteranalyzer.report.ReportWriter;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.loading.FMLEnvironment;
@@ -342,14 +344,34 @@ public class SubmissionManager {
         String hash = sha256Hex(markdown);
         PENDING.put(report.reportId, new PendingSubmission(report, markdown, hash));
         lastPendingId = report.reportId;
-        String rid = report.reportId;
         src.sendSuccess(() -> CommandFeedback.info("[SA] This will send a sanitized performance report to the Stutter Analyzer report server."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] It may include mod list, Minecraft version, Java version, system info, and recent performance events."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] It will not include tokens, passwords, auth data, full file paths, or session data."), false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue creation happens server-side. You do not need a GitHub account."), false);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Run /sa submit yes to send."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Advanced: /sa submit confirm " + rid), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa yes to send, or /sa cancel to cancel."), false);
+        Component sendBtn = Component.literal("[Send Report]")
+            .withStyle(s -> s
+                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sa yes"))
+                .withColor(ChatFormatting.GREEN)
+                .withBold(true));
+        Component cancelBtn = Component.literal(" [Cancel]")
+            .withStyle(s -> s
+                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sa cancel"))
+                .withColor(ChatFormatting.RED));
+        Component privacyBtn = Component.literal(" [Privacy]")
+            .withStyle(s -> s
+                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sa privacy"))
+                .withColor(ChatFormatting.AQUA));
+        Component buttons = Component.empty().append(sendBtn).append(cancelBtn).append(privacyBtn);
+        src.sendSuccess(() -> buttons, false);
         return 1;
+    }
+
+    public static int cancelLatestPending(CommandSourceStack src) {
+        String id = lastPendingId;
+        if (id == null || !PENDING.containsKey(id)) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] No pending submission to cancel."), false);
+            return 1;
+        }
+        return cancelPrepared(src, id);
     }
 
     public static int confirmLatestPending(CommandSourceStack src) {

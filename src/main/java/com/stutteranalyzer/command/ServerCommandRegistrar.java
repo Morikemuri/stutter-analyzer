@@ -23,6 +23,56 @@ public class ServerCommandRegistrar {
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher, String root) {
         dispatcher.register(Commands.literal(root)
 
+            // ── bare /sa - quick dashboard ────────────────────────────────────
+            .executes(ctx -> CommonCommandLogic.quickDashboard(ctx.getSource()))
+
+            // ── top-level simple commands ────────────────────────────────────
+            .then(Commands.literal("yes")
+                .executes(ctx -> CommonCommandLogic.submitYes(ctx.getSource())))
+            .then(Commands.literal("cancel")
+                .executes(ctx -> CommonCommandLogic.cancelLatestPending(ctx.getSource())))
+            .then(Commands.literal("reports")
+                .executes(ctx -> CommonCommandLogic.listReports(ctx.getSource())))
+            .then(Commands.literal("privacy")
+                .executes(ctx -> CommonCommandLogic.showPrivacy(ctx.getSource())))
+
+            // ── /sa dev - developer commands ─────────────────────────────────
+            .then(Commands.literal("dev")
+                .then(Commands.literal("test")
+                    .then(Commands.literal("minor")
+                        .executes(ctx -> CommonCommandLogic.debugTestMinor(ctx.getSource())))
+                    .then(Commands.literal("medium")
+                        .executes(ctx -> CommonCommandLogic.debugTestMedium(ctx.getSource())))
+                    .then(Commands.literal("severe")
+                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))
+                    .then(Commands.literal("extreme")
+                        .executes(ctx -> CommonCommandLogic.debugTestExtreme(ctx.getSource()))))
+                .then(Commands.literal("generate-test-report")
+                    .executes(ctx -> CommonCommandLogic.generateTestReport(ctx.getSource())))
+                .then(Commands.literal("submit-routing")
+                    .executes(ctx -> CommonCommandLogic.submitDebugRouting(ctx.getSource())))
+                .then(Commands.literal("command-routing")
+                    .executes(ctx -> CommonCommandLogic.debugCommandRouting(ctx.getSource())))
+                .then(Commands.literal("help")
+                    .executes(ctx -> CommonCommandLogic.showDevHelp(ctx.getSource()))))
+
+            // ── /sa admin - admin commands ────────────────────────────────────
+            .then(Commands.literal("admin")
+                .then(Commands.literal("submit")
+                    .then(Commands.literal("mode")
+                        .then(Commands.literal("cloudflare")
+                            .executes(ctx -> CommonCommandLogic.submitModeCloudflare(ctx.getSource())))
+                        .then(Commands.literal("local")
+                            .executes(ctx -> CommonCommandLogic.submitModeLocal(ctx.getSource())))
+                        .then(Commands.literal("status")
+                            .executes(ctx -> CommonCommandLogic.submitModeStatus(ctx.getSource()))))
+                    .then(Commands.literal("local")
+                        .executes(ctx -> CommonCommandLogic.submitLocalLast(ctx.getSource())))
+                    .then(Commands.literal("health")
+                        .executes(ctx -> CommonCommandLogic.submitHealth(ctx.getSource())))
+                    .then(Commands.literal("status")
+                        .executes(ctx -> CommonCommandLogic.submitStatus(ctx.getSource())))))
+
             // ── version ───────────────────────────────────────────────────────
             .then(Commands.literal("version")
                 .executes(ctx -> CommonCommandLogic.showVersion(ctx.getSource())))
@@ -102,6 +152,7 @@ public class ServerCommandRegistrar {
 
             // ── submit ───────────────────────────────────────────────────────
             .then(Commands.literal("submit")
+                .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource()))
                 .then(Commands.literal("last")
                     .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
                 .then(Commands.literal("prepare")

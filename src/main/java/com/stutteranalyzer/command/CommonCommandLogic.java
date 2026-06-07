@@ -766,29 +766,66 @@ public class CommonCommandLogic {
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.help.header")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.status")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.health")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.last")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.report")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.export")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.list")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.list_unknown")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.show")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.delete")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_last")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_id")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_crash")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_guard")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.crash_cmds")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.guard_cmds")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.f3")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.selfcheck")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.config")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.server")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.overlay")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.client_cmds")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.debug")), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Commands"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa              - quick status dashboard"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa status       - detailed analyzer status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit       - send latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa yes          - confirm pending submission"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa cancel       - cancel pending submission"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa last         - show latest report info"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa reports      - list recent reports"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa version      - version and update info"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa privacy      - what data is collected"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Developer commands: /sa dev help"), false);
+        return 1;
+    }
+
+    public static int quickDashboard(CommandSourceStack src) {
+        FreezeEvent last = FreezeDetector.lastFreezeEvent();
+        boolean degraded = SubsystemHealth.anyDegraded();
+        boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
+        int reports = ReportWriter.savedReports();
+        String spike = last != null
+            ? last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms"
+            : "none";
+        String uploadStr = cfEnabled ? "ready" : "local only";
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Status", degraded ? "DEGRADED" : "ACTIVE"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Last spike", spike), false);
+        src.sendSuccess(() -> CommandFeedback.row("Reports saved", String.valueOf(reports)), false);
+        src.sendSuccess(() -> CommandFeedback.row("Upload", uploadStr), false);
+        if (reports > 0) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit to send latest report."), false);
+        }
+        if (degraded) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Analyzer is degraded. Use /sa status for details."), false);
+        }
+        return 1;
+    }
+
+    public static int cancelLatestPending(CommandSourceStack src) {
+        return SubmissionManager.cancelLatestPending(src);
+    }
+
+    public static int showPrivacy(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Privacy Info"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Reports contain: spike timing, category, game version, Java version, recent event buffer."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Reports do NOT contain: player name, UUID, IP address, or world data."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Reports are sent to the Stutter Analyzer Cloudflare Worker."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issues are created server-side. No account is required."), false);
+        return 1;
+    }
+
+    public static int showDevHelp(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Developer Commands"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa dev test minor|medium|severe|extreme - inject test event"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa dev generate-test-report             - generate a test report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa dev submit-routing                   - show submit routing table"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa dev command-routing                  - show command routing"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa admin submit mode cloudflare|local   - set upload mode"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa admin submit local                   - manual local save (legacy)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa admin submit health                  - check Cloudflare Worker health"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa admin submit status                  - show full submission config"), false);
         return 1;
     }
 

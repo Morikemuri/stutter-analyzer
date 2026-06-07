@@ -32,8 +32,8 @@ public class StutterAnalyzerMod {
 
     public static final String MOD_ID      = "stutteranalyzer";
     public static final String MOD_VERSION = "1.0.0";
-    public static final String BUILD_DATE  = "2026-06-08-b1";
-    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,config-migration";
+    public static final String BUILD_DATE  = "2026-06-08-b2";
+    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,config-migration,simplified-ux";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public StutterAnalyzerMod() {
