@@ -141,6 +141,14 @@ public class SAConfig {
     public final ForgeConfigSpec.IntValue maxFullLogChars;
     public final ForgeConfigSpec.IntValue maxIssueBodyChars;
     public final ForgeConfigSpec.BooleanValue storeOversizedLogsInWorkerStorage;
+    public final ForgeConfigSpec.BooleanValue includeStutterAnalyzerLogEvents;
+    public final ForgeConfigSpec.BooleanValue includeUnknownFreezeContext;
+    public final ForgeConfigSpec.BooleanValue includeSuspiciousLogSignals;
+    public final ForgeConfigSpec.IntValue maxLogEventLines;
+    public final ForgeConfigSpec.IntValue maxLogContextEvents;
+    public final ForgeConfigSpec.IntValue logContextLinesBefore;
+    public final ForgeConfigSpec.IntValue logContextLinesAfter;
+    public final ForgeConfigSpec.IntValue maxSuspiciousLogLines;
 
     // ── [compatibility_guard] ─────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue guardEnabled;
@@ -318,11 +326,19 @@ public class SAConfig {
         logExcerptMaxLines = b.comment("Maximum number of log lines to include in the excerpt.").defineInRange("log_excerpt_max_lines", 200, 10, 1000);
         logExcerptContextSeconds = b.comment("Seconds before/after the event to include from the log.").defineInRange("log_excerpt_context_seconds", 30, 5, 300);
         includeFullLatestLog = b.comment("Include the full sanitized latest.log in submitted reports. Large logs are stored server-side if too big for GitHub.").define("include_full_latest_log", true);
-        maxLogExcerptChars = b.comment("Maximum characters of log excerpt to include.").defineInRange("max_log_excerpt_chars", 16000, 1000, 65000);
+        maxLogExcerptChars = b.comment("Maximum characters of log excerpt to include.").defineInRange("max_log_excerpt_chars", 30000, 1000, 65000);
         includeDebugLog = b.comment("Include debug.log in submitted reports. Disabled by default.").define("include_debug_log", false);
         maxFullLogChars = b.comment("Maximum characters of full latest.log to include in payload.").defineInRange("max_full_log_chars", 120000, 10000, 500000);
         maxIssueBodyChars = b.comment("Maximum characters for the GitHub issue body. Content is truncated and stored server-side if larger.").defineInRange("max_issue_body_chars", 55000, 10000, 65000);
         storeOversizedLogsInWorkerStorage = b.comment("Store full sanitized log in Cloudflare KV/R2 if too large for GitHub issue body.").define("store_oversized_logs_in_worker_storage", true);
+        includeStutterAnalyzerLogEvents = b.comment("Include extracted Stutter Analyzer log events from latest.log.").define("include_stutter_analyzer_log_events", true);
+        includeUnknownFreezeContext = b.comment("Include context around Unknown Freeze / spike lines from latest.log.").define("include_unknown_freeze_context", true);
+        includeSuspiciousLogSignals = b.comment("Include suspicious signals scanned from the whole latest.log.").define("include_suspicious_log_signals", true);
+        maxLogEventLines = b.comment("Maximum SA log event lines to extract.").defineInRange("max_log_event_lines", 300, 10, 2000);
+        maxLogContextEvents = b.comment("Maximum Unknown Freeze context events to include.").defineInRange("max_log_context_events", 20, 1, 100);
+        logContextLinesBefore = b.comment("Lines before each freeze line to include as context.").defineInRange("log_context_lines_before", 20, 1, 200);
+        logContextLinesAfter = b.comment("Lines after each freeze line to include as context.").defineInRange("log_context_lines_after", 40, 1, 200);
+        maxSuspiciousLogLines = b.comment("Maximum suspicious log signal lines to extract.").defineInRange("max_suspicious_log_lines", 300, 10, 2000);
         b.pop();
         b.pop();
 

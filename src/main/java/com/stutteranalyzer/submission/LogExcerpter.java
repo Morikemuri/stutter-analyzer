@@ -29,6 +29,33 @@ public class LogExcerpter {
         "report saved", "submitted",
     };
 
+    private static final String[] SA_EVENT_KEYWORDS = {
+        "[sa]", "[stutter analyzer]", "[stutteranalyzer]",
+        "unknown freeze detected", "unknown_freeze", "client_render_stutter",
+        "server_tick_spike", "extreme_freeze", "severe episode",
+        "report saved", "known pattern", "emergency guard",
+        "repeated small stutters", "minor episodes", "medium episodes",
+        "severe episodes", "extreme episodes", "mspt", " tps ", "gc pause",
+        "memory pressure", "stutter analyzer"
+    };
+
+    private static final String[] FREEZE_CONTEXT_KEYWORDS = {
+        "unknown freeze", "report saved", "spike detected", "freeze detected",
+        "server_tick_spike", "client_render_stutter", "extreme_freeze",
+        "emergency guard triggered", "severe episode", "stutter cluster"
+    };
+
+    private static final String[] SUSPICIOUS_KEYWORDS = {
+        "/warn]", "/error]", "exception", "caused by",
+        "timeout", "watchdog", "server overloaded", "can't keep up",
+        "chunk", "worldgen", "resource reload", "shader", "texture",
+        "model", "datapack", "gc pause", "outofmemory", "out of memory",
+        "packet", "connection lost", "mixin", "injection",
+        "sodium", "embeddium", "rubidium", "oculus", "iris", "c2me",
+        "distant horizons", "modernfix", "ferritecore", "lithium",
+        "starlight", "scalablelux"
+    };
+
     public static String extractExcerpt(Instant eventTime) {
         if (!SAConfig.INSTANCE.includeLogExcerpt.get()) return null;
 
@@ -168,6 +195,138 @@ public class LogExcerpter {
         } catch (Exception e) {
             StutterAnalyzerMod.LOGGER.debug("[SA] Full log read failed: {}", e.getMessage());
             return null;
+        }
+    }
+
+    public static String extractStutterLogEvents() {
+        if (!SAConfig.INSTANCE.includeStutterAnalyzerLogEvents.get()) return null;
+        int maxLines = SAConfig.INSTANCE.maxLogEventLines.get();
+        return doExtractStutterLogEvents(maxLines);
+    }
+
+    static int countStutterLogEventLines() {
+        try {
+            String result = doExtractStutterLogEvents(SAConfig.INSTANCE.maxLogEventLines.get());
+            if (result == null || result.startsWith("No ") || result.startsWith("Could ") || result.startsWith("latest.log")) return 0;
+            return result.split("\n", -1).length;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static String doExtractStutterLogEvents(int maxLines) {
+        try {
+            Path logFile = resolveLogFile();
+            if (logFile == null || !Files.exists(logFile)) return "latest.log could not be read.";
+            List<String> matching = new ArrayList<>();
+            try (var reader = Files.newBufferedReader(logFile, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null && matching.size() < maxLines) {
+                    String lower = line.toLowerCase(Locale.ROOT);
+                    for (String kw : SA_EVENT_KEYWORDS) {
+                        if (lower.contains(kw)) { matching.add(line.stripTrailing()); break; }
+                    }
+                }
+            }
+            if (matching.isEmpty()) return "No Stutter Analyzer log events were found in latest.log.";
+            ReportSanitizer.SanitizeResult r = ReportSanitizer.sanitize(String.join("\n", matching));
+            return r.hadSensitiveData() ? "Log events blocked by sanitizer." : r.text();
+        } catch (Exception e) {
+            return "Could not extract Stutter Analyzer log events: " + e.getMessage();
+        }
+    }
+
+    public static String extractUnknownFreezeContext() {
+        if (!SAConfig.INSTANCE.includeUnknownFreezeContext.get()) return null;
+        return doExtractUnknownFreezeContext(
+            SAConfig.INSTANCE.logContextLinesBefore.get(),
+            SAConfig.INSTANCE.logContextLinesAfter.get(),
+            SAConfig.INSTANCE.maxLogContextEvents.get());
+    }
+
+    static int countUnknownFreezeContextEvents() {
+        try {
+            String result = doExtractUnknownFreezeContext(
+                SAConfig.INSTANCE.logContextLinesBefore.get(),
+                SAConfig.INSTANCE.logContextLinesAfter.get(),
+                SAConfig.INSTANCE.maxLogContextEvents.get());
+            if (result == null || result.startsWith("No ") || result.startsWith("Could ") || result.startsWith("latest.log")) return 0;
+            int count = 0;
+            for (String s : result.split("\n", -1)) { if (s.startsWith("### Event ")) count++; }
+            return count;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static String doExtractUnknownFreezeContext(int linesBefore, int linesAfter, int maxEvents) {
+        try {
+            Path logFile = resolveLogFile();
+            if (logFile == null || !Files.exists(logFile)) return "latest.log could not be read.";
+            List<String> allLines = new ArrayList<>();
+            long maxBytes = 2 * 1024 * 1024L;
+            long readBytes = 0;
+            try (var reader = Files.newBufferedReader(logFile, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null && readBytes < maxBytes) {
+                    allLines.add(line);
+                    readBytes += line.length() + 1;
+                }
+            }
+            List<Integer> triggers = new ArrayList<>();
+            for (int i = 0; i < allLines.size() && triggers.size() < maxEvents; i++) {
+                String lower = allLines.get(i).toLowerCase(Locale.ROOT);
+                for (String kw : FREEZE_CONTEXT_KEYWORDS) {
+                    if (lower.contains(kw)) { triggers.add(i); break; }
+                }
+            }
+            if (triggers.isEmpty()) return "No Unknown Freeze context was found in latest.log.";
+            StringBuilder sb = new StringBuilder();
+            for (int idx = 0; idx < triggers.size(); idx++) {
+                int trig = triggers.get(idx);
+                int start = Math.max(0, trig - linesBefore);
+                int end = Math.min(allLines.size() - 1, trig + linesAfter);
+                sb.append("### Event ").append(idx + 1).append("\n");
+                for (int i = start; i <= end; i++) sb.append(allLines.get(i).stripTrailing()).append("\n");
+                sb.append("\n");
+            }
+            if (sb.length() > 50000) sb.setLength(49800);
+            ReportSanitizer.SanitizeResult r = ReportSanitizer.sanitize(sb.toString());
+            return r.hadSensitiveData() ? "Context blocked by sanitizer." : r.text();
+        } catch (Exception e) {
+            return "Could not extract Unknown Freeze context: " + e.getMessage();
+        }
+    }
+
+    public static String extractSuspiciousSignals() {
+        if (!SAConfig.INSTANCE.includeSuspiciousLogSignals.get()) return null;
+        int maxLines = SAConfig.INSTANCE.maxSuspiciousLogLines.get();
+        return doExtractSuspiciousSignals(maxLines);
+    }
+
+    static int countSuspiciousSignalLines() {
+        try {
+            String result = doExtractSuspiciousSignals(SAConfig.INSTANCE.maxSuspiciousLogLines.get());
+            if (result == null || result.startsWith("No ") || result.startsWith("Could ") || result.startsWith("latest.log")) return 0;
+            return result.split("\n", -1).length;
+        } catch (Exception e) { return 0; }
+    }
+
+    private static String doExtractSuspiciousSignals(int maxLines) {
+        try {
+            Path logFile = resolveLogFile();
+            if (logFile == null || !Files.exists(logFile)) return "latest.log could not be read.";
+            List<String> matching = new ArrayList<>();
+            try (var reader = Files.newBufferedReader(logFile, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null && matching.size() < maxLines) {
+                    String lower = line.toLowerCase(Locale.ROOT);
+                    for (String kw : SUSPICIOUS_KEYWORDS) {
+                        if (lower.contains(kw)) { matching.add(line.stripTrailing()); break; }
+                    }
+                }
+            }
+            if (matching.isEmpty()) return "No suspicious log signals were found.";
+            ReportSanitizer.SanitizeResult r = ReportSanitizer.sanitize(String.join("\n", matching));
+            return r.hadSensitiveData() ? "Signals blocked by sanitizer." : r.text();
+        } catch (Exception e) {
+            return "Could not extract suspicious signals: " + e.getMessage();
         }
     }
 
