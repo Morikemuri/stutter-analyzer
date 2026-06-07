@@ -56,6 +56,7 @@ public class CommonCommandLogic {
         int mediumRaw  = StutterCounter.mediumCountInSeconds(60);
         long worstMinor   = StutterCounter.worstMinorInSeconds(60);
         long worstMedium  = StutterCounter.worstMediumInSeconds(60);
+        long worstSevere  = StutterCounter.worstSevereInSeconds(60);
         long worstExtreme = StutterCounter.worstExtremeInSeconds(60);
         String lastSeverity = AnalyzerRuntimeState.lastStutterSeverity();
         long lastDurationMs = AnalyzerRuntimeState.lastStutterDurationMs();
@@ -108,28 +109,37 @@ public class CommonCommandLogic {
         if (showRaw && useEpisodes && mediumRaw != mediumDisplay) {
             src.sendSuccess(() -> CommandFeedback.row("Raw medium frames", mediumRaw + " in last 60s"), false);
         }
-        src.sendSuccess(() -> CommandFeedback.row(severeLabel, severeDisplay + " in last 60s"), false);
+        src.sendSuccess(() -> CommandFeedback.row(severeLabel,
+            severeDisplay + " in last 60s" + (worstSevere > 0 ? " | worst: " + worstSevere + "ms" : "")), false);
         src.sendSuccess(() -> CommandFeedback.row(extremeLabel,
             extremeDisplay + " in last 60s" + (worstExtreme > 0 ? " | worst: " + worstExtreme + "ms" : "")), false);
 
         // Reports
         int savedReports = ReportWriter.savedReports();
+        boolean saveSevere  = SAConfig.INSTANCE.saveSevereStutterReports.get();
+        boolean saveExtreme = SAConfig.INSTANCE.saveExtremeReports.get();
+        boolean saveMedium  = SAConfig.INSTANCE.saveMediumStutterReports.get();
+        boolean saveMinor   = SAConfig.INSTANCE.saveMinorStutterReports.get();
+        boolean allSavingDisabled = !saveSevere && !saveExtreme && !saveMedium && !saveMinor;
+        String reportsVal = allSavingDisabled ? "disabled by config" : String.valueOf(savedReports);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.reports_saved"),
-            String.valueOf(savedReports)), false);
+            reportsVal), false);
 
-        // Silent tracking note
-        int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
-        if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
-            src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Note: minor/medium stutters are tracked silently; reports start at " + severeMs + "ms by default."), false);
-        } else if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
+        // Status notes about report saving
+        if (!allSavingDisabled) {
+            if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
+                src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
+            } else if (savedReports == 0 && (severeDisplay > 0 || extremeDisplay > 0)) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Severe/extreme detected but no reports saved - check game log for errors."), false);
+            } else if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
+                int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Minor/medium tracked silently; reports start at " + severeMs + "ms."), false);
+            }
         }
 
         // Last saved report
-        boolean hasSavedReport = savedReports > 0 && last != null && last.durationMs() >= severeMs;
-        if (hasSavedReport) {
+        if (savedReports > 0 && last != null) {
             Component reportVal = Component.literal(last.category().name() + " " + last.durationMs() + "ms");
             src.sendSuccess(() -> CommandFeedback.row("Last saved report", reportVal), false);
         } else {
