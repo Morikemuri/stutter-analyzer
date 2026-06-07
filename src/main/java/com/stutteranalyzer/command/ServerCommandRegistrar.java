@@ -106,7 +106,7 @@ public class ServerCommandRegistrar {
                     .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
                 .then(Commands.literal("prepare")
                     .then(Commands.literal("last")
-                        .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
+                        .executes(ctx -> CommonCommandLogic.submitPrepareLast(ctx.getSource())))
                     .then(Commands.argument("report_id", StringArgumentType.word())
                         .executes(ctx -> CommonCommandLogic.submitReport(
                             ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
@@ -114,6 +114,11 @@ public class ServerCommandRegistrar {
                     .then(Commands.argument("prepared_id", StringArgumentType.word())
                         .executes(ctx -> CommonCommandLogic.submitConfirm(
                             ctx.getSource(), StringArgumentType.getString(ctx, "prepared_id")))))
+                .then(Commands.literal("local")
+                    .then(Commands.literal("last")
+                        .executes(ctx -> CommonCommandLogic.submitLocalLast(ctx.getSource()))))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.submitStatus(ctx.getSource())))
                 .then(Commands.literal("crash")
                     .then(Commands.literal("last")
                         .executes(ctx -> CommonCommandLogic.submitCrashLast(ctx.getSource())))

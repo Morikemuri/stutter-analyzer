@@ -797,9 +797,27 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.confirm_disabled")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.confirm_use_files", preparedId)), false);
-        return 1;
+        return SubmissionManager.submitConfirm(src, preparedId);
+    }
+
+    public static int submitPrepareLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitPrepareLast(src);
+    }
+
+    public static int submitLocalLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitLocalLast(src);
+    }
+
+    public static int submitStatus(CommandSourceStack src) {
+        return SubmissionManager.submitStatus(src);
     }
 
     public static int generateTestReport(CommandSourceStack src) {

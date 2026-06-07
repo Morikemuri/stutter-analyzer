@@ -118,7 +118,19 @@ public class ClientCommandRegistrar {
                     }))
                 .then(Commands.literal("submit")
                     .then(Commands.literal("last")
-                        .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))))
+                        .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
+                    .then(Commands.literal("prepare")
+                        .then(Commands.literal("last")
+                            .executes(ctx -> CommonCommandLogic.submitPrepareLast(ctx.getSource()))))
+                    .then(Commands.literal("confirm")
+                        .then(Commands.argument("prepared_id", com.mojang.brigadier.arguments.StringArgumentType.word())
+                            .executes(ctx -> CommonCommandLogic.submitConfirm(
+                                ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "prepared_id")))))
+                    .then(Commands.literal("local")
+                        .then(Commands.literal("last")
+                            .executes(ctx -> CommonCommandLogic.submitLocalLast(ctx.getSource()))))
+                    .then(Commands.literal("status")
+                        .executes(ctx -> CommonCommandLogic.submitStatus(ctx.getSource())))))
 
             // ── verbose mode ───────────────────────────────────────────────────
             .then(Commands.literal("verbose")
