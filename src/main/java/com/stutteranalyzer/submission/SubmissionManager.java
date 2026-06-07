@@ -45,6 +45,13 @@ public class SubmissionManager {
         .executor(UPLOAD_EXECUTOR)
         .build();
 
+    private static volatile String lastSubmissionStatus = "none";
+    private static volatile boolean pendingMigrationNotice = false;
+
+    public static void setPendingMigrationNotice() {
+        pendingMigrationNotice = true;
+    }
+
     // ── Public entry points ───────────────────────────────────────────────────
 
     public static int submitLast(CommandSourceStack src) {
@@ -52,13 +59,16 @@ public class SubmissionManager {
             src.sendFailure(CommandFeedback.error(Component.translatable("stutteranalyzer.submit.disabled")));
             return 0;
         }
+        checkMigrationNotice(src);
         FreezeReport report = ReportWriter.lastReport();
         if (report == null) {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report")), false);
             return 1;
         }
         if (!isCloudflareEnabled()) {
-            return submitLocalLast(src);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cloudflare endpoint not configured. Use /sa submit mode cloudflare to fix."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] For manual local save, use /sa submit local last."), false);
+            return 1;
         }
         if (needsConsent()) {
             return prepareForConsent(src, report);
@@ -158,6 +168,7 @@ public class SubmissionManager {
     }
 
     public static int submitStatus(CommandSourceStack src) {
+        checkMigrationNotice(src);
         boolean cfEnabled = isCloudflareEnabled();
         boolean browserOpen = SAConfig.INSTANCE.openIssueUrlOnClient.get();
         boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
@@ -167,11 +178,107 @@ public class SubmissionManager {
         src.sendSuccess(() -> CommandFeedback.header("[SA] Submission status"), false);
         src.sendSuccess(() -> CommandFeedback.row("Mode", cfEnabled ? "Cloudflare" : target), false);
         src.sendSuccess(() -> CommandFeedback.row("Endpoint", cfEnabled ? "configured" : "not set"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Worker health", "unknown - use /sa submit health"), false);
         src.sendSuccess(() -> CommandFeedback.row("Remote submission", cfEnabled ? "enabled" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("GitHub forwarding", cfEnabled ? "server-side" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("Browser opening", browserOpen ? "enabled" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("Clipboard issue body", clipboard ? "enabled" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("Fallback", fallback ? "local" : "none"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Last submission", lastSubmissionStatus), false);
+        return 1;
+    }
+
+    public static int submitModeCloudflare(CommandSourceStack src) {
+        SAConfig.INSTANCE.submissionTarget.set("cloudflare");
+        SAConfig.INSTANCE.openIssueUrlOnClient.set(false);
+        SAConfig.INSTANCE.copyIssueBodyToClipboard.set(false);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Submission mode set to Cloudflare."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] /sa submit last will upload to the report server, not open GitHub."), false);
+        return 1;
+    }
+
+    public static int submitModeLocal(CommandSourceStack src) {
+        SAConfig.INSTANCE.submissionTarget.set("local");
+        src.sendSuccess(() -> CommandFeedback.warn("[SA] Submission mode set to local."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] /sa submit last will save locally only."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit local last for the manual GitHub fallback flow."), false);
+        return 1;
+    }
+
+    public static int submitModeStatus(CommandSourceStack src) {
+        boolean cfEnabled = isCloudflareEnabled();
+        String target = SAConfig.INSTANCE.submissionTarget.get();
+        boolean browserOpen = SAConfig.INSTANCE.openIssueUrlOnClient.get();
+        boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Submit mode"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Current mode", cfEnabled ? "cloudflare" : target), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit last routes to", cfEnabled ? "CloudflareSubmitCommand" : "ManualGitHubIssueFlow"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Browser opening", browserOpen ? "enabled" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Clipboard issue body", clipboard ? "enabled" : "disabled"), false);
+        if (!cfEnabled) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cloudflare mode is not active. Run /sa submit mode cloudflare to fix."), false);
+        }
+        return 1;
+    }
+
+    public static int submitDebugRouting(CommandSourceStack src) {
+        boolean cfEnabled = isCloudflareEnabled();
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        boolean browserOpen = SAConfig.INSTANCE.openIssueUrlOnClient.get();
+        boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
+        boolean fallback = SAConfig.INSTANCE.fallbackToLocal.get();
+
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Submit routing"), false);
+        if (cfEnabled) {
+            src.sendSuccess(() -> CommandFeedback.row("/sa submit last", "CloudflareSubmitCommand"), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.row("/sa submit last", "ManualGitHubIssueFlow (WRONG - run /sa submit mode cloudflare)"), false);
+        }
+        src.sendSuccess(() -> CommandFeedback.row("endpoint", cfEnabled ? endpoint : "not set"), false);
+        src.sendSuccess(() -> CommandFeedback.row("browser opening", browserOpen ? "enabled (WRONG)" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row("clipboard issue body", clipboard ? "enabled (WRONG)" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row("fallback", fallback ? "local" : "none"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit local last", "ManualGitHubIssueFlow (explicit only)"), false);
+        return 1;
+    }
+
+    public static int submitHealth(CommandSourceStack src) {
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        if (endpoint.isBlank()) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No Cloudflare endpoint configured."), false);
+            return 1;
+        }
+        String healthUrl = endpoint.contains("/api/report")
+            ? endpoint.replace("/api/report", "/api/health")
+            : endpoint.replaceAll("/+$", "") + "/api/health";
+
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Checking Worker health..."), false);
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(healthUrl))
+                    .GET()
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
+                    .build();
+                HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                int status = resp.statusCode();
+                String body = resp.body();
+                if (status == 200 && body.contains("\"ok\":true")) {
+                    String version = extractJsonField(body, "version");
+                    String fwd = extractJsonField(body, "github_forwarding");
+                    String storage = extractJsonField(body, "storage");
+                    src.sendSuccess(() -> CommandFeedback.success("[SA] Worker health: OK"), false);
+                    if (version != null) src.sendSuccess(() -> CommandFeedback.info("[SA] Worker version: " + version), false);
+                    if (fwd != null) src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub forwarding: " + fwd), false);
+                    if (storage != null) src.sendSuccess(() -> CommandFeedback.info("[SA] Storage: " + storage), false);
+                } else {
+                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Worker health: unexpected response (" + status + ")"), false);
+                }
+            } catch (Exception e) {
+                StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check failed: {}", e.getMessage());
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Worker health: unavailable"), false);
+            }
+        }, UPLOAD_EXECUTOR);
         return 1;
     }
 
@@ -195,7 +302,7 @@ public class SubmissionManager {
 
     // ── Cloudflare submission ─────────────────────────────────────────────────
 
-    private static boolean isCloudflareEnabled() {
+    public static boolean isCloudflareEnabled() {
         String target = SAConfig.INSTANCE.submissionTarget.get();
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         return "cloudflare".equalsIgnoreCase(target) && !endpoint.isBlank();
@@ -253,7 +360,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/1.0.0 Minecraft/1.20.4")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
 
@@ -264,9 +371,13 @@ public class SubmissionManager {
                 handleCloudflareResponse(src, report, markdown, status, body);
             } catch (Exception e) {
                 StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit error: {}", e.getMessage());
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server is unavailable."), false);
+                lastSubmissionStatus = "failure";
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server unavailable."), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
-                if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+                if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                    saveLocalFallback(src, report, markdown);
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] Manual GitHub fallback is available with /sa submit local last"), false);
+                }
             }
         }, UPLOAD_EXECUTOR);
     }
@@ -274,10 +385,12 @@ public class SubmissionManager {
     private static void handleCloudflareResponse(CommandSourceStack src, FreezeReport report,
                                                   String markdown, int status, String body) {
         if (status == 409) {
+            lastSubmissionStatus = "duplicate";
             src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
             return;
         }
         if (status == 429) {
+            lastSubmissionStatus = "rate-limited";
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached. Local fallback saved."), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             return;
@@ -288,25 +401,39 @@ public class SubmissionManager {
             String warning    = extractJsonField(body, "warning");
             String finalId    = reportId != null ? reportId : report.reportId;
 
+            lastSubmissionStatus = "success";
+
             src.sendSuccess(() -> CommandFeedback.success("[SA] Report submitted successfully."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Report ID: " + finalId), false);
 
             if ("GITHUB_FORWARD_FAILED".equals(warning)) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report submitted and stored."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub forwarding failed on server side, but no data was lost."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Report ID: " + finalId), false);
-            } else if (issueNum != null && !issueNum.equals("null")) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] GitHub forwarding failed server-side, but no data was lost."), false);
+            } else if (issueNum != null && !issueNum.equals("null") && !issueNum.isBlank()) {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue created: #" + issueNum), false);
             } else {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Report ID: " + finalId), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Stored for developer review."), false);
             }
             src.sendSuccess(() -> CommandFeedback.info("[SA] Thank you. This helps improve future versions."), false);
             markConsentGiven();
         } else {
             StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit failed: {} {}", status, body);
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server is unavailable."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
-            if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+            lastSubmissionStatus = "failure";
+
+            String errorCode = extractJsonField(body, "error_code");
+            if ("RATE_LIMITED".equals(errorCode)) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached. Local fallback saved."), false);
+                if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+            } else if ("DUPLICATE_REPORT".equals(errorCode)) {
+                lastSubmissionStatus = "duplicate";
+                src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
+            } else {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server unavailable."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
+                if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                    saveLocalFallback(src, report, markdown);
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] Manual GitHub fallback is available with /sa submit local last"), false);
+                }
+            }
         }
     }
 
@@ -400,6 +527,15 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.opening_issue_url")), false);
         } catch (Exception e) {
             StutterAnalyzerMod.LOGGER.warn("[SA] Failed to schedule browser open: {}", e.getMessage());
+        }
+    }
+
+    // ── Migration notice ──────────────────────────────────────────────────────
+
+    private static void checkMigrationNotice(CommandSourceStack src) {
+        if (pendingMigrationNotice) {
+            pendingMigrationNotice = false;
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Submission config migrated: default submit now uses Cloudflare Worker. Manual GitHub browser flow is disabled."), false);
         }
     }
 
@@ -542,9 +678,15 @@ public class SubmissionManager {
         int idx = json.indexOf(key);
         if (idx < 0) return null;
         int start = idx + key.length();
-        while (start < json.length() && (json.charAt(start) == ' ' || json.charAt(start) == '"')) start++;
+        while (start < json.length() && json.charAt(start) == ' ') start++;
+        boolean quoted = start < json.length() && json.charAt(start) == '"';
+        if (quoted) start++;
         int end = start;
-        while (end < json.length() && json.charAt(end) != '"' && json.charAt(end) != ',' && json.charAt(end) != '}') end++;
+        if (quoted) {
+            while (end < json.length() && json.charAt(end) != '"') end++;
+        } else {
+            while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}' && json.charAt(end) != '\n') end++;
+        }
         return json.substring(start, end).trim();
     }
 

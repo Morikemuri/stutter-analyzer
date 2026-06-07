@@ -287,7 +287,7 @@ public class SAConfig {
         submissionTarget = b.comment("Submission target: cloudflare or local. Default is cloudflare.").define("submission_target", "cloudflare");
         cloudflareEndpoint = b.comment("Cloudflare Worker endpoint URL for report submission.").define("cloudflare_endpoint", "https://stutter-analyzer-reports.morikemuri.workers.dev/api/report");
         fallbackToLocal = b.comment("If Cloudflare submission fails, save report locally.").define("fallback_to_local", true);
-        askFirstTime = b.comment("Ask the player before the first Cloudflare submission.").define("ask_first_time", true);
+        askFirstTime = b.comment("Ask the player before the first Cloudflare submission. Default off - submit goes directly to Cloudflare.").define("ask_first_time", false);
         askEveryTime = b.comment("Ask the player before every Cloudflare submission.").define("ask_every_time", false);
         githubIssueUrl = b.comment("GitHub new issue URL (used only for /sa submit local last)").define("github_issue_url", "https://github.com/Morikemuri/stutter-analyzer/issues/new");
         copyIssueBodyToClipboard = b.comment("Copy issue body to clipboard (only for /sa submit local last).").define("copy_issue_body_to_clipboard", false);

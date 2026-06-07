@@ -2,6 +2,7 @@ package com.stutteranalyzer;
 
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.client.ClientSetup;
+import com.stutteranalyzer.submission.SubmissionManager;
 import com.stutteranalyzer.client.F3StatusLineRenderer;
 import com.stutteranalyzer.command.ClientCommandRegistrar;
 import com.stutteranalyzer.command.ServerCommandRegistrar;
@@ -31,8 +32,8 @@ public class StutterAnalyzerMod {
 
     public static final String MOD_ID      = "stutteranalyzer";
     public static final String MOD_VERSION = "1.0.0";
-    public static final String BUILD_DATE  = "2026-06-07-b4";
-    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing";
+    public static final String BUILD_DATE  = "2026-06-07-b5";
+    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,config-migration";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public StutterAnalyzerMod() {
@@ -90,6 +91,22 @@ public class StutterAnalyzerMod {
         event.enqueueWork(() -> {
             if (FMLEnvironment.dist != Dist.CLIENT) {
                 SubsystemHealth.setStatus("F3StatusLineRenderer", SubsystemHealth.Status.UNAVAILABLE, "dedicated server has no debug screen");
+            }
+
+            // Migrate legacy submission config (old defaults: submission_target=local, browser/clipboard=true)
+            try {
+                String target = SAConfig.INSTANCE.submissionTarget.get();
+                boolean browserOpen = SAConfig.INSTANCE.openIssueUrlOnClient.get();
+                boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
+                if ("local".equalsIgnoreCase(target) || browserOpen || clipboard) {
+                    SAConfig.INSTANCE.submissionTarget.set("cloudflare");
+                    SAConfig.INSTANCE.openIssueUrlOnClient.set(false);
+                    SAConfig.INSTANCE.copyIssueBodyToClipboard.set(false);
+                    LOGGER.info("[StutterAnalyzer] Submission config migrated: default submit now uses Cloudflare Worker. Manual GitHub browser flow is disabled.");
+                    SubmissionManager.setPendingMigrationNotice();
+                }
+            } catch (Throwable t) {
+                LOGGER.warn("[StutterAnalyzer] Config migration check failed: {}", t.getMessage());
             }
 
             try {

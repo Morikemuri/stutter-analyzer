@@ -820,6 +820,32 @@ public class CommonCommandLogic {
         return SubmissionManager.submitStatus(src);
     }
 
+    public static int submitModeCloudflare(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.submitModeCloudflare(src);
+    }
+
+    public static int submitModeLocal(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.submitModeLocal(src);
+    }
+
+    public static int submitModeStatus(CommandSourceStack src) {
+        return SubmissionManager.submitModeStatus(src);
+    }
+
+    public static int submitDebugRouting(CommandSourceStack src) {
+        return SubmissionManager.submitDebugRouting(src);
+    }
+
+    public static int submitHealth(CommandSourceStack src) {
+        return SubmissionManager.submitHealth(src);
+    }
+
     public static int generateTestReport(CommandSourceStack src) {
         if (!CommandPermissionHelper.canUseDebug(src)) {
             src.sendFailure(CommandFeedback.noPermission());
@@ -842,9 +868,13 @@ public class CommonCommandLogic {
 
     public static int debugCommandRouting(CommandSourceStack src) {
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
+        boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
         src.sendSuccess(() -> CommandFeedback.header("[SA] Command routing"), false);
         src.sendSuccess(() -> CommandFeedback.row("/sa status", "RichStatusCommand"), false);
         src.sendSuccess(() -> CommandFeedback.row("/stutteranalyzer status", "RichStatusCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit last", cfEnabled ? "CloudflareSubmitCommand" : "ManualGitHubIssueFlow (WRONG)"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit local last", "ManualGitHubIssueFlow (explicit)"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit debug-routing", "SubmitDebugRoutingCommand"), false);
         src.sendSuccess(() -> CommandFeedback.row("/sa version", "VersionCommand"), false);
         src.sendSuccess(() -> CommandFeedback.row("/sa update", "UpdateCommand"), false);
         src.sendSuccess(() -> CommandFeedback.row("/sa verbose on/off/status", "VerboseCommand"), false);
