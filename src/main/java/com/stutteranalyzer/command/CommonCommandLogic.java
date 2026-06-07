@@ -77,6 +77,7 @@ public class CommonCommandLogic {
             : "stutteranalyzer.cmd.status.side.dedicated";
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row("Status UI", "rich-v2"), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.state"), state), false);
         src.sendSuccess(() -> CommandFeedback.row("Side", Component.translatable(sideKey)), false);
         src.sendSuccess(() -> CommandFeedback.row(
@@ -812,19 +813,21 @@ public class CommonCommandLogic {
 
     public static int debugCommandRouting(CommandSourceStack src) {
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Command Routing"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa status", "CommonCommandLogic.showStatus"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa version", "CommonCommandLogic.showVersion"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa update check/status/link", "CommonCommandLogic.update*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa verbose on/off/status", "CommonCommandLogic.verbose*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa quiet on/off/status", "CommonCommandLogic.quiet*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa health", "CommonCommandLogic.showHealth"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa selfcheck", "CommonCommandLogic.selfCheck"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa debug test minor/medium/severe/extreme", "CommonCommandLogic.debugTest*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Server registrar", "ServerCommandRegistrar"), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Command routing"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa status", "RichStatusCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/stutteranalyzer status", "RichStatusCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa version", "VersionCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa update", "UpdateCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa verbose on/off/status", "VerboseCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa quiet on/off/status", "QuietCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa health", "HealthCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa selfcheck", "SelfCheckCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa debug test *", "DebugTestCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("All routes", "CommonCommandLogic (server-safe)"), false);
         if (isClient) {
             src.sendSuccess(() -> CommandFeedback.row("Client registrar", "ClientCommandRegistrar"), false);
         }
+        src.sendSuccess(() -> CommandFeedback.row("Server registrar", "ServerCommandRegistrar"), false);
         return 1;
     }
 
