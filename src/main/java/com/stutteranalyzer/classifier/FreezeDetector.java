@@ -1,9 +1,12 @@
 package com.stutteranalyzer.classifier;
 
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SafeExecutor;
 import com.stutteranalyzer.core.StutterCounter;
+import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.events.RecentEventBuffer;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.FreezeReport;
@@ -13,8 +16,13 @@ import java.util.List;
 
 /**
  * Entry point for freeze detection on both client and server.
- * Call onClientFrameSpike() from client tick, onServerTickSpike() from server tick.
- * Unknown freezes are not failure - they are Minecraft saying "guess what I did".
+ *
+ * Pipeline (always in this order, no early returns before step 4):
+ *   1. Detect stutter above minor threshold.
+ *   2. Update AnalyzerRuntimeState (live state for F3 and /sa status).
+ *   3. Update StutterCounter (windowed counts for F3 display).
+ *   4. Rate-limit expensive operations.
+ *   5. Full classification, report saving, chat notification.
  */
 public class FreezeDetector {
 
@@ -29,17 +37,31 @@ public class FreezeDetector {
     private static int unknownFreezeCount = 0;
 
     private static long lastReportTime = 0;
-    // Rate-limit full classification. One per 5 seconds is enough drama.
     private static final long REPORT_RATE_LIMIT_MS = 5000;
 
     public static void onClientFrameSpike(long frameMs, RecentEventBuffer buffer, boolean isDedicatedServer) {
         if (!SAConfig.INSTANCE.enableClientStutterDetection.get()) return;
-        if (frameMs < SAConfig.INSTANCE.minorFrameMs.get()) return;
+        // Strictly above threshold: normal 50ms ticks are NOT stutters
+        if (frameMs <= SAConfig.INSTANCE.minorFrameMs.get()) return;
 
-        // Always count before rate-limit so F3/status stay accurate
-        countSilent(frameMs);
+        // Step 1-3: Always update live state and counters - no rate limit
+        String severity = classifySeverityString(frameMs);
+        AnalyzerRuntimeState.recordStutter(frameMs, severity);
+        recordToCounter(frameMs);
+        updateVerbosePending(frameMs);
 
-        if (System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
+        if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
+            StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Real client frame spike detected: {}ms severity={}", frameMs, severity);
+        }
+
+        // Step 4: Rate-limit expensive operations (full classification, report write)
+        if (System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
+            if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
+                StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Full classification rate-limited ({}/{}ms)",
+                    System.currentTimeMillis() - lastReportTime, REPORT_RATE_LIMIT_MS);
+            }
+            return;
+        }
 
         SafeExecutor.run("FreezeDetector", () -> {
             List<RecentEventBuffer.GameEvent> recent = buffer.recentSeconds(30);
@@ -62,39 +84,56 @@ public class FreezeDetector {
         });
     }
 
-    private static void countSilent(long frameMs) {
-        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+    /** Record to the appropriate StutterCounter tier. */
+    private static void recordToCounter(long frameMs) {
         int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe = SAConfig.INSTANCE.severeFrameMs.get();
         if (frameMs < medium) {
             StutterCounter.recordMinor(frameMs);
-            if (com.stutteranalyzer.core.VerboseMode.isEnabled()) {
-                verboseNotificationPending = true;
-                verboseNotificationMs = frameMs;
-            }
-            // aggregate check
-            if (SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()) {
-                int window  = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
-                int thresh  = SAConfig.INSTANCE.minorStutterAggregateCount.get();
-                long coolMs = SAConfig.INSTANCE.minorStutterAggregateChatCooldownSeconds.get() * 1000L;
-                if (StutterCounter.shouldNotifyAggregate(window, thresh, coolMs)) {
-                    aggregatePendingNotification = true;
-                    aggregatePendingCount  = StutterCounter.minorCountInSeconds(window);
-                    aggregatePendingWorstMs = StutterCounter.worstMinorInSeconds(window);
-                }
-            }
+            checkAggregateThreshold(frameMs);
         } else if (frameMs < severe) {
             StutterCounter.recordMedium(frameMs);
-            if (com.stutteranalyzer.core.VerboseMode.isEnabled()) {
-                verboseNotificationPending = true;
-                verboseNotificationMs = frameMs;
+        } else {
+            StutterCounter.recordSevere(frameMs);
+        }
+    }
+
+    /** Set verbose notification flag if verbose mode is on. */
+    private static void updateVerbosePending(long frameMs) {
+        if (VerboseMode.isEnabled()) {
+            verboseNotificationPending = true;
+            verboseNotificationMs = frameMs;
+        }
+    }
+
+    /** Check aggregate minor stutter threshold for chat notification. */
+    private static void checkAggregateThreshold(long frameMs) {
+        if (SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()) {
+            int window  = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
+            int thresh  = SAConfig.INSTANCE.minorStutterAggregateCount.get();
+            long coolMs = SAConfig.INSTANCE.minorStutterAggregateChatCooldownSeconds.get() * 1000L;
+            if (StutterCounter.shouldNotifyAggregate(window, thresh, coolMs)) {
+                aggregatePendingNotification = true;
+                aggregatePendingCount   = StutterCounter.minorCountInSeconds(window);
+                aggregatePendingWorstMs = StutterCounter.worstMinorInSeconds(window);
             }
         }
     }
 
-    private static boolean shouldSaveReport(long durationMs) {
-        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+    private static String classifySeverityString(long frameMs) {
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
         int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
-        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        if (frameMs >= extreme) return "extreme";
+        if (frameMs >= severe)  return "severe";
+        if (frameMs >= medium)  return "medium";
+        return "minor";
+    }
+
+    private static boolean shouldSaveReport(long durationMs) {
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
         if (durationMs >= extreme) return SAConfig.INSTANCE.saveExtremeReports.get();
         if (durationMs >= severe)  return SAConfig.INSTANCE.saveSevereStutterReports.get();
         if (durationMs >= medium)  return SAConfig.INSTANCE.saveMediumStutterReports.get();
@@ -102,9 +141,9 @@ public class FreezeDetector {
     }
 
     private static boolean shouldNotifyChat(long durationMs) {
-        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
         int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
-        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
         if (durationMs >= extreme) return SAConfig.INSTANCE.chatNotifyExtremeFreeze.get();
         if (durationMs >= severe)  return SAConfig.INSTANCE.chatNotifySevereStutters.get();
         if (durationMs >= medium)  return SAConfig.INSTANCE.chatNotifyMediumStutters.get();
@@ -113,23 +152,29 @@ public class FreezeDetector {
 
     private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer, long durationMs) {
         lastFreezeEvent = event;
-        lastReportTime = System.currentTimeMillis();
+        lastReportTime  = System.currentTimeMillis();
         buffer.push(RecentEventBuffer.EventType.FREEZE_DETECTED, event.category().name() + " " + event.durationMs() + "ms");
 
-        // Notify chat only for stutters above the configured threshold
+        if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
+            StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Event classified: {} {}ms", event.category().name(), event.durationMs());
+        }
+
         if (event.category() == FreezeCategory.UNKNOWN_FREEZE && shouldNotifyChat(durationMs)) {
             unknownFreezePendingNotification = true;
             unknownFreezeCount++;
         }
 
-        // Save report only for stutters above the configured threshold
         if (shouldSaveReport(durationMs)) {
             FreezeReport report = FreezeReport.from(event);
             ReportWriter.writeAsync(report);
+            if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
+                StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Report saved for {}ms", durationMs);
+            }
+        } else if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
+            StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Report skipped: below threshold for {}ms", durationMs);
         }
     }
 
-    // kept for testing injection (injectForTesting always saves the report)
     private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer) {
         handleEvent(event, buffer, event.durationMs());
     }
@@ -137,16 +182,32 @@ public class FreezeDetector {
     public static FreezeEvent lastFreezeEvent() { return lastFreezeEvent; }
     public static int unknownFreezeCount() { return unknownFreezeCount; }
 
+    /**
+     * Inject a freeze event for testing (severe/extreme). Goes through full pipeline.
+     * Updates AnalyzerRuntimeState, StutterCounter, report saving, and chat.
+     */
     public static void injectForTesting(FreezeEvent event, RecentEventBuffer buffer) {
+        long durationMs = event.durationMs();
+        String severity = classifySeverityString(durationMs);
+        AnalyzerRuntimeState.recordStutter(durationMs, severity);
+        StutterCounter.recordSevere(durationMs);
         handleEvent(event, buffer);
     }
 
-    /** Simulates a silent stutter for /sa debug test minor/medium. */
+    /**
+     * Inject a silent stutter for testing (minor/medium). Updates live state and counters.
+     * Does NOT save a report. Does NOT go through the rate limiter.
+     */
     public static void injectSilent(long durationMs) {
-        countSilent(durationMs);
+        String severity = classifySeverityString(durationMs);
+        AnalyzerRuntimeState.recordStutter(durationMs, severity);
+        recordToCounter(durationMs);
+        updateVerbosePending(durationMs);
+        if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
+            StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Injected silent stutter: {}ms severity={}", durationMs, severity);
+        }
     }
 
-    /** Returns true (and clears flag) if an Unknown Freeze was detected since last check. */
     public static boolean consumeUnknownFreezeNotification() {
         if (unknownFreezePendingNotification) {
             unknownFreezePendingNotification = false;
@@ -155,7 +216,6 @@ public class FreezeDetector {
         return false;
     }
 
-    /** Returns the pending verbose stutter ms (0 = none) and clears the flag. */
     public static long consumeVerboseNotification() {
         if (verboseNotificationPending) {
             verboseNotificationPending = false;
@@ -164,7 +224,6 @@ public class FreezeDetector {
         return 0;
     }
 
-    /** Returns [count, worstMs] if an aggregate notification is pending, null otherwise. */
     public static long[] consumeAggregateNotification() {
         if (aggregatePendingNotification) {
             aggregatePendingNotification = false;

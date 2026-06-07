@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
- * Thread-safe windowed counters for minor and medium stutters.
+ * Thread-safe windowed counters for minor, medium, and severe stutters.
  * Updated before the rate-limiter gate so F3/status show real counts.
  * No file I/O, no report generation.
  */
@@ -16,10 +16,12 @@ public class StutterCounter {
 
     private static final Deque<Entry> minorEntries  = new ArrayDeque<>();
     private static final Deque<Entry> mediumEntries = new ArrayDeque<>();
+    private static final Deque<Entry> severeEntries = new ArrayDeque<>();
 
     private static long lastMinorMs   = -1;
     private static long lastMinorTime = 0;
     private static long lastMediumMs  = -1;
+    private static long lastSevereMs  = -1;
 
     private static long lastAggregateChatTime = 0;
 
@@ -38,6 +40,13 @@ public class StutterCounter {
         prune(mediumEntries, now, STATUS_WINDOW_MS);
     }
 
+    public static synchronized void recordSevere(long durationMs) {
+        long now = System.currentTimeMillis();
+        lastSevereMs = durationMs;
+        severeEntries.addLast(new Entry(now, durationMs));
+        prune(severeEntries, now, STATUS_WINDOW_MS);
+    }
+
     public static synchronized int minorCountInSeconds(int seconds) {
         long cutoff = System.currentTimeMillis() - seconds * 1000L;
         prune(minorEntries, System.currentTimeMillis(), STATUS_WINDOW_MS);
@@ -50,6 +59,12 @@ public class StutterCounter {
         return (int) mediumEntries.stream().filter(e -> e.time() >= cutoff).count();
     }
 
+    public static synchronized int severeCountInSeconds(int seconds) {
+        long cutoff = System.currentTimeMillis() - seconds * 1000L;
+        prune(severeEntries, System.currentTimeMillis(), STATUS_WINDOW_MS);
+        return (int) severeEntries.stream().filter(e -> e.time() >= cutoff).count();
+    }
+
     public static synchronized long worstMinorInSeconds(int seconds) {
         long cutoff = System.currentTimeMillis() - seconds * 1000L;
         return minorEntries.stream()
@@ -58,8 +73,25 @@ public class StutterCounter {
             .max().orElse(0);
     }
 
+    public static synchronized long worstMediumInSeconds(int seconds) {
+        long cutoff = System.currentTimeMillis() - seconds * 1000L;
+        return mediumEntries.stream()
+            .filter(e -> e.time() >= cutoff)
+            .mapToLong(Entry::durationMs)
+            .max().orElse(0);
+    }
+
+    public static synchronized long worstSevereInSeconds(int seconds) {
+        long cutoff = System.currentTimeMillis() - seconds * 1000L;
+        return severeEntries.stream()
+            .filter(e -> e.time() >= cutoff)
+            .mapToLong(Entry::durationMs)
+            .max().orElse(0);
+    }
+
     public static synchronized long lastMinorMs()    { return lastMinorMs; }
     public static synchronized long lastMediumMs()   { return lastMediumMs; }
+    public static synchronized long lastSevereMs()   { return lastSevereMs; }
     public static synchronized long lastMinorAgeSecs() {
         return lastMinorTime <= 0 ? -1 : (System.currentTimeMillis() - lastMinorTime) / 1000L;
     }

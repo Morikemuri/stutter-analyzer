@@ -1,8 +1,10 @@
 package com.stutteranalyzer.command;
 
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
@@ -36,21 +38,20 @@ public class CommonCommandLogic {
 
     public static int showStatus(CommandSourceStack src) {
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
-        boolean isDedicated = src.getServer().isDedicatedServer();
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
         boolean degraded = SubsystemHealth.anyDegraded();
 
-        int minorIn60  = StutterCounter.minorCountInSeconds(60);
-        int mediumIn60 = StutterCounter.mediumCountInSeconds(60);
-        long lastMinorMs = StutterCounter.lastMinorMs();
-        long lastMinorAge = StutterCounter.lastMinorAgeSecs();
+        int minorIn60   = StutterCounter.minorCountInSeconds(60);
+        int mediumIn60  = StutterCounter.mediumCountInSeconds(60);
+        int severeIn60  = StutterCounter.severeCountInSeconds(60);
+        long worstMinor = StutterCounter.worstMinorInSeconds(60);
+        long worstMedium = StutterCounter.worstMediumInSeconds(60);
+        String lastSeverity = AnalyzerRuntimeState.lastStutterSeverity();
+        long lastDurationMs = AnalyzerRuntimeState.lastStutterDurationMs();
 
         Component state = Component.translatable(degraded
             ? "stutteranalyzer.cmd.status.state_degraded"
             : "stutteranalyzer.cmd.status.state_active");
-        Component lastFreezeValue = last != null
-            ? Component.literal(last.category() + ", " + last.durationMs() + " ms")
-            : Component.translatable("stutteranalyzer.cmd.status.no_freeze");
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.state"), state), false);
@@ -63,53 +64,65 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.cmd.status.tracker_on")
         ), false);
 
-        // Minor stutter info
-        if (lastMinorMs > 0) {
-            String ageStr = lastMinorAge >= 0 ? lastMinorAge + "s ago" : "unknown";
+        // Live stutter state
+        if (lastDurationMs > 0) {
             src.sendSuccess(() -> CommandFeedback.row(
-                Component.translatable("stutteranalyzer.cmd.status.last_minor"),
-                Component.literal(lastMinorMs + " ms, " + ageStr)
+                Component.translatable("stutteranalyzer.cmd.status.last_stutter"),
+                Component.literal(lastSeverity + " " + lastDurationMs + "ms")
             ), false);
         }
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.minor_count"),
-            Component.literal(minorIn60 + " in last 60s")
+            Component.literal(minorIn60 + " in last 60s" + (worstMinor > 0 ? " | worst: " + worstMinor + "ms" : ""))
         ), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.medium_count"),
-            Component.literal(mediumIn60 + " in last 60s")
+            Component.literal(mediumIn60 + " in last 60s" + (worstMedium > 0 ? " | worst: " + worstMedium + "ms" : ""))
         ), false);
-
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.last_freeze"), lastFreezeValue), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.severe_count"),
+            Component.literal(severeIn60 + " in last 60s")
+        ), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.reports_saved"),
             String.valueOf(ReportWriter.savedReports())
         ), false);
 
-        // Chat notification mode
-        boolean chatMinor = SAConfig.INSTANCE.chatNotifyMinorStutters.get();
-        boolean chatMedium = SAConfig.INSTANCE.chatNotifyMediumStutters.get();
-        String chatMode = chatMinor ? "all" : chatMedium ? "medium+" : "severe+ only";
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.chat_notifications"),
-            Component.literal(chatMode + (VerboseMode.isEnabled() ? " [verbose ON]" : ""))
-        ), false);
+        // Last classified event (severe/extreme only)
+        if (last != null) {
+            Component lastFreezeValue = Component.literal(last.category() + ", " + last.durationMs() + " ms");
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.last_freeze"), lastFreezeValue), false);
+        }
 
-        // Submission mode
-        String target = SAConfig.INSTANCE.submissionTarget.get();
-        String cfEndpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
-        String submissionInfo = "cloudflare".equalsIgnoreCase(target) && !cfEndpoint.isBlank()
-            ? "Cloudflare enabled" : "local only";
+        // Chat and verbose mode
+        boolean chatMinor  = SAConfig.INSTANCE.chatNotifyMinorStutters.get();
+        boolean chatMedium = SAConfig.INSTANCE.chatNotifyMediumStutters.get();
+        boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
         src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.submission"),
-            Component.literal(submissionInfo)
+            Component.translatable("stutteranalyzer.cmd.status.chat_minor"),
+            Component.translatable(chatMinor ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.chat_medium"),
+            Component.translatable(chatMedium ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.chat_severe"),
+            Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.verbose_mode"),
+            Component.translatable(VerboseMode.isEnabled() ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
         ), false);
 
         if (degraded)
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
 
-        // Hint if minor stutters are silent
-        if (minorIn60 > 0 && !chatMinor && !VerboseMode.isEnabled()) {
+        // Hint when nothing recorded yet
+        if (minorIn60 == 0 && mediumIn60 == 0 && severeIn60 == 0) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa debug test minor to verify the pipeline."), false);
+        } else if (minorIn60 > 0 && !chatMinor && !VerboseMode.isEnabled()) {
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.status.minor_silent_hint")), false);
         }
         return 1;
@@ -295,16 +308,25 @@ public class CommonCommandLogic {
     public static int debugTestMinor(CommandSourceStack src) {
         if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         FreezeDetector.injectSilent(55);
-        src.sendSuccess(() -> CommandFeedback.debug("Simulated minor stutter (55ms). Check F3 and /sa status."), true);
-        if (!VerboseMode.isEnabled())
+        // Request immediate F3 refresh so user sees the update without waiting
+        AnalyzerRuntimeState.requestF3Refresh();
+        int minorIn60 = StutterCounter.minorCountInSeconds(60);
+        long worstMinor = StutterCounter.worstMinorInSeconds(60);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected minor stutter 55ms."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status counters should now show Minor: " + minorIn60 + "/60s | Worst: " + worstMinor + "ms"), false);
+        if (!VerboseMode.isEnabled()) {
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.verbose.test_minor_hint")), false);
+        }
         return 1;
     }
 
     public static int debugTestMedium(CommandSourceStack src) {
         if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         FreezeDetector.injectSilent(150);
-        src.sendSuccess(() -> CommandFeedback.debug("Simulated medium stutter (150ms). Check F3 and /sa status."), true);
+        AnalyzerRuntimeState.requestF3Refresh();
+        int mediumIn60 = StutterCounter.mediumCountInSeconds(60);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected medium stutter 150ms."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status counters should now show Medium: " + mediumIn60 + "/60s"), false);
         return 1;
     }
 
@@ -320,7 +342,69 @@ public class CommonCommandLogic {
             "This is a test. Use /sa submit last to test submission."
         );
         FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
-        src.sendSuccess(() -> CommandFeedback.debug("Simulated severe freeze (300ms). Report saved. Check /sa last."), true);
+        AnalyzerRuntimeState.requestF3Refresh();
+        int reports = ReportWriter.savedReports();
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected severe freeze 300ms. Report saved."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] F3 should now show: UNKNOWN_FREEZE 300ms | Reports: " + reports), false);
+        return 1;
+    }
+
+    public static int debugTestExtreme(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
+        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
+        FreezeEvent testEvent = new FreezeEvent(
+            FreezeCategory.UNKNOWN_FREEZE, 0.5,
+            "Synthetic extreme freeze test (1200ms, /sa debug test extreme)",
+            "Artificially generated for testing",
+            isClient ? "client" : "dedicated-server", 1200L,
+            MetricsCollector.eventBuffer().snapshot(),
+            "This is an extreme freeze test. Use /sa submit last to test submission."
+        );
+        FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
+        AnalyzerRuntimeState.requestF3Refresh();
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected extreme freeze 1200ms. Report saved."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa last and /sa status to verify."), false);
+        return 1;
+    }
+
+    public static int debugVisibilityTest(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
+        // Step 1: inject minor
+        FreezeDetector.injectSilent(55);
+        // Step 2: inject medium
+        FreezeDetector.injectSilent(150);
+        // Step 3: inject severe (saves report)
+        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
+        FreezeEvent severeEvent = new FreezeEvent(
+            FreezeCategory.UNKNOWN_FREEZE, 0.5,
+            "Visibility test severe (300ms)",
+            "Generated by /sa debug visibility-test",
+            isClient ? "client" : "dedicated-server", 300L,
+            MetricsCollector.eventBuffer().snapshot(),
+            "Visibility test event."
+        );
+        FreezeDetector.injectForTesting(severeEvent, MetricsCollector.eventBuffer());
+        AnalyzerRuntimeState.requestF3Refresh();
+
+        int minorIn60  = StutterCounter.minorCountInSeconds(60);
+        int mediumIn60 = StutterCounter.mediumCountInSeconds(60);
+        int reports    = ReportWriter.savedReports();
+
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Visibility test complete."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Expected:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Minor counter: " + minorIn60 + " (should be >= 1)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Medium counter: " + mediumIn60 + " (should be >= 1)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Severe report saved (Reports: " + reports + " should be >= 1)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- F3 should show UNKNOWN_FREEZE 300ms"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Use /sa status to verify all counters."), false);
+        return 1;
+    }
+
+    public static int showVersion(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.header("[SA] StutterAnalyzer Version Info"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerMod.MOD_VERSION), false);
+        src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerMod.BUILD_DATE), false);
+        src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerMod.BUILD_FEATURES), false);
         return 1;
     }
 

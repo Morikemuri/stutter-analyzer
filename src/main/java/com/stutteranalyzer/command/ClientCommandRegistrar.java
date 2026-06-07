@@ -161,7 +161,15 @@ public class ClientCommandRegistrar {
                     .then(Commands.literal("medium")
                         .executes(ctx -> CommonCommandLogic.debugTestMedium(ctx.getSource())))
                     .then(Commands.literal("severe")
-                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))))
+                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))
+                    .then(Commands.literal("extreme")
+                        .executes(ctx -> CommonCommandLogic.debugTestExtreme(ctx.getSource()))))
+                .then(Commands.literal("visibility-test")
+                    .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource()))))
+
+            // ── version ───────────────────────────────────────────────────────
+            .then(Commands.literal("version")
+                .executes(ctx -> CommonCommandLogic.showVersion(ctx.getSource())))
         );
     }
 }

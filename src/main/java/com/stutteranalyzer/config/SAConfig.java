@@ -84,6 +84,9 @@ public class SAConfig {
     public final ForgeConfigSpec.IntValue minorStutterAggregateCount;
     public final ForgeConfigSpec.IntValue minorStutterAggregateChatCooldownSeconds;
 
+    // ── [debug] ───────────────────────────────────────────────────────────
+    public final ForgeConfigSpec.BooleanValue logDetectionPipeline;
+
     // ── [notifications] verbose mode ──────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue verboseMode;
     public final ForgeConfigSpec.BooleanValue verboseModeSessionOnly;
@@ -223,6 +226,10 @@ public class SAConfig {
         minorStutterAggregateWindowSeconds = b.comment("Time window (seconds) for aggregating minor stutters.").defineInRange("minor_stutter_aggregate_window_seconds", 30, 5, 3600);
         minorStutterAggregateCount = b.comment("Number of minor stutters within the window to trigger a cluster report.").defineInRange("minor_stutter_aggregate_count", 5, 2, 100);
         minorStutterAggregateChatCooldownSeconds = b.comment("Minimum seconds between aggregate minor stutter chat messages.").defineInRange("minor_stutter_aggregate_chat_cooldown_seconds", 60, 5, 3600);
+        b.pop();
+
+        b.comment("Debug and development logging").push("debug");
+        logDetectionPipeline = b.comment("Log every stutter detection event to latest.log. Very verbose - disabled by default.").define("log_detection_pipeline", false);
         b.pop();
 
         b.comment("Verbose notification mode").push("notifications");

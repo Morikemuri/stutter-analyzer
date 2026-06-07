@@ -3,6 +3,7 @@ package com.stutteranalyzer.client;
 import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
@@ -34,16 +35,21 @@ public class ClientSetup {
 
         MetricsCollector.onClientTick();
         long frameMs = (long) MetricsCollector.frameTime().currentFrameMs();
-        if (frameMs >= SAConfig.INSTANCE.minorFrameMs.get()) {
+        // Strictly above threshold: a tick of exactly minorFrameMs is normal, not a stutter
+        if (frameMs > SAConfig.INSTANCE.minorFrameMs.get()) {
             FreezeDetector.onClientFrameSpike(frameMs, MetricsCollector.eventBuffer(), false);
+        }
+
+        // Immediate F3 refresh requested by debug commands or stutter injection
+        if (AnalyzerRuntimeState.consumeF3RefreshRequest()) {
+            safeRefreshF3();
         }
 
         tickCounter++;
         if (tickCounter % 20 == 0) {
-            try {
-                DebugHudStatusProvider.refresh();
-            } catch (Throwable ignored) {}
+            safeRefreshF3();
         }
+
         // Severe/extreme freeze chat notification with cooldown
         if (FreezeDetector.consumeUnknownFreezeNotification()) {
             long cooldownMs = SAConfig.INSTANCE.chatNotificationCooldownSeconds.get() * 1000L;
@@ -80,6 +86,14 @@ public class ClientSetup {
                 mc.player.sendSystemMessage(Component.translatable(
                     "stutteranalyzer.verbose.aggregate", count, window, worst));
             }
+        }
+    }
+
+    private static void safeRefreshF3() {
+        try {
+            DebugHudStatusProvider.refresh();
+        } catch (Throwable t) {
+            StutterAnalyzerMod.LOGGER.error("[SA] F3 refresh failed: {}", t.getMessage(), t);
         }
     }
 

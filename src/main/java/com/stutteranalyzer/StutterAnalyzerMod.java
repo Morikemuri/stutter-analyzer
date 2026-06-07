@@ -26,7 +26,10 @@ import org.apache.logging.log4j.Logger;
 @Mod("stutteranalyzer")
 public class StutterAnalyzerMod {
 
-    public static final String MOD_ID = "stutteranalyzer";
+    public static final String MOD_ID      = "stutteranalyzer";
+    public static final String MOD_VERSION = "1.0.0";
+    public static final String BUILD_DATE  = "2026-06-07";
+    public static final String BUILD_FEATURES = "stutter-counter,verbose-mode,cloudflare-submit,debug-visibility,pipeline-fix";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public StutterAnalyzerMod() {
@@ -58,7 +61,8 @@ public class StutterAnalyzerMod {
             MinecraftForge.EVENT_BUS.addListener(ClientCommandRegistrar::onRegisterClientCommands);
         }
 
-        LOGGER.info("[StutterAnalyzer] Initializing...");
+        LOGGER.info("[StutterAnalyzer] Loaded StutterAnalyzer {} build {} features=[{}]",
+            MOD_VERSION, BUILD_DATE, BUILD_FEATURES);
     }
 
     private static volatile long serverTickStart = 0;

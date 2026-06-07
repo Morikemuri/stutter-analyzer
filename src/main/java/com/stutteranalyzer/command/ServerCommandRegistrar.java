@@ -23,6 +23,10 @@ public class ServerCommandRegistrar {
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher, String root) {
         dispatcher.register(Commands.literal(root)
 
+            // ── version ───────────────────────────────────────────────────────
+            .then(Commands.literal("version")
+                .executes(ctx -> CommonCommandLogic.showVersion(ctx.getSource())))
+
             // ── status / health / last / help / selfcheck (level 0) ──────────
             .then(Commands.literal("status")
                 .executes(ctx -> CommonCommandLogic.showStatus(ctx.getSource())))
@@ -201,7 +205,11 @@ public class ServerCommandRegistrar {
                     .then(Commands.literal("medium")
                         .executes(ctx -> CommonCommandLogic.debugTestMedium(ctx.getSource())))
                     .then(Commands.literal("severe")
-                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))))
+                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))
+                    .then(Commands.literal("extreme")
+                        .executes(ctx -> CommonCommandLogic.debugTestExtreme(ctx.getSource()))))
+                .then(Commands.literal("visibility-test")
+                    .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource()))))
 
             // ── verbose mode ─────────────────────────────────────────────────
             .then(Commands.literal("verbose")
