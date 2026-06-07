@@ -70,7 +70,7 @@ public class ClientSetup {
             if ((showMinor || showMedium) && VerboseMode.tryNotify(SAConfig.INSTANCE.verboseChatCooldownSeconds.get())) {
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player != null) {
-                    mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.verbose.stutter_detected", verboseMs));
+                    mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.verbose.stutter_detected", verboseMs).withStyle(ChatFormatting.GREEN));
                 }
             }
         }
@@ -84,7 +84,7 @@ public class ClientSetup {
                 long worst = aggregate[1];
                 int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
                 mc.player.sendSystemMessage(Component.translatable(
-                    "stutteranalyzer.verbose.aggregate", count, window, worst));
+                    "stutteranalyzer.verbose.aggregate", count, window, worst).withStyle(ChatFormatting.GREEN));
             }
         }
     }
@@ -107,9 +107,9 @@ public class ClientSetup {
         if (mc.player == null) return;
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
         if (last != null) {
-            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify_duration", last.durationMs()));
+            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify_duration", last.durationMs()).withStyle(ChatFormatting.GREEN));
         } else {
-            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify"));
+            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify").withStyle(ChatFormatting.GREEN));
         }
     }
 
@@ -119,7 +119,7 @@ public class ClientSetup {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (SAConfig.INSTANCE.mentionSilentMinorTracking.get()) {
-            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.startup.loaded_silent"));
+            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.startup.loaded_silent").withStyle(ChatFormatting.GREEN));
         } else {
             mc.player.sendSystemMessage(
                 Component.literal("[Stutter Analyzer] ").withStyle(ChatFormatting.GRAY)

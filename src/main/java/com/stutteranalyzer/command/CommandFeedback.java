@@ -35,7 +35,7 @@ public class CommandFeedback {
 
     public static Component row(String label, String value) {
         return Component.literal("  " + label + ": ").withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(value).withStyle(ChatFormatting.WHITE));
+            .append(Component.literal(value).withStyle(ChatFormatting.GREEN));
     }
 
     // Component overloads - for translatable content
@@ -63,7 +63,7 @@ public class CommandFeedback {
     // String label, translated Component value
     public static Component row(String label, Component value) {
         return Component.literal("  " + label + ": ").withStyle(ChatFormatting.GRAY)
-            .append(value.copy().withStyle(ChatFormatting.WHITE));
+            .append(value.copy().withStyle(ChatFormatting.GREEN));
     }
 
     // Translated label, dynamic String value
@@ -71,7 +71,7 @@ public class CommandFeedback {
         return Component.literal("  ").withStyle(ChatFormatting.GRAY)
             .append(label.copy().withStyle(ChatFormatting.GRAY))
             .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(value).withStyle(ChatFormatting.WHITE));
+            .append(Component.literal(value).withStyle(ChatFormatting.GREEN));
     }
 
     // Both label and value are translatable Components
@@ -79,7 +79,7 @@ public class CommandFeedback {
         return Component.literal("  ").withStyle(ChatFormatting.GRAY)
             .append(label.copy().withStyle(ChatFormatting.GRAY))
             .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
-            .append(value.copy().withStyle(ChatFormatting.WHITE));
+            .append(value.copy().withStyle(ChatFormatting.GREEN));
     }
 
     public static Component noPermission() {
