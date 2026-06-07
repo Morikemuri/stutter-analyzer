@@ -77,8 +77,9 @@
   "stutteranalyzer.cmd.help.debug": "/sa debug ...         - Debug commands (requires op + debug mode)",
 
   "stutteranalyzer.cmd.selfcheck.header": "StutterAnalyzer Self-Check",
-  "stutteranalyzer.cmd.selfcheck.overall_ok": "SA result: %s",
-  "stutteranalyzer.cmd.selfcheck.overall_warn": "SA result: %s. Use /sa health for details.",
+  "stutteranalyzer.cmd.selfcheck.overall_ok": "Result: %s",
+  "stutteranalyzer.cmd.selfcheck.overall_warn": "Result: %s. Use /sa health for details.",
+  "stutteranalyzer.cmd.selfcheck.unknown_freeze_hint": "Unknown Freeze in last report! Use /sa submit last to report it.",
 
   "stutteranalyzer.cmd.f3.enabled": "enabled",
   "stutteranalyzer.cmd.f3.disabled": "disabled",

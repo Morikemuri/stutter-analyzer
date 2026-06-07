@@ -452,6 +452,10 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> (result.isHealthy()
             ? CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.selfcheck.overall_ok", overall))
             : CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.selfcheck.overall_warn", overall))), false);
+        FreezeReport lastForHint = ReportWriter.lastReport();
+        if (lastForHint != null && lastForHint.event.category().name().equals("UNKNOWN_FREEZE")) {
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.selfcheck.unknown_freeze_hint")), false);
+        }
         return 1;
     }
 

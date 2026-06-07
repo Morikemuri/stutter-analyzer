@@ -5,6 +5,7 @@ import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.report.FreezeEvent;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
@@ -58,7 +59,10 @@ public class ClientSetup {
         if (SAConfig.INSTANCE.showStartupMessageOncePerSession.get() && startupMessageShown) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.startup.loaded"));
+        mc.player.sendSystemMessage(
+            Component.literal("[Stutter Analyzer] ").withStyle(ChatFormatting.GRAY)
+            .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN))
+        );
         startupMessageShown = true;
     }
 }
