@@ -166,6 +166,7 @@ public class ServerCommandRegistrar {
                 .then(Commands.literal("send")
                     .executes(ctx -> CommonCommandLogic.submitSend(ctx.getSource())))
                 .then(Commands.literal("confirm")
+                    .executes(ctx -> CommonCommandLogic.submitConfirmLast(ctx.getSource()))
                     .then(Commands.literal("last")
                         .executes(ctx -> CommonCommandLogic.submitConfirmLast(ctx.getSource())))
                     .then(Commands.argument("prepared_id", StringArgumentType.greedyString())
