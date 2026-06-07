@@ -19,6 +19,7 @@ public class ClientSetup {
 
     private static boolean startupMessageShown = false;
     private static int tickCounter = 0;
+    private static long lastChatNotifyTime = 0;
 
     public static void onClientSetup(FMLClientSetupEvent event) {
         StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Client setup complete.");
@@ -42,7 +43,12 @@ public class ClientSetup {
             } catch (Throwable ignored) {}
         }
         if (FreezeDetector.consumeUnknownFreezeNotification()) {
-            showUnknownFreezeNotification();
+            long cooldownMs = SAConfig.INSTANCE.chatNotificationCooldownSeconds.get() * 1000L;
+            long now = System.currentTimeMillis();
+            if (now - lastChatNotifyTime >= cooldownMs) {
+                showUnknownFreezeNotification();
+                lastChatNotifyTime = now;
+            }
         }
     }
 

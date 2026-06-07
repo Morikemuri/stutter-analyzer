@@ -35,7 +35,7 @@ public class FreezeDetector {
             List<RecentEventBuffer.GameEvent> recent = buffer.recentSeconds(30);
             FreezeEvent event = classifier.classify(frameMs, true, isDedicatedServer,
                 MetricsCollector.frameTime(), MetricsCollector.serverTick(), MetricsCollector.memoryGc(), recent);
-            handleEvent(event, buffer);
+            handleEvent(event, buffer, frameMs);
         });
     }
 
@@ -48,20 +48,51 @@ public class FreezeDetector {
             List<RecentEventBuffer.GameEvent> recent = buffer.recentSeconds(30);
             FreezeEvent event = classifier.classify(mspt, false, isDedicatedServer,
                 MetricsCollector.frameTime(), MetricsCollector.serverTick(), MetricsCollector.memoryGc(), recent);
-            handleEvent(event, buffer);
+            handleEvent(event, buffer, mspt);
         });
     }
 
-    private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer) {
+    private static boolean shouldSaveReport(long durationMs) {
+        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+        if (durationMs >= extreme) return SAConfig.INSTANCE.saveExtremeReports.get();
+        if (durationMs >= severe)  return SAConfig.INSTANCE.saveSevereStutterReports.get();
+        if (durationMs >= medium)  return SAConfig.INSTANCE.saveMediumStutterReports.get();
+        return SAConfig.INSTANCE.saveMinorStutterReports.get();
+    }
+
+    private static boolean shouldNotifyChat(long durationMs) {
+        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+        if (durationMs >= extreme) return SAConfig.INSTANCE.chatNotifyExtremeFreeze.get();
+        if (durationMs >= severe)  return SAConfig.INSTANCE.chatNotifySevereStutters.get();
+        if (durationMs >= medium)  return SAConfig.INSTANCE.chatNotifyMediumStutters.get();
+        return SAConfig.INSTANCE.chatNotifyMinorStutters.get();
+    }
+
+    private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer, long durationMs) {
         lastFreezeEvent = event;
         lastReportTime = System.currentTimeMillis();
         buffer.push(RecentEventBuffer.EventType.FREEZE_DETECTED, event.category().name() + " " + event.durationMs() + "ms");
-        if (event.category() == FreezeCategory.UNKNOWN_FREEZE) {
+
+        // Notify chat only for stutters above the configured threshold
+        if (event.category() == FreezeCategory.UNKNOWN_FREEZE && shouldNotifyChat(durationMs)) {
             unknownFreezePendingNotification = true;
             unknownFreezeCount++;
         }
-        FreezeReport report = FreezeReport.from(event);
-        ReportWriter.writeAsync(report);
+
+        // Save report only for stutters above the configured threshold
+        if (shouldSaveReport(durationMs)) {
+            FreezeReport report = FreezeReport.from(event);
+            ReportWriter.writeAsync(report);
+        }
+    }
+
+    // kept for testing injection (injectForTesting always saves the report)
+    private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer) {
+        handleEvent(event, buffer, event.durationMs());
     }
 
     public static FreezeEvent lastFreezeEvent() { return lastFreezeEvent; }

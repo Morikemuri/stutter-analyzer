@@ -67,10 +67,30 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue includeSystemInfo;
     public final ForgeConfigSpec.BooleanValue includeRecentEvents;
 
+    // ── [reports] chat + auto-report thresholds ───────────────────────────
+    public final ForgeConfigSpec.BooleanValue saveMinorStutterReports;
+    public final ForgeConfigSpec.BooleanValue saveMediumStutterReports;
+    public final ForgeConfigSpec.BooleanValue saveSevereStutterReports;
+    public final ForgeConfigSpec.BooleanValue saveExtremeReports;
+    public final ForgeConfigSpec.BooleanValue chatNotifyMinorStutters;
+    public final ForgeConfigSpec.BooleanValue chatNotifyMediumStutters;
+    public final ForgeConfigSpec.BooleanValue chatNotifySevereStutters;
+    public final ForgeConfigSpec.BooleanValue chatNotifyExtremeFreeze;
+    public final ForgeConfigSpec.IntValue minimumAutoReportFrameMs;
+    public final ForgeConfigSpec.IntValue minimumAutoReportMspt;
+    public final ForgeConfigSpec.IntValue chatNotificationCooldownSeconds;
+    public final ForgeConfigSpec.BooleanValue aggregateRepeatedMinorStutters;
+    public final ForgeConfigSpec.IntValue minorStutterAggregateWindowSeconds;
+    public final ForgeConfigSpec.IntValue minorStutterAggregateCount;
+
     // ── [submission] ──────────────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue enableManualSubmission;
     public final ForgeConfigSpec.BooleanValue enableAutomaticUnknownFreezeUpload;
     public final ForgeConfigSpec.ConfigValue<String> submissionTarget;
+    public final ForgeConfigSpec.ConfigValue<String> cloudflareEndpoint;
+    public final ForgeConfigSpec.BooleanValue fallbackToLocal;
+    public final ForgeConfigSpec.BooleanValue askFirstTime;
+    public final ForgeConfigSpec.BooleanValue askEveryTime;
     public final ForgeConfigSpec.ConfigValue<String> githubIssueUrl;
     public final ForgeConfigSpec.BooleanValue copyIssueBodyToClipboard;
     public final ForgeConfigSpec.BooleanValue openIssueUrlOnClient;
@@ -179,12 +199,30 @@ public class SAConfig {
         includeModList = b.comment("Include the loaded mod list in reports").define("include_mod_list", true);
         includeSystemInfo = b.comment("Include system info (Java, OS, CPU, memory) in reports").define("include_system_info", true);
         includeRecentEvents = b.comment("Include the recent event timeline in reports").define("include_recent_events", true);
+        saveMinorStutterReports = b.comment("Save reports for minor stutters (50-99ms). Disabled by default - tracking only.").define("save_minor_stutter_reports", false);
+        saveMediumStutterReports = b.comment("Save reports for medium stutters (100-249ms). Disabled by default.").define("save_medium_stutter_reports", false);
+        saveSevereStutterReports = b.comment("Save reports for severe stutters (250-999ms).").define("save_severe_stutter_reports", true);
+        saveExtremeReports = b.comment("Save reports for extreme freezes (1000ms+).").define("save_extreme_freeze_reports", true);
+        chatNotifyMinorStutters = b.comment("Send chat notification for minor stutters. Disabled - F3 only.").define("chat_notify_minor_stutters", false);
+        chatNotifyMediumStutters = b.comment("Send chat notification for medium stutters. Disabled by default.").define("chat_notify_medium_stutters", false);
+        chatNotifySevereStutters = b.comment("Send chat notification for severe stutters (250ms+).").define("chat_notify_severe_stutters", true);
+        chatNotifyExtremeFreeze = b.comment("Send chat notification for extreme freezes (1000ms+).").define("chat_notify_extreme_freezes", true);
+        minimumAutoReportFrameMs = b.comment("Minimum frame time (ms) to auto-save and notify. Reports below this are tracked silently.").defineInRange("minimum_auto_report_frame_ms", 250, 1, 60000);
+        minimumAutoReportMspt = b.comment("Minimum MSPT to auto-save a server tick report.").defineInRange("minimum_auto_report_mspt", 100, 1, 60000);
+        chatNotificationCooldownSeconds = b.comment("Minimum seconds between chat notifications. Prevents spam.").defineInRange("chat_notification_cooldown_seconds", 15, 1, 3600);
+        aggregateRepeatedMinorStutters = b.comment("Aggregate repeated minor stutters into a cluster report instead of spamming.").define("aggregate_repeated_minor_stutters", true);
+        minorStutterAggregateWindowSeconds = b.comment("Time window (seconds) for aggregating minor stutters.").defineInRange("minor_stutter_aggregate_window_seconds", 30, 5, 3600);
+        minorStutterAggregateCount = b.comment("Number of minor stutters within the window to trigger a cluster report.").defineInRange("minor_stutter_aggregate_count", 5, 2, 100);
         b.pop();
 
         b.comment("Report submission").push("submission");
         enableManualSubmission = b.comment("Allow manual report submission through commands").define("enable_manual_submission", true);
         enableAutomaticUnknownFreezeUpload = b.comment("Upload unknown freeze reports automatically. DISABLED by default. Automatic uploads require explicit opt-in - trust matters more than data hoarding.").define("enable_automatic_unknown_freeze_upload", false);
-        submissionTarget = b.comment("Submission target: local or github. Default is local - reports are never uploaded without explicit opt-in.").define("submission_target", "local");
+        submissionTarget = b.comment("Submission target: local, cloudflare, or github. Default is local.").define("submission_target", "local");
+        cloudflareEndpoint = b.comment("Cloudflare Worker endpoint URL for report submission. Leave empty to use local only.").define("cloudflare_endpoint", "https://stutter-analyzer-reports.morikemuri.workers.dev/api/report");
+        fallbackToLocal = b.comment("If Cloudflare submission fails, save report locally.").define("fallback_to_local", true);
+        askFirstTime = b.comment("Ask the player before the first Cloudflare submission.").define("ask_first_time", true);
+        askEveryTime = b.comment("Ask the player before every Cloudflare submission.").define("ask_every_time", false);
         githubIssueUrl = b.comment("GitHub new issue URL for manual submission").define("github_issue_url", "https://github.com/Morikemuri/stutter-analyzer/issues/new");
         copyIssueBodyToClipboard = b.comment("Copy the prepared GitHub issue body to clipboard when running /sa submit last on a client.").define("copy_issue_body_to_clipboard", true);
         openIssueUrlOnClient = b.comment("Open the GitHub issue URL in the browser after preparing a submission on a client.").define("open_issue_url_on_client", true);

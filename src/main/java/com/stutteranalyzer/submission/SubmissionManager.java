@@ -16,8 +16,17 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * Prepares local submission files only.
@@ -32,6 +41,16 @@ public class SubmissionManager {
         System.getenv("STUTTER_ANALYZER_GITHUB_TOKEN") != null &&
         !System.getenv("STUTTER_ANALYZER_GITHUB_TOKEN").isBlank();
 
+    private static final Executor UPLOAD_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "SA-Cloudflare-Upload");
+        t.setDaemon(true);
+        return t;
+    });
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+        .executor(UPLOAD_EXECUTOR)
+        .build();
+
     public static int submitLast(CommandSourceStack src) {
         if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
             src.sendFailure(CommandFeedback.error(Component.translatable("stutteranalyzer.submit.disabled")));
@@ -42,7 +61,15 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report")), false);
             return 1;
         }
-        return prepareLocally(src, report.reportId, report.toMarkdown(), report.toJson(), buildFreezeIssueBody(report));
+        String markdown = report.toMarkdown();
+        String json = report.toJson();
+        String issueBody = buildFreezeIssueBody(report);
+        if (isCloudflareEnabled()) {
+            submitToCloudflare(src, report.reportId, markdown, json, issueBody, report.event.category().name(),
+                report.event.durationMs(), report.event.confidence());
+            return 1;
+        }
+        return prepareLocally(src, report.reportId, markdown, json, issueBody);
     }
 
     public static int submitById(CommandSourceStack src, String reportId) {
@@ -52,7 +79,15 @@ public class SubmissionManager {
         }
         FreezeReport last = ReportWriter.lastReport();
         if (last != null && last.reportId.equals(reportId)) {
-            return prepareLocally(src, last.reportId, last.toMarkdown(), last.toJson(), buildFreezeIssueBody(last));
+            String markdown = last.toMarkdown();
+            String json = last.toJson();
+            String issueBody = buildFreezeIssueBody(last);
+            if (isCloudflareEnabled()) {
+                submitToCloudflare(src, last.reportId, markdown, json, issueBody, last.event.category().name(),
+                    last.event.durationMs(), last.event.confidence());
+                return 1;
+            }
+            return prepareLocally(src, last.reportId, markdown, json, issueBody);
         }
         src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.not_found", reportId)), false);
         return 1;
@@ -74,6 +109,113 @@ public class SubmissionManager {
             return 1;
         }
         return prepareLocally(src, rep.guardId, rep.toMarkdown(), "{}", buildGuardIssueBody(rep));
+    }
+
+    // ── Cloudflare submission ─────────────────────────────────────────────
+
+    private static boolean isCloudflareEnabled() {
+        String target = SAConfig.INSTANCE.submissionTarget.get();
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        return "cloudflare".equalsIgnoreCase(target) && !endpoint.isBlank();
+    }
+
+    private static void submitToCloudflare(CommandSourceStack src, String id, String markdown, String json,
+                                           String issueBody, String category, long durationMs, double confidence) {
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.cloudflare_uploading")), false);
+
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        String reportHash = sha256Hex(markdown);
+        String payload = buildCloudflarePayload(id, category, durationMs, confidence, markdown, json, reportHash);
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/json")
+                    .header("User-Agent", "StutterAnalyzer/0.1.0 Minecraft/1.20.4")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+                    .build();
+
+                HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                int status = resp.statusCode();
+                String body = resp.body();
+
+                if (status == 200 && body.contains("\"ok\":true")) {
+                    String reportId = extractJsonField(body, "report_id");
+                    src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.cloudflare_ok", reportId != null ? reportId : id)), false);
+                    src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.cloudflare_no_account")), false);
+                } else {
+                    StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Cloudflare submit failed: {} {}", status, body);
+                    src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.cloudflare_failed", status)), false);
+                    if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.cloudflare_fallback")), false);
+                        prepareLocally(src, id, markdown, json, issueBody);
+                    }
+                }
+            } catch (Exception e) {
+                StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Cloudflare submit error: {}", e.getMessage());
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.cloudflare_error")), false);
+                if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                    src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.cloudflare_fallback")), false);
+                    prepareLocally(src, id, markdown, json, issueBody);
+                }
+            }
+        }, UPLOAD_EXECUTOR);
+    }
+
+    private static String buildCloudflarePayload(String id, String category, long durationMs, double confidence,
+                                                 String markdown, String jsonReport, String reportHash) {
+        return "{\n" +
+            "  \"schema_version\": 1,\n" +
+            "  \"project\": \"stutter-analyzer\",\n" +
+            "  \"mod_version\": \"0.1.0\",\n" +
+            "  \"minecraft_version\": \"1.20.4\",\n" +
+            "  \"loader\": \"forge\",\n" +
+            "  \"loader_version\": \"49.x\",\n" +
+            "  \"report_type\": " + esc(category) + ",\n" +
+            "  \"category\": " + esc(category) + ",\n" +
+            "  \"duration_ms\": " + durationMs + ",\n" +
+            "  \"confidence\": " + String.format("%.4f", confidence) + ",\n" +
+            "  \"report_hash\": " + esc(reportHash) + ",\n" +
+            "  \"summary\": " + esc(category.replace('_', ' ').toLowerCase() + " detected (" + durationMs + " ms)") + ",\n" +
+            "  \"markdown_report\": " + escJson(markdown) + ",\n" +
+            "  \"json_report\": {},\n" +
+            "  \"client_generated_at\": " + esc(Instant.now().toString()) + ",\n" +
+            "  \"privacy\": {\n" +
+            "    \"sanitized\": true,\n" +
+            "    \"contains_mod_list\": " + SAConfig.INSTANCE.submissionIncludeModList.get() + ",\n" +
+            "    \"contains_system_info\": " + SAConfig.INSTANCE.submissionIncludeSystemInfo.get() + ",\n" +
+            "    \"contains_logs\": false\n" +
+            "  }\n" +
+            "}\n";
+    }
+
+    private static String sha256Hex(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return Long.toHexString(input.hashCode() & 0xFFFFFFFFL);
+        }
+    }
+
+    private static String extractJsonField(String json, String field) {
+        String key = "\"" + field + "\":";
+        int idx = json.indexOf(key);
+        if (idx < 0) return null;
+        int start = idx + key.length();
+        while (start < json.length() && (json.charAt(start) == ' ' || json.charAt(start) == '"')) start++;
+        int end = start;
+        while (end < json.length() && json.charAt(end) != '"' && json.charAt(end) != ',' && json.charAt(end) != '}') end++;
+        return json.substring(start, end).trim();
+    }
+
+    private static String escJson(String s) {
+        if (s == null) return "\"\"";
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\"";
     }
 
     // ── Core: prepare local files ─────────────────────────────────────────

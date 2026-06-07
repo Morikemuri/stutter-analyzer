@@ -135,6 +135,12 @@
   "stutteranalyzer.submit.confirm_use_files": "Используйте подготовленные файлы из config/stutter-analyzer/submissions/%s и отправьте вручную.",
   "stutteranalyzer.submit.token_deprecated": "Настройка токена GitHub устарела и игнорируется из соображений безопасности.",
   "stutteranalyzer.submit.token_deprecated_hint": "Отчёты подготавливаются локально. Отправляйте их вручную через GitHub Issues.",
+  "stutteranalyzer.submit.cloudflare_uploading": "Загрузка отчёта на сервер Stutter Analyzer...",
+  "stutteranalyzer.submit.cloudflare_ok": "Отчёт отправлен. ID: %s. Аккаунт не нужен. Спасибо.",
+  "stutteranalyzer.submit.cloudflare_no_account": "Отчёт сохранён анонимно. Аккаунт GitHub не требуется.",
+  "stutteranalyzer.submit.cloudflare_failed": "Ошибка загрузки (HTTP %s). Сохраняем локально.",
+  "stutteranalyzer.submit.cloudflare_error": "Ошибка загрузки. Проверьте подключение к интернету.",
+  "stutteranalyzer.submit.cloudflare_fallback": "Переключаемся на локальное сохранение.",
 
   "stutteranalyzer.startup.loaded": "Загружен. Нажмите F3 для статуса SA или используйте /sa selfcheck.",
   "stutteranalyzer.unknown_freeze.notify": "Обнаружено неизвестное зависание. Отчёт сохранён. Используйте /sa submit last для отправки.",

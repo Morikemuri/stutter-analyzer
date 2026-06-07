@@ -135,6 +135,12 @@
   "stutteranalyzer.submit.confirm_use_files": "Use the prepared files in config/stutter-analyzer/submissions/%s and submit manually.",
   "stutteranalyzer.submit.token_deprecated": "GitHub token config is deprecated and ignored for safety.",
   "stutteranalyzer.submit.token_deprecated_hint": "Reports are prepared locally. Submit them manually through GitHub Issues.",
+  "stutteranalyzer.submit.cloudflare_uploading": "Uploading report to Stutter Analyzer report server...",
+  "stutteranalyzer.submit.cloudflare_ok": "Report submitted. ID: %s. No account needed. Thank you.",
+  "stutteranalyzer.submit.cloudflare_no_account": "Report stored anonymously. No GitHub account required.",
+  "stutteranalyzer.submit.cloudflare_failed": "Upload failed (HTTP %s). Saving locally.",
+  "stutteranalyzer.submit.cloudflare_error": "Upload error. Check your internet connection.",
+  "stutteranalyzer.submit.cloudflare_fallback": "Falling back to local submission.",
 
   "stutteranalyzer.startup.loaded": "Loaded. Press F3 to see SA status or use /sa selfcheck.",
   "stutteranalyzer.unknown_freeze.notify": "Unknown freeze detected. Report saved. Use /sa submit last to send it.",
