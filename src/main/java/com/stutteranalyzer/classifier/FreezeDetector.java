@@ -67,6 +67,10 @@ public class FreezeDetector {
     public static FreezeEvent lastFreezeEvent() { return lastFreezeEvent; }
     public static int unknownFreezeCount() { return unknownFreezeCount; }
 
+    public static void injectForTesting(FreezeEvent event, RecentEventBuffer buffer) {
+        handleEvent(event, buffer);
+    }
+
     /** Returns true (and clears the flag) if an Unknown Freeze was detected since last check. */
     public static boolean consumeUnknownFreezeNotification() {
         if (unknownFreezePendingNotification) {

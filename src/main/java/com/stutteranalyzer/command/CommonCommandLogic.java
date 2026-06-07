@@ -1,7 +1,9 @@
 package com.stutteranalyzer.command;
 
+import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.crash.CrashEvent;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
@@ -425,6 +427,26 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.overlay")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.client_cmds")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.debug")), false);
+        return 1;
+    }
+
+    public static int generateTestReport(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canUseDebug(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
+        String side = isClient ? "client" : "dedicated-server";
+        FreezeEvent testEvent = new FreezeEvent(
+            FreezeCategory.UNKNOWN_FREEZE, 0.5,
+            "Synthetic test report (generated via /sa debug generate-test-report)",
+            "Artificially generated for testing - no real freeze occurred",
+            side, 500L,
+            MetricsCollector.eventBuffer().snapshot(),
+            "This is a test report. Use /sa submit last to test the submission flow."
+        );
+        FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
+        src.sendSuccess(() -> CommandFeedback.debug("Test report generated. Use /sa last to view."), true);
         return 1;
     }
 

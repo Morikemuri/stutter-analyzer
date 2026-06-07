@@ -3,6 +3,7 @@ package com.stutteranalyzer.client;
 import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.report.FreezeEvent;
 import net.minecraft.ChatFormatting;
@@ -27,6 +28,13 @@ public class ClientSetup {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+
+        MetricsCollector.onClientTick();
+        long frameMs = (long) MetricsCollector.frameTime().currentFrameMs();
+        if (frameMs >= SAConfig.INSTANCE.minorFrameMs.get()) {
+            FreezeDetector.onClientFrameSpike(frameMs, MetricsCollector.eventBuffer(), false);
+        }
+
         tickCounter++;
         if (tickCounter % 20 == 0) {
             try {

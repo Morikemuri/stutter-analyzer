@@ -1,9 +1,12 @@
 package com.stutteranalyzer.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.client.DebugHudStatusProvider;
 import com.stutteranalyzer.client.F3StatusFormatter;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.MetricsCollector;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -98,16 +101,12 @@ public class ClientCommandRegistrar {
 
             // ── client subcommands ─────────────────────────────────────────────
             .then(Commands.literal("client")
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.showStatus(ctx.getSource())))
                 .then(Commands.literal("last")
-                    .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.no_data")), false);
-                        return 1;
-                    }))
+                    .executes(ctx -> CommonCommandLogic.showLast(ctx.getSource())))
                 .then(Commands.literal("report")
-                    .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.report_not_impl")), false);
-                        return 1;
-                    }))
+                    .executes(ctx -> CommonCommandLogic.generateReport(ctx.getSource())))
                 .then(Commands.literal("export")
                     .executes(ctx -> {
                         CommandSourceStack src = ctx.getSource();
@@ -115,15 +114,29 @@ public class ClientCommandRegistrar {
                             src.sendFailure(CommandFeedback.noPermission());
                             return 0;
                         }
-                        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.export_not_impl")), false);
-                        return 1;
+                        return CommonCommandLogic.exportReport(src);
                     }))
                 .then(Commands.literal("submit")
                     .then(Commands.literal("last")
-                        .executes(ctx -> {
-                            ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.submit_not_impl")), false);
-                            return 1;
-                        }))))
+                        .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))))
+
+            // ── debug (client-side freeze injection) ──────────────────────────
+            .then(Commands.literal("debug")
+                .then(Commands.literal("freeze")
+                    .then(Commands.literal("client")
+                        .then(Commands.argument("milliseconds", IntegerArgumentType.integer(1, 30000))
+                            .executes(ctx -> {
+                                CommandSourceStack src = ctx.getSource();
+                                if (!CommandPermissionHelper.canUseDebug(src)) {
+                                    src.sendFailure(CommandFeedback.debugDisabled()); return 0;
+                                }
+                                int ms = IntegerArgumentType.getInteger(ctx, "milliseconds");
+                                src.sendSuccess(() -> CommandFeedback.debug("Freezing client thread for " + ms + " ms..."), true);
+                                try { Thread.sleep(ms); } catch (InterruptedException ignored) {}
+                                FreezeDetector.onClientFrameSpike(ms, MetricsCollector.eventBuffer(), false);
+                                src.sendSuccess(() -> CommandFeedback.debug("Client freeze injected (" + ms + " ms)."), true);
+                                return 1;
+                            })))))
         );
     }
 }

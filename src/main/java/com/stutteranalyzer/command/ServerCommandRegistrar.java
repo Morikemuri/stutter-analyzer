@@ -80,6 +80,12 @@ public class ServerCommandRegistrar {
             .then(Commands.literal("submit")
                 .then(Commands.literal("last")
                     .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
+                .then(Commands.literal("prepare")
+                    .then(Commands.literal("last")
+                        .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
+                    .then(Commands.argument("report_id", StringArgumentType.word())
+                        .executes(ctx -> CommonCommandLogic.submitReport(
+                            ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
                 .then(Commands.literal("crash")
                     .then(Commands.literal("last")
                         .executes(ctx -> CommonCommandLogic.submitCrashLast(ctx.getSource())))
@@ -183,25 +189,8 @@ public class ServerCommandRegistrar {
                         src.sendSuccess(() -> CommandFeedback.debug("GC hint sent."), true);
                         return 1;
                     }))
-                .then(Commands.literal("event")
-                    .then(Commands.argument("type", StringArgumentType.word())
-                        .executes(ctx -> {
-                            CommandSourceStack src = ctx.getSource();
-                            if (!CommandPermissionHelper.canUseDebug(src)) {
-                                src.sendFailure(CommandFeedback.debugDisabled()); return 0;
-                            }
-                            src.sendSuccess(() -> CommandFeedback.debug("Manual event inject not yet implemented."), true);
-                            return 1;
-                        })))
                 .then(Commands.literal("generate-test-report")
-                    .executes(ctx -> {
-                        CommandSourceStack src = ctx.getSource();
-                        if (!CommandPermissionHelper.canUseDebug(src)) {
-                            src.sendFailure(CommandFeedback.debugDisabled()); return 0;
-                        }
-                        src.sendSuccess(() -> CommandFeedback.debug("Test report generation not yet implemented."), true);
-                        return 1;
-                    })))
+                    .executes(ctx -> CommonCommandLogic.generateTestReport(ctx.getSource()))))
 
             // ── server subcommands ───────────────────────────────────────────
             .then(Commands.literal("server")

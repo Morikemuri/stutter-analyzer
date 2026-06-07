@@ -1,15 +1,18 @@
 package com.stutteranalyzer;
 
+import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.client.ClientSetup;
 import com.stutteranalyzer.client.F3StatusLineRenderer;
 import com.stutteranalyzer.command.ClientCommandRegistrar;
 import com.stutteranalyzer.command.ServerCommandRegistrar;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.knowledge.OptimizationModKnowledgeBase;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -44,6 +47,9 @@ public class StutterAnalyzerMod {
             MinecraftForge.EVENT_BUS.addListener(F3StatusLineRenderer::onDebugText);
         }
 
+        // Server tick - tracks MSPT and fires FreezeDetector on both client and dedicated server
+        MinecraftForge.EVENT_BUS.addListener(StutterAnalyzerMod::onServerTick);
+
         // Server commands - registered on Forge bus explicitly (works on both client and dedicated server)
         MinecraftForge.EVENT_BUS.addListener(ServerCommandRegistrar::onRegisterCommands);
 
@@ -53,6 +59,24 @@ public class StutterAnalyzerMod {
         }
 
         LOGGER.info("[StutterAnalyzer] Initializing...");
+    }
+
+    private static volatile long serverTickStart = 0;
+
+    private static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) {
+            serverTickStart = System.nanoTime();
+            return;
+        }
+        if (serverTickStart == 0) return;
+        long elapsed = System.nanoTime() - serverTickStart;
+        MetricsCollector.onServerTick(elapsed);
+        if (SAConfig.INSTANCE.enableServerTickDetection.get()) {
+            long mspt = elapsed / 1_000_000L;
+            if (mspt >= SAConfig.INSTANCE.warningMspt.get()) {
+                FreezeDetector.onServerTickSpike(mspt, MetricsCollector.eventBuffer(), FMLEnvironment.dist != Dist.CLIENT);
+            }
+        }
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event) {
