@@ -25,10 +25,12 @@ public class StutterCounter {
     // Episode timestamps (one entry per episode start)
     private static final Deque<Long> minorEpisodes  = new ArrayDeque<>();
     private static final Deque<Long> mediumEpisodes = new ArrayDeque<>();
+    private static final Deque<Long> severeEpisodes = new ArrayDeque<>();
 
     // Last stutter timestamps for episode boundary detection
     private static long lastMinorEpisodeTs  = 0;
     private static long lastMediumEpisodeTs = 0;
+    private static long lastSevereEpisodeTs = 0;
 
     private static long lastMinorMs   = -1;
     private static long lastMinorTime = 0;
@@ -70,6 +72,12 @@ public class StutterCounter {
         lastSevereMs = durationMs;
         severeEntries.addLast(new Entry(now, durationMs));
         prune(severeEntries, now, STATUS_WINDOW_MS);
+        long gapMs = SAConfig.INSTANCE.episodeGapMs.get();
+        if (now - lastSevereEpisodeTs > gapMs) {
+            severeEpisodes.addLast(now);
+            pruneEpisodes(severeEpisodes, now, STATUS_WINDOW_MS);
+        }
+        lastSevereEpisodeTs = now;
     }
 
     // Raw frame counts
@@ -107,6 +115,13 @@ public class StutterCounter {
         long cutoff = now - seconds * 1000L;
         pruneEpisodes(mediumEpisodes, now, STATUS_WINDOW_MS);
         return (int) mediumEpisodes.stream().filter(t -> t >= cutoff).count();
+    }
+
+    public static synchronized int severeEpisodeCountInSeconds(int seconds) {
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        pruneEpisodes(severeEpisodes, now, STATUS_WINDOW_MS);
+        return (int) severeEpisodes.stream().filter(t -> t >= cutoff).count();
     }
 
     // Worst values

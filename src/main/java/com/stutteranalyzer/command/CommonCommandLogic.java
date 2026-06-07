@@ -46,11 +46,11 @@ public class CommonCommandLogic {
         boolean useEpisodes = !"frames".equalsIgnoreCase(countMode);
         boolean showRaw     = SAConfig.INSTANCE.showRawFrameSpikeCount.get() || "both".equalsIgnoreCase(countMode);
 
-        int minorEp  = StutterCounter.minorEpisodeCountInSeconds(60);
-        int mediumEp = StutterCounter.mediumEpisodeCountInSeconds(60);
-        int minorRaw = StutterCounter.minorCountInSeconds(60);
+        int minorEp   = StutterCounter.minorEpisodeCountInSeconds(60);
+        int mediumEp  = StutterCounter.mediumEpisodeCountInSeconds(60);
+        int severeEp  = StutterCounter.severeEpisodeCountInSeconds(60);
+        int minorRaw  = StutterCounter.minorCountInSeconds(60);
         int mediumRaw = StutterCounter.mediumCountInSeconds(60);
-        int severeIn60 = StutterCounter.severeCountInSeconds(60);
         long worstMinor  = StutterCounter.worstMinorInSeconds(60);
         long worstMedium = StutterCounter.worstMediumInSeconds(60);
         String lastSeverity = AnalyzerRuntimeState.lastStutterSeverity();
@@ -58,8 +58,10 @@ public class CommonCommandLogic {
 
         int minorDisplay  = useEpisodes ? minorEp  : minorRaw;
         int mediumDisplay = useEpisodes ? mediumEp : mediumRaw;
-        String minorLabel  = useEpisodes ? "Minor episodes" : "Minor frames";
+        int severeDisplay = useEpisodes ? severeEp : StutterCounter.severeCountInSeconds(60);
+        String minorLabel  = useEpisodes ? "Minor episodes"  : "Minor frames";
         String mediumLabel = useEpisodes ? "Medium episodes" : "Medium frames";
+        String severeLabel = useEpisodes ? "Severe episodes" : "Severe frames";
 
         Component state = Component.translatable(degraded
             ? "stutteranalyzer.cmd.status.state_degraded"
@@ -76,11 +78,10 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.cmd.status.tracker_on")
         ), false);
 
-        // Live stutter state
+        // Last tracked spike - any severity, from live state
         if (lastDurationMs > 0) {
-            src.sendSuccess(() -> CommandFeedback.row(
-                Component.translatable("stutteranalyzer.cmd.status.last_stutter"),
-                Component.literal(lastSeverity + " " + lastDurationMs + "ms")
+            src.sendSuccess(() -> CommandFeedback.row("Last tracked spike",
+                lastSeverity + " " + lastDurationMs + "ms"
             ), false);
         }
 
@@ -97,19 +98,22 @@ public class CommonCommandLogic {
         if (showRaw && useEpisodes && mediumRaw != mediumDisplay) {
             src.sendSuccess(() -> CommandFeedback.row("Raw medium frames", mediumRaw + " in last 60s"), false);
         }
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.severe_count"),
-            Component.literal(severeIn60 + " in last 60s")
+        src.sendSuccess(() -> CommandFeedback.row(severeLabel,
+            severeDisplay + " in last 60s"
         ), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.reports_saved"),
             String.valueOf(ReportWriter.savedReports())
         ), false);
 
-        // Last classified event (severe/extreme only)
-        if (last != null) {
-            Component lastFreezeValue = Component.literal(last.category() + ", " + last.durationMs() + " ms");
-            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.last_freeze"), lastFreezeValue), false);
+        // Last saved report - only show if a severe/extreme event was classified
+        int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
+        boolean hasSavedReport = ReportWriter.savedReports() > 0 && last != null && last.durationMs() >= severeMs;
+        if (hasSavedReport) {
+            Component reportVal = Component.literal(last.category().name() + " " + last.durationMs() + "ms");
+            src.sendSuccess(() -> CommandFeedback.row("Last saved report", reportVal), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.row("Last saved report", "none"), false);
         }
 
         // Quiet mode and aggregate cooldown
@@ -139,7 +143,7 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
 
         // Hint when nothing recorded yet
-        if (minorDisplay == 0 && mediumDisplay == 0 && severeIn60 == 0) {
+        if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0) {
             src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet."), false);
             src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa debug test minor to verify the pipeline."), false);
         }
