@@ -131,6 +131,11 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue submissionIncludeSystemInfo;
     public final ForgeConfigSpec.BooleanValue submissionIncludeRecentEvents;
     public final ForgeConfigSpec.BooleanValue askBeforeEveryUpload;
+    public final ForgeConfigSpec.BooleanValue includeLogExcerpt;
+    public final ForgeConfigSpec.IntValue logExcerptMaxLines;
+    public final ForgeConfigSpec.IntValue logExcerptContextSeconds;
+    public final ForgeConfigSpec.BooleanValue includeFullLatestLog;
+    public final ForgeConfigSpec.IntValue maxLogExcerptChars;
 
     // ── [compatibility_guard] ─────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue guardEnabled;
@@ -302,6 +307,13 @@ public class SAConfig {
         submissionIncludeSystemInfo = b.comment("Include system info in submitted reports").define("include_system_info", true);
         submissionIncludeRecentEvents = b.comment("Include recent event timeline in submitted reports").define("include_recent_events", true);
         askBeforeEveryUpload = b.comment("Ask for confirmation before every upload").define("ask_before_every_upload", true);
+        b.comment("Log excerpt settings").push("logs");
+        includeLogExcerpt = b.comment("Include a sanitized latest.log excerpt around the event in reports. Paths and IPs are redacted.").define("include_log_excerpt", true);
+        logExcerptMaxLines = b.comment("Maximum number of log lines to include in the excerpt.").defineInRange("log_excerpt_max_lines", 120, 10, 500);
+        logExcerptContextSeconds = b.comment("Seconds before/after the event to include from the log.").defineInRange("log_excerpt_context_seconds", 30, 5, 300);
+        includeFullLatestLog = b.comment("Include the full latest.log file. Disabled by default - only sanitized excerpts are sent.").define("include_full_latest_log", false);
+        maxLogExcerptChars = b.comment("Maximum characters of log excerpt to include. Truncated if larger.").defineInRange("max_log_excerpt_chars", 16000, 1000, 65000);
+        b.pop();
         b.pop();
 
         b.comment("Automatic update checker").push("updates");

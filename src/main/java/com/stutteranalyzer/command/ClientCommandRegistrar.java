@@ -31,7 +31,11 @@ public class ClientCommandRegistrar {
 
             // ── top-level simple commands ─────────────────────────────────────
             .then(Commands.literal("submit")
-                .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))
+                .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource()))
+                .then(Commands.literal("preview")
+                    .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource()))
+                    .then(Commands.literal("last")
+                        .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource())))))
             .then(Commands.literal("yes")
                 .executes(ctx -> CommonCommandLogic.submitYes(ctx.getSource())))
             .then(Commands.literal("cancel")
@@ -204,6 +208,10 @@ public class ClientCommandRegistrar {
                         .executes(ctx -> CommonCommandLogic.submitHealth(ctx.getSource())))
                     .then(Commands.literal("debug-routing")
                         .executes(ctx -> CommonCommandLogic.submitDebugRouting(ctx.getSource())))
+                    .then(Commands.literal("preview")
+                        .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource()))
+                        .then(Commands.literal("last")
+                            .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource()))))
                     .then(Commands.literal("mode")
                         .then(Commands.literal("cloudflare")
                             .executes(ctx -> CommonCommandLogic.submitModeCloudflare(ctx.getSource())))

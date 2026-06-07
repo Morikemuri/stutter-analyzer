@@ -3,10 +3,13 @@ package com.stutteranalyzer.submission;
 import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.command.CommandFeedback;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.MetricsCollector;
+import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.crash.CrashEvent;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.guard.EmergencyGuardManager;
 import com.stutteranalyzer.guard.EmergencyGuardReport;
+import com.stutteranalyzer.knowledge.ModInventory;
 import com.stutteranalyzer.report.FreezeReport;
 import com.stutteranalyzer.report.ReportWriter;
 import net.minecraft.ChatFormatting;
@@ -26,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -408,14 +412,25 @@ public class SubmissionManager {
 
     private static void submitToCloudflare(CommandSourceStack src, FreezeReport report, String markdown, String reportHash) {
         src.sendSuccess(() -> CommandFeedback.info("[SA] Preparing latest report..."), false);
+
+        // Sanitize markdown before sending
+        ReportSanitizer.SanitizeResult mdResult = ReportSanitizer.sanitize(markdown);
+        if (mdResult.hadSensitiveData()) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report blocked: sensitive data detected during sanitization."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Saving local fallback instead."), false);
+            if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+            return;
+        }
+        String sanitizedMarkdown = mdResult.text();
+
+        // Extract log excerpt
+        String logExcerpt = LogExcerpter.extractExcerpt(report.event.timestamp());
+
         src.sendSuccess(() -> CommandFeedback.info("[SA] Report sanitized."), false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
 
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
-        String payload = buildCloudflarePayload(
-            report.reportId, report.event.category().name(),
-            report.event.durationMs(), report.event.confidence(),
-            markdown, reportHash);
+        String payload = buildCloudflarePayload(report, sanitizedMarkdown, reportHash, logExcerpt);
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -461,6 +476,9 @@ public class SubmissionManager {
             String reportId   = extractJsonField(body, "report_id");
             String issueNum   = extractJsonField(body, "github_issue_number");
             String warning    = extractJsonField(body, "warning");
+            String incMd      = extractJsonField(body, "included_markdown_report");
+            String incJson    = extractJsonField(body, "included_json_report");
+            String incLog     = extractJsonField(body, "included_log_excerpt");
             String finalId    = reportId != null ? reportId : report.reportId;
 
             lastSubmissionStatus = "success";
@@ -474,6 +492,16 @@ public class SubmissionManager {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue created: #" + issueNum), false);
             } else {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Stored for developer review."), false);
+            }
+
+            // Show what was included
+            StringBuilder included = new StringBuilder();
+            if ("true".equals(incMd))   included.append("report, ");
+            if ("true".equals(incJson)) included.append("JSON, ");
+            if ("true".equals(incLog))  included.append("sanitized log excerpt, ");
+            if (included.length() > 2) {
+                String inclStr = included.substring(0, included.length() - 2);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Included: " + inclStr + "."), false);
             }
             src.sendSuccess(() -> CommandFeedback.info("[SA] Thank you. This helps improve future versions."), false);
             markConsentGiven();
@@ -625,12 +653,102 @@ public class SubmissionManager {
 
     // ── Payload builder ───────────────────────────────────────────────────────
 
-    private static String buildCloudflarePayload(String id, String category, long durationMs, double confidence,
-                                                  String markdown, String reportHash) {
+    private static String buildCloudflarePayload(FreezeReport report, String markdown, String reportHash,
+                                                  String logExcerpt) {
+        String category   = report.event.category().name();
+        long durationMs   = report.event.durationMs();
+        double confidence = report.event.confidence();
+        boolean inclMods  = SAConfig.INSTANCE.submissionIncludeModList.get();
+        boolean inclSys   = SAConfig.INSTANCE.submissionIncludeSystemInfo.get();
+        boolean inclEvt   = SAConfig.INSTANCE.submissionIncludeRecentEvents.get();
+        boolean inclLog   = logExcerpt != null && !logExcerpt.isBlank();
+
+        // ── json_report object ──────────────────────────────────────────────
+        StringBuilder jr = new StringBuilder();
+        jr.append("{\n");
+        jr.append("      \"report_id\": ").append(esc(report.reportId)).append(",\n");
+        jr.append("      \"side\": ").append(esc(String.valueOf(report.event.side()))).append(",\n");
+        jr.append("      \"reason\": ").append(esc(report.event.reason())).append(",\n");
+        jr.append("      \"evidence\": ").append(esc(report.event.evidence())).append(",\n");
+        jr.append("      \"recommendation\": ").append(esc(report.event.recommendation())).append(",\n");
+
+        // metrics
+        jr.append("      \"metrics\": {\n");
+        // server tick
+        var st = MetricsCollector.serverTick();
+        jr.append("        \"server_tick\": {\n");
+        jr.append("          \"current_mspt\": ").append(String.format("%.2f", st.currentMspt())).append(",\n");
+        jr.append("          \"rolling_avg_mspt\": ").append(String.format("%.2f", st.rollingAvgMspt())).append(",\n");
+        jr.append("          \"peak_mspt\": ").append(String.format("%.2f", st.peakMspt())).append(",\n");
+        jr.append("          \"tps_estimate\": ").append(String.format("%.2f", st.tpsEstimate())).append("\n");
+        jr.append("        },\n");
+        // memory/GC
+        var mem = MetricsCollector.memoryGc();
+        jr.append("        \"memory_gc\": {\n");
+        jr.append("          \"heap_used_mb\": ").append(mem.heapUsedMb()).append(",\n");
+        jr.append("          \"heap_max_mb\": ").append(mem.heapMaxMb()).append(",\n");
+        jr.append("          \"heap_percent\": ").append(String.format("%.1f", mem.heapPercent())).append(",\n");
+        jr.append("          \"recent_gc_count\": ").append(mem.recentGc()).append(",\n");
+        jr.append("          \"last_gc_pause_ms\": ").append(mem.lastGcPauseMs()).append("\n");
+        jr.append("        },\n");
+        // episode counters
+        jr.append("        \"stutter_counts\": {\n");
+        jr.append("          \"minor_episodes_60s\": ").append(StutterCounter.minorEpisodeCountInSeconds(60)).append(",\n");
+        jr.append("          \"minor_worst_ms\": ").append(StutterCounter.worstMinorInSeconds(60)).append(",\n");
+        jr.append("          \"medium_episodes_60s\": ").append(StutterCounter.mediumEpisodeCountInSeconds(60)).append(",\n");
+        jr.append("          \"medium_worst_ms\": ").append(StutterCounter.worstMediumInSeconds(60)).append(",\n");
+        jr.append("          \"severe_episodes_60s\": ").append(StutterCounter.severeEpisodeCountInSeconds(60)).append(",\n");
+        jr.append("          \"severe_worst_ms\": ").append(StutterCounter.worstSevereInSeconds(60)).append(",\n");
+        jr.append("          \"extreme_episodes_60s\": ").append(StutterCounter.extremeEpisodeCountInSeconds(60)).append(",\n");
+        jr.append("          \"extreme_worst_ms\": ").append(StutterCounter.worstExtremeInSeconds(60)).append("\n");
+        jr.append("        }\n");
+        jr.append("      },\n");
+
+        // system info
+        if (inclSys) {
+            jr.append("      \"system_info\": ").append(esc(report.systemInfo)).append(",\n");
+            jr.append("      \"heap_info\": ").append(esc(report.heapInfo)).append(",\n");
+        }
+
+        // mods
+        if (inclMods && report.loadedMods != null && !report.loadedMods.isEmpty()) {
+            jr.append("      \"optimization_mods\": [\n");
+            List<ModInventory.ModEntry> mods = report.loadedMods;
+            for (int i = 0; i < mods.size(); i++) {
+                ModInventory.ModEntry m = mods.get(i);
+                jr.append("        {\"mod_id\":").append(esc(m.modId))
+                  .append(",\"name\":").append(esc(m.displayName))
+                  .append(",\"version\":").append(esc(m.version)).append("}");
+                if (i < mods.size() - 1) jr.append(",");
+                jr.append("\n");
+            }
+            jr.append("      ],\n");
+        }
+
+        // timeline
+        if (inclEvt && report.event.recentTimeline() != null && !report.event.recentTimeline().isEmpty()) {
+            jr.append("      \"timeline\": [\n");
+            var tl = report.event.recentTimeline();
+            int start = Math.max(0, tl.size() - 30);
+            for (int i = start; i < tl.size(); i++) {
+                jr.append("        ").append(esc(tl.get(i).toString()));
+                if (i < tl.size() - 1) jr.append(",");
+                jr.append("\n");
+            }
+            jr.append("      ],\n");
+        }
+
+        jr.append("      \"recommendations\": [").append(esc(report.event.recommendation())).append("]\n");
+        jr.append("    }");
+
+        // Sanitize json_report
+        ReportSanitizer.SanitizeResult jrSanitized = ReportSanitizer.sanitize(jr.toString());
+        String jsonReport = jrSanitized.hadSensitiveData() ? "{\"error\":\"sensitive data redacted\"}" : jrSanitized.text();
+
         return "{\n" +
             "  \"schema_version\": 1,\n" +
             "  \"project\": \"stutter-analyzer\",\n" +
-            "  \"mod_version\": \"" + StutterAnalyzerMod.MOD_VERSION + "\",\n" +
+            "  \"mod_version\": " + esc(StutterAnalyzerMod.MOD_VERSION) + ",\n" +
             "  \"minecraft_version\": \"1.20.4\",\n" +
             "  \"loader\": \"forge\",\n" +
             "  \"loader_version\": \"49.x\",\n" +
@@ -641,15 +759,60 @@ public class SubmissionManager {
             "  \"report_hash\": " + esc(reportHash) + ",\n" +
             "  \"summary\": " + esc(category.replace('_', ' ').toLowerCase() + " detected (" + durationMs + " ms)") + ",\n" +
             "  \"markdown_report\": " + escJson(markdown) + ",\n" +
-            "  \"json_report\": {},\n" +
+            "  \"json_report\": " + jsonReport + ",\n" +
+            (inclLog ? "  \"log_excerpt\": " + escJson(logExcerpt) + ",\n" : "") +
             "  \"client_generated_at\": " + esc(Instant.now().toString()) + ",\n" +
             "  \"privacy\": {\n" +
             "    \"sanitized\": true,\n" +
-            "    \"contains_mod_list\": " + SAConfig.INSTANCE.submissionIncludeModList.get() + ",\n" +
-            "    \"contains_system_info\": " + SAConfig.INSTANCE.submissionIncludeSystemInfo.get() + ",\n" +
-            "    \"contains_logs\": false\n" +
+            "    \"contains_mod_list\": " + inclMods + ",\n" +
+            "    \"contains_system_info\": " + inclSys + ",\n" +
+            "    \"contains_logs\": " + inclLog + ",\n" +
+            "    \"contains_full_latest_log\": false\n" +
             "  }\n" +
             "}\n";
+    }
+
+    // ── Submit preview ────────────────────────────────────────────────────────
+
+    public static int submitPreview(CommandSourceStack src) {
+        FreezeReport report = ReportWriter.lastReport();
+        if (report == null) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No report available to preview."), false);
+            return 1;
+        }
+
+        String markdown = report.toMarkdown();
+        ReportSanitizer.SanitizeResult mdResult = ReportSanitizer.sanitize(markdown);
+        String logExcerpt = LogExcerpter.extractExcerpt(report.event.timestamp());
+        boolean inclLog = logExcerpt != null && !logExcerpt.isBlank()
+            && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked");
+
+        String hash = sha256Hex(markdown);
+        String category = report.event.category().name();
+        long durationMs = report.event.durationMs();
+        int mdKb = markdown.length() / 1024;
+        int logLines = inclLog ? logExcerpt.split("\n").length : 0;
+
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Submit preview"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Report ID: " + report.reportId), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Category: " + category), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Duration: " + durationMs + " ms"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Markdown report: included, ~" + mdKb + " KB"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- JSON report: included (metrics, mods, timeline)"), false);
+        if (inclLog) {
+            int ll = logLines;
+            src.sendSuccess(() -> CommandFeedback.info("- Log excerpt: included, " + ll + " lines"), false);
+        } else {
+            String reason = (logExcerpt != null && logExcerpt.startsWith("Log excerpt was blocked"))
+                ? "blocked by sanitizer" : "no relevant lines found";
+            src.sendSuccess(() -> CommandFeedback.info("- Log excerpt: not included (" + reason + ")"), false);
+        }
+        src.sendSuccess(() -> CommandFeedback.info("- Mod list: " + (SAConfig.INSTANCE.submissionIncludeModList.get() ? "included" : "excluded")), false);
+        src.sendSuccess(() -> CommandFeedback.info("- System info: " + (SAConfig.INSTANCE.submissionIncludeSystemInfo.get() ? "included" : "excluded")), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Sensitive data scan: " + (mdResult.hadSensitiveData() ? "BLOCKED - sensitive data found" : "passed")), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Report hash: " + hash.substring(0, 16) + "..."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit to upload this report."), false);
+        return 1;
     }
 
     // ── Issue body builders ───────────────────────────────────────────────────

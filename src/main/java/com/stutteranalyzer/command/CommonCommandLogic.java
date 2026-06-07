@@ -593,6 +593,14 @@ public class CommonCommandLogic {
         return SubmissionManager.submitLast(src);
     }
 
+    public static int submitPreview(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitPreview(src);
+    }
+
     public static int submitReport(CommandSourceStack src, String reportId) {
         if (!CommandPermissionHelper.canSubmitReports(src)) {
             src.sendFailure(CommandFeedback.noPermission());

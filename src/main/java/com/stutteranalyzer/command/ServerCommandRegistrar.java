@@ -204,6 +204,10 @@ public class ServerCommandRegistrar {
                     .then(Commands.argument("guard_id", StringArgumentType.word())
                         .executes(ctx -> CommonCommandLogic.submitGuard(
                             ctx.getSource(), StringArgumentType.getString(ctx, "guard_id")))))
+                .then(Commands.literal("preview")
+                    .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource()))
+                    .then(Commands.literal("last")
+                        .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource()))))
                 .then(Commands.argument("report_id", StringArgumentType.word())
                     .executes(ctx -> CommonCommandLogic.submitReport(
                         ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
