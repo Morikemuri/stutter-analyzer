@@ -11,6 +11,8 @@ import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.knowledge.OptimizationModKnowledgeBase;
 import com.stutteranalyzer.update.UpdateChecker;
+
+import java.nio.file.Files;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -30,7 +32,7 @@ public class StutterAnalyzerMod {
     public static final String MOD_ID      = "stutteranalyzer";
     public static final String MOD_VERSION = "1.0.0";
     public static final String BUILD_DATE  = "2026-06-07";
-    public static final String BUILD_FEATURES = "stutter-counter,verbose-mode,cloudflare-submit,debug-visibility,pipeline-fix";
+    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status,debug-routing";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public StutterAnalyzerMod() {
@@ -107,6 +109,18 @@ public class StutterAnalyzerMod {
                 UpdateChecker.scheduleStartupCheck();
             } catch (Throwable t) {
                 LOGGER.warn("[StutterAnalyzer] Update checker failed to schedule: {}", t.getMessage());
+            }
+
+            try {
+                long stutterJarCount = Files.list(FMLPaths.GAMEDIR.get().resolve("mods"))
+                    .filter(p -> p.getFileName().toString().toLowerCase().startsWith("stutteranalyzer") &&
+                                 p.getFileName().toString().endsWith(".jar"))
+                    .count();
+                if (stutterJarCount > 1) {
+                    LOGGER.warn("[StutterAnalyzer] WARNING: Multiple Stutter Analyzer jars detected in mods folder. Remove old versions.");
+                }
+            } catch (Throwable t) {
+                LOGGER.debug("[StutterAnalyzer] Jar duplicate check skipped: {}", t.getMessage());
             }
 
             if (SAConfig.INSTANCE.guardEmergencyMode.get()) {

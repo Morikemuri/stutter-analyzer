@@ -51,26 +51,34 @@ public class CommonCommandLogic {
         int minorEp   = StutterCounter.minorEpisodeCountInSeconds(60);
         int mediumEp  = StutterCounter.mediumEpisodeCountInSeconds(60);
         int severeEp  = StutterCounter.severeEpisodeCountInSeconds(60);
-        int minorRaw  = StutterCounter.minorCountInSeconds(60);
-        int mediumRaw = StutterCounter.mediumCountInSeconds(60);
-        long worstMinor  = StutterCounter.worstMinorInSeconds(60);
-        long worstMedium = StutterCounter.worstMediumInSeconds(60);
+        int extremeEp = StutterCounter.extremeEpisodeCountInSeconds(60);
+        int minorRaw   = StutterCounter.minorCountInSeconds(60);
+        int mediumRaw  = StutterCounter.mediumCountInSeconds(60);
+        long worstMinor   = StutterCounter.worstMinorInSeconds(60);
+        long worstMedium  = StutterCounter.worstMediumInSeconds(60);
+        long worstExtreme = StutterCounter.worstExtremeInSeconds(60);
         String lastSeverity = AnalyzerRuntimeState.lastStutterSeverity();
         long lastDurationMs = AnalyzerRuntimeState.lastStutterDurationMs();
 
-        int minorDisplay  = useEpisodes ? minorEp  : minorRaw;
-        int mediumDisplay = useEpisodes ? mediumEp : mediumRaw;
-        int severeDisplay = useEpisodes ? severeEp : StutterCounter.severeCountInSeconds(60);
-        String minorLabel  = useEpisodes ? "Minor episodes"  : "Minor frames";
-        String mediumLabel = useEpisodes ? "Medium episodes" : "Medium frames";
-        String severeLabel = useEpisodes ? "Severe episodes" : "Severe frames";
+        int minorDisplay   = useEpisodes ? minorEp   : minorRaw;
+        int mediumDisplay  = useEpisodes ? mediumEp  : mediumRaw;
+        int severeDisplay  = useEpisodes ? severeEp  : StutterCounter.severeCountInSeconds(60);
+        int extremeDisplay = useEpisodes ? extremeEp : StutterCounter.extremeCountInSeconds(60);
+        String minorLabel   = useEpisodes ? "Minor episodes"   : "Minor frames";
+        String mediumLabel  = useEpisodes ? "Medium episodes"  : "Medium frames";
+        String severeLabel  = useEpisodes ? "Severe episodes"  : "Severe frames";
+        String extremeLabel = useEpisodes ? "Extreme episodes" : "Extreme frames";
 
         Component state = Component.translatable(degraded
             ? "stutteranalyzer.cmd.status.state_degraded"
             : "stutteranalyzer.cmd.status.state_active");
+        String sideKey = isClient
+            ? "stutteranalyzer.cmd.status.side.client_integrated"
+            : "stutteranalyzer.cmd.status.side.dedicated";
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.state"), state), false);
+        src.sendSuccess(() -> CommandFeedback.row("Side", Component.translatable(sideKey)), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.client_tracker"),
             Component.translatable(isClient ? "stutteranalyzer.cmd.status.tracker_on" : "stutteranalyzer.cmd.status.tracker_unavailable")
@@ -80,37 +88,46 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.cmd.status.tracker_on")
         ), false);
 
-        // Last tracked spike - any severity, from live state
+        // Last tracked spike
         if (lastDurationMs > 0) {
             src.sendSuccess(() -> CommandFeedback.row("Last tracked spike",
-                lastSeverity + " " + lastDurationMs + "ms"
-            ), false);
+                lastSeverity + " " + lastDurationMs + "ms"), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.row("Last tracked spike", "none"), false);
         }
 
-        // Episode or frame counts
+        // Episode/frame counts
         src.sendSuccess(() -> CommandFeedback.row(minorLabel,
-            minorDisplay + " in last 60s" + (worstMinor > 0 ? " | worst: " + worstMinor + "ms" : "")
-        ), false);
+            minorDisplay + " in last 60s" + (worstMinor > 0 ? " | worst: " + worstMinor + "ms" : "")), false);
         if (showRaw && useEpisodes) {
             src.sendSuccess(() -> CommandFeedback.row("Raw minor frames", minorRaw + " in last 60s"), false);
         }
         src.sendSuccess(() -> CommandFeedback.row(mediumLabel,
-            mediumDisplay + " in last 60s" + (worstMedium > 0 ? " | worst: " + worstMedium + "ms" : "")
-        ), false);
+            mediumDisplay + " in last 60s" + (worstMedium > 0 ? " | worst: " + worstMedium + "ms" : "")), false);
         if (showRaw && useEpisodes && mediumRaw != mediumDisplay) {
             src.sendSuccess(() -> CommandFeedback.row("Raw medium frames", mediumRaw + " in last 60s"), false);
         }
-        src.sendSuccess(() -> CommandFeedback.row(severeLabel,
-            severeDisplay + " in last 60s"
-        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(severeLabel, severeDisplay + " in last 60s"), false);
+        src.sendSuccess(() -> CommandFeedback.row(extremeLabel,
+            extremeDisplay + " in last 60s" + (worstExtreme > 0 ? " | worst: " + worstExtreme + "ms" : "")), false);
+
+        // Reports
+        int savedReports = ReportWriter.savedReports();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.reports_saved"),
-            String.valueOf(ReportWriter.savedReports())
-        ), false);
+            String.valueOf(savedReports)), false);
 
-        // Last saved report - only show if a severe/extreme event was classified
+        // Silent tracking note
         int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
-        boolean hasSavedReport = ReportWriter.savedReports() > 0 && last != null && last.durationMs() >= severeMs;
+        if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
+            src.sendSuccess(() -> CommandFeedback.info(
+                "[SA] Note: minor/medium stutters are tracked silently; reports start at " + severeMs + "ms by default."), false);
+        } else if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
+        }
+
+        // Last saved report
+        boolean hasSavedReport = savedReports > 0 && last != null && last.durationMs() >= severeMs;
         if (hasSavedReport) {
             Component reportVal = Component.literal(last.category().name() + " " + last.durationMs() + "ms");
             src.sendSuccess(() -> CommandFeedback.row("Last saved report", reportVal), false);
@@ -118,36 +135,53 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.row("Last saved report", "none"), false);
         }
 
+        // Crashes imported
+        int crashCount = PreviousCrashImporter.allImported().size();
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.crashes_imported"),
+            String.valueOf(crashCount)), false);
+
         // Quiet mode and aggregate cooldown
         boolean quiet = QuietMode.isEnabled();
         src.sendSuccess(() -> CommandFeedback.row("Quiet mode",
-            quiet ? "ON (minor/medium in F3 only)" : "OFF"
-        ), false);
+            quiet ? "ON (minor/medium in F3 only)" : "OFF"), false);
         long aggRemaining = StutterCounter.aggregateCooldownRemainingSeconds();
         if (aggRemaining > 0) {
             src.sendSuccess(() -> CommandFeedback.row("Aggregate chat cooldown", aggRemaining + "s remaining"), false);
         }
 
-        // Chat and verbose mode
-        boolean chatMinor  = SAConfig.INSTANCE.chatNotifyMinorStutters.get();
-        boolean chatMedium = SAConfig.INSTANCE.chatNotifyMediumStutters.get();
+        // Verbose mode and severe chat
         boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.chat_severe"),
-            Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
+            Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.verbose_mode"),
-            Component.translatable(VerboseMode.isEnabled() ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
+            Component.translatable(VerboseMode.isEnabled() ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
 
-        if (degraded)
+        // Submission target
+        String subTarget = SAConfig.INSTANCE.submissionTarget.get();
+        String subDisplay = "cloudflare".equalsIgnoreCase(subTarget) ? "Cloudflare enabled" : "local";
+        src.sendSuccess(() -> CommandFeedback.row("Submission", subDisplay), false);
+
+        // Update check status
+        UpdateCheckResult updateResult = UpdateChecker.getCached();
+        String updateDisplay;
+        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
+            updateDisplay = "disabled";
+        } else if (updateResult == null) {
+            updateDisplay = "not checked";
+        } else if (!updateResult.success()) {
+            updateDisplay = "unavailable";
+        } else if (updateResult.updateAvailable()) {
+            updateDisplay = "update available: " + updateResult.latestVersion();
+        } else {
+            updateDisplay = "up to date";
+        }
+        src.sendSuccess(() -> CommandFeedback.row("Update check", updateDisplay), false);
+
+        if (degraded) {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
-
-        // Hint when nothing recorded yet
-        if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa debug test minor to verify the pipeline."), false);
         }
         return 1;
     }
@@ -773,6 +807,24 @@ public class CommonCommandLogic {
         );
         FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
         src.sendSuccess(() -> CommandFeedback.debug("Test report generated. Use /sa last to view."), true);
+        return 1;
+    }
+
+    public static int debugCommandRouting(CommandSourceStack src) {
+        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Command Routing"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa status", "CommonCommandLogic.showStatus"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa version", "CommonCommandLogic.showVersion"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa update check/status/link", "CommonCommandLogic.update*"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa verbose on/off/status", "CommonCommandLogic.verbose*"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa quiet on/off/status", "CommonCommandLogic.quiet*"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa health", "CommonCommandLogic.showHealth"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa selfcheck", "CommonCommandLogic.selfCheck"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa debug test minor/medium/severe/extreme", "CommonCommandLogic.debugTest*"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Server registrar", "ServerCommandRegistrar"), false);
+        if (isClient) {
+            src.sendSuccess(() -> CommandFeedback.row("Client registrar", "ClientCommandRegistrar"), false);
+        }
         return 1;
     }
 

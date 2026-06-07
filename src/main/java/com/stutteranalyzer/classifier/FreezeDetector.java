@@ -86,15 +86,18 @@ public class FreezeDetector {
 
     /** Record to the appropriate StutterCounter tier. */
     private static void recordToCounter(long frameMs) {
-        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
-        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
         if (frameMs < medium) {
             StutterCounter.recordMinor(frameMs);
             checkAggregateThreshold(frameMs);
         } else if (frameMs < severe) {
             StutterCounter.recordMedium(frameMs);
-        } else {
+        } else if (frameMs < extreme) {
             StutterCounter.recordSevere(frameMs);
+        } else {
+            StutterCounter.recordExtreme(frameMs);
         }
     }
 
@@ -190,7 +193,11 @@ public class FreezeDetector {
         long durationMs = event.durationMs();
         String severity = classifySeverityString(durationMs);
         AnalyzerRuntimeState.recordStutter(durationMs, severity);
-        StutterCounter.recordSevere(durationMs);
+        if (durationMs >= SAConfig.INSTANCE.extremeFrameMs.get()) {
+            StutterCounter.recordExtreme(durationMs);
+        } else {
+            StutterCounter.recordSevere(durationMs);
+        }
         handleEvent(event, buffer);
     }
 

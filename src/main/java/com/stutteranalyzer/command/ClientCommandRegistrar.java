@@ -165,7 +165,9 @@ public class ClientCommandRegistrar {
                     .then(Commands.literal("extreme")
                         .executes(ctx -> CommonCommandLogic.debugTestExtreme(ctx.getSource()))))
                 .then(Commands.literal("visibility-test")
-                    .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource()))))
+                    .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource())))
+                .then(Commands.literal("command-routing")
+                    .executes(ctx -> CommonCommandLogic.debugCommandRouting(ctx.getSource()))))
 
             // ── quiet mode ────────────────────────────────────────────────────
             .then(Commands.literal("quiet")

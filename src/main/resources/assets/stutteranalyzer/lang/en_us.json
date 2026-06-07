@@ -3,7 +3,7 @@
   "stutteranalyzer.cmd.client_only": "This command is only available on the client side.",
   "stutteranalyzer.cmd.debug_disabled": "Debug mode is disabled. Enable it in stutteranalyzer-common.toml to use debug commands.",
 
-  "stutteranalyzer.cmd.status.header": "StutterAnalyzer Status",
+  "stutteranalyzer.cmd.status.header": "Stutter Analyzer Status",
   "stutteranalyzer.cmd.status.degraded": "One or more subsystems are degraded. Use /sa health for details.",
   "stutteranalyzer.cmd.status.state": "State",
   "stutteranalyzer.cmd.status.state_active": "ACTIVE",

@@ -229,7 +229,9 @@ public class ServerCommandRegistrar {
                     .then(Commands.literal("extreme")
                         .executes(ctx -> CommonCommandLogic.debugTestExtreme(ctx.getSource()))))
                 .then(Commands.literal("visibility-test")
-                    .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource()))))
+                    .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource())))
+                .then(Commands.literal("command-routing")
+                    .executes(ctx -> CommonCommandLogic.debugCommandRouting(ctx.getSource()))))
 
             // ── verbose mode ─────────────────────────────────────────────────
             .then(Commands.literal("verbose")

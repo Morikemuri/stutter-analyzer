@@ -18,24 +18,28 @@ public class StutterCounter {
     private record Entry(long time, long durationMs) {}
 
     // Raw frame entries
-    private static final Deque<Entry> minorEntries  = new ArrayDeque<>();
-    private static final Deque<Entry> mediumEntries = new ArrayDeque<>();
-    private static final Deque<Entry> severeEntries = new ArrayDeque<>();
+    private static final Deque<Entry> minorEntries   = new ArrayDeque<>();
+    private static final Deque<Entry> mediumEntries  = new ArrayDeque<>();
+    private static final Deque<Entry> severeEntries  = new ArrayDeque<>();
+    private static final Deque<Entry> extremeEntries = new ArrayDeque<>();
 
     // Episode timestamps (one entry per episode start)
-    private static final Deque<Long> minorEpisodes  = new ArrayDeque<>();
-    private static final Deque<Long> mediumEpisodes = new ArrayDeque<>();
-    private static final Deque<Long> severeEpisodes = new ArrayDeque<>();
+    private static final Deque<Long> minorEpisodes   = new ArrayDeque<>();
+    private static final Deque<Long> mediumEpisodes  = new ArrayDeque<>();
+    private static final Deque<Long> severeEpisodes  = new ArrayDeque<>();
+    private static final Deque<Long> extremeEpisodes = new ArrayDeque<>();
 
     // Last stutter timestamps for episode boundary detection
-    private static long lastMinorEpisodeTs  = 0;
-    private static long lastMediumEpisodeTs = 0;
-    private static long lastSevereEpisodeTs = 0;
+    private static long lastMinorEpisodeTs   = 0;
+    private static long lastMediumEpisodeTs  = 0;
+    private static long lastSevereEpisodeTs  = 0;
+    private static long lastExtremeEpisodeTs = 0;
 
     private static long lastMinorMs   = -1;
     private static long lastMinorTime = 0;
     private static long lastMediumMs  = -1;
     private static long lastSevereMs  = -1;
+    private static long lastExtremeMs = -1;
 
     private static long lastAggregateChatTime = 0;
 
@@ -80,6 +84,19 @@ public class StutterCounter {
         lastSevereEpisodeTs = now;
     }
 
+    public static synchronized void recordExtreme(long durationMs) {
+        long now = System.currentTimeMillis();
+        lastExtremeMs = durationMs;
+        extremeEntries.addLast(new Entry(now, durationMs));
+        prune(extremeEntries, now, STATUS_WINDOW_MS);
+        long gapMs = SAConfig.INSTANCE.episodeGapMs.get();
+        if (now - lastExtremeEpisodeTs > gapMs) {
+            extremeEpisodes.addLast(now);
+            pruneEpisodes(extremeEpisodes, now, STATUS_WINDOW_MS);
+        }
+        lastExtremeEpisodeTs = now;
+    }
+
     // Raw frame counts
     public static synchronized int minorCountInSeconds(int seconds) {
         long now = System.currentTimeMillis();
@@ -100,6 +117,13 @@ public class StutterCounter {
         long cutoff = now - seconds * 1000L;
         prune(severeEntries, now, STATUS_WINDOW_MS);
         return (int) severeEntries.stream().filter(e -> e.time() >= cutoff).count();
+    }
+
+    public static synchronized int extremeCountInSeconds(int seconds) {
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        prune(extremeEntries, now, STATUS_WINDOW_MS);
+        return (int) extremeEntries.stream().filter(e -> e.time() >= cutoff).count();
     }
 
     // Episode counts
@@ -124,6 +148,13 @@ public class StutterCounter {
         return (int) severeEpisodes.stream().filter(t -> t >= cutoff).count();
     }
 
+    public static synchronized int extremeEpisodeCountInSeconds(int seconds) {
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        pruneEpisodes(extremeEpisodes, now, STATUS_WINDOW_MS);
+        return (int) extremeEpisodes.stream().filter(t -> t >= cutoff).count();
+    }
+
     // Worst values
     public static synchronized long worstMinorInSeconds(int seconds) {
         long cutoff = System.currentTimeMillis() - seconds * 1000L;
@@ -144,6 +175,14 @@ public class StutterCounter {
     public static synchronized long worstSevereInSeconds(int seconds) {
         long cutoff = System.currentTimeMillis() - seconds * 1000L;
         return severeEntries.stream()
+            .filter(e -> e.time() >= cutoff)
+            .mapToLong(Entry::durationMs)
+            .max().orElse(0);
+    }
+
+    public static synchronized long worstExtremeInSeconds(int seconds) {
+        long cutoff = System.currentTimeMillis() - seconds * 1000L;
+        return extremeEntries.stream()
             .filter(e -> e.time() >= cutoff)
             .mapToLong(Entry::durationMs)
             .max().orElse(0);
