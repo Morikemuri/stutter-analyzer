@@ -20,6 +20,8 @@ import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.FreezeReport;
 import com.stutteranalyzer.report.ReportWriter;
 import com.stutteranalyzer.submission.SubmissionManager;
+import com.stutteranalyzer.update.UpdateCheckResult;
+import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.fml.loading.FMLEnvironment;
@@ -418,10 +420,94 @@ public class CommonCommandLogic {
     }
 
     public static int showVersion(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] StutterAnalyzer Version Info"), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Version Info"), false);
         src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerMod.MOD_VERSION), false);
         src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerMod.BUILD_DATE), false);
-        src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerMod.BUILD_FEATURES), false);
+        src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge 49.x"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
+
+        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
+            src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
+        } else {
+            UpdateCheckResult result = UpdateChecker.getCached();
+            if (result == null) {
+                src.sendSuccess(() -> CommandFeedback.row("Update check", "not checked - use /sa update check"), false);
+            } else if (!result.success()) {
+                src.sendSuccess(() -> CommandFeedback.row("Update check", "unavailable"), false);
+                String reason = result.errorReason() != null ? result.errorReason() : "unknown error";
+                src.sendSuccess(() -> CommandFeedback.row("Reason", reason), false);
+            } else if (result.updateAvailable()) {
+                src.sendSuccess(() -> CommandFeedback.row("Latest", result.latestVersion()), false);
+                src.sendSuccess(() -> CommandFeedback.row("Update", "available"), false);
+                src.sendSuccess(() -> CommandFeedback.row("Download", result.githubPage()), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] CurseForge link is available on the GitHub page."), false);
+            } else {
+                src.sendSuccess(() -> CommandFeedback.row("Update check", "up to date"), false);
+            }
+        }
+        return 1;
+    }
+
+    // ── Update commands ───────────────────────────────────────────────────
+
+    public static int updateCheck(CommandSourceStack src) {
+        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Update checks are disabled."), false);
+            return 1;
+        }
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Checking for updates asynchronously..."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa update status in a moment to see the result."), false);
+        UpdateChecker.performCheckAsync();
+        return 1;
+    }
+
+    public static int updateStatus(CommandSourceStack src) {
+        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Update checks are disabled."), false);
+            return 1;
+        }
+        UpdateCheckResult result = UpdateChecker.getCached();
+        if (result == null) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] No update check result yet. Use /sa update check."), false);
+            return 1;
+        }
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Update Status"), false);
+        if (!result.success()) {
+            src.sendSuccess(() -> CommandFeedback.row("Update check", "unavailable"), false);
+            String reason = result.errorReason() != null ? result.errorReason() : "unknown error";
+            src.sendSuccess(() -> CommandFeedback.row("Reason", reason), false);
+            return 1;
+        }
+        src.sendSuccess(() -> CommandFeedback.row("Current", StutterAnalyzerMod.MOD_VERSION), false);
+        src.sendSuccess(() -> CommandFeedback.row("Latest", result.latestVersion()), false);
+        if (result.updateAvailable()) {
+            src.sendSuccess(() -> CommandFeedback.row("Update", "available"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa update link for download info."), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.row("Update", "up to date"), false);
+        }
+        return 1;
+    }
+
+    public static int updateLink(CommandSourceStack src) {
+        UpdateCheckResult result = UpdateChecker.getCached();
+        String github = (result != null && result.githubPage() != null && !result.githubPage().isEmpty())
+            ? result.githubPage()
+            : SAConfig.INSTANCE.updateGithubPage.get();
+        String curseforge = (result != null && result.curseforgeUrl() != null && !result.curseforgeUrl().isEmpty())
+            ? result.curseforgeUrl()
+            : SAConfig.INSTANCE.updateCurseforgeUrl.get();
+
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Download Info"), false);
+        if (result != null && result.success() && result.updateAvailable()) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Update available: " + result.latestVersion()), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Current: " + StutterAnalyzerMod.MOD_VERSION), false);
+        }
+        src.sendSuccess(() -> CommandFeedback.row("GitHub", github), false);
+        if (!curseforge.isEmpty()) {
+            src.sendSuccess(() -> CommandFeedback.row("CurseForge", curseforge), false);
+        }
         return 1;
     }
 

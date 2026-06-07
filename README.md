@@ -184,6 +184,42 @@ Key settings:
 
 ---
 
+## Update checker
+
+StutterAnalyzer can check for new releases automatically.
+
+When an update is available, you will see:
+```
+[SA] Update available: 1.0.1. Use /sa update link for download info.
+```
+
+### Update commands
+
+| Command | What it does |
+|---------|--------------|
+| `/sa update check` | Check GitHub now for a new release |
+| `/sa update status` | Show the cached check result |
+| `/sa update link` | Show GitHub and CurseForge download links |
+
+### What the update checker does
+
+- Downloads a single public `version.json` file from GitHub (GET only)
+- Runs asynchronously in a background thread - does not block game startup
+- Times out after 5 seconds if GitHub is unreachable
+- Caches the result in `config/stutter-analyzer/update-cache.json`
+- Does not auto-download or auto-install anything
+
+### What the update checker does NOT do
+
+- Does not upload anything
+- Does not send your username, mod list, logs, or system info
+- Does not use any authentication token
+- Does not contact any service other than GitHub's raw content CDN
+
+Update checks can be disabled in config: `[updates] check_for_updates = false`
+
+---
+
 ## Submission and privacy
 
 StutterAnalyzer does not store GitHub tokens.

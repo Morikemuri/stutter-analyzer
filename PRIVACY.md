@@ -65,9 +65,36 @@ Before files are written, the following is redacted (configurable):
 - IP addresses replaced with `<ip-address>`
 - Absolute file paths shortened to relative paths
 
+## Update checks
+
+StutterAnalyzer includes an optional update checker that downloads a public `version.json` file from GitHub.
+
+What the update checker does:
+- Sends a single GET request to `https://raw.githubusercontent.com/Morikemuri/stutter-analyzer/main/version.json`
+- Runs in a background thread after a configurable delay (default: 10 seconds after startup)
+- Times out after 5 seconds if the server is unreachable
+
+What the update checker does NOT send:
+- No reports
+- No mod list
+- No username
+- No logs
+- No system details
+
+The only outbound network request is the GET to `version.json`. No data is included in that request beyond the standard HTTP connection (your IP is visible to GitHub's CDN as with any normal web request).
+
+Update checks can be disabled entirely:
+
+```toml
+[updates]
+check_for_updates = false
+```
+
+The cached result is stored in `config/stutter-analyzer/update-cache.json`. This file contains only the latest version string and a timestamp. It does not contain any personal data.
+
 ## No third-party services
 
-Public builds of StutterAnalyzer do not contact GitHub, GitHub Gist, or any other external service.
+Public builds of StutterAnalyzer do not contact GitHub, GitHub Gist, or any other external service, except for the optional update checker described above.
 
 The GitHub issue URL (default: `https://github.com/Morikemuri/stutter-analyzer/issues/new`) is only opened in your browser if you have `open_issue_url_on_client = true` in config (default: true). No data is sent to that URL automatically.
 

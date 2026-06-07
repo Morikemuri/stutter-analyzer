@@ -10,6 +10,8 @@ import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.report.FreezeEvent;
+import com.stutteranalyzer.update.UpdateCheckResult;
+import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -124,6 +126,7 @@ public class ClientSetup {
     @SubscribeEvent
     public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
         showStartupMessageIfNeeded();
+        showUpdateNotificationIfNeeded();
     }
 
     private static void showUnknownFreezeNotification() {
@@ -135,6 +138,21 @@ public class ClientSetup {
         } else {
             mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify").withStyle(ChatFormatting.GREEN));
         }
+    }
+
+    private static void showUpdateNotificationIfNeeded() {
+        if (!SAConfig.INSTANCE.checkForUpdates.get()) return;
+        UpdateCheckResult result = UpdateChecker.getCached();
+        if (result == null || !result.success() || !result.updateAvailable()) return;
+        String latestVersion = result.latestVersion();
+        if (SAConfig.INSTANCE.notifyOnlyOncePerVersion.get()
+                && latestVersion.equals(UpdateChecker.getLastNotifiedVersion())) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        mc.player.sendSystemMessage(Component.literal(
+            "[SA] Update available: " + latestVersion + ". Use /sa update link for download info."
+        ).withStyle(ChatFormatting.GREEN));
+        UpdateChecker.markNotified(latestVersion);
     }
 
     private static void showStartupMessageIfNeeded() {

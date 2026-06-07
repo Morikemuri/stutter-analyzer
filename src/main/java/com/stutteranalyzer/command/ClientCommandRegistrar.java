@@ -180,6 +180,16 @@ public class ClientCommandRegistrar {
             // ── version ───────────────────────────────────────────────────────
             .then(Commands.literal("version")
                 .executes(ctx -> CommonCommandLogic.showVersion(ctx.getSource())))
+
+            // ── update ────────────────────────────────────────────────────────
+            .then(Commands.literal("update")
+                .executes(ctx -> CommonCommandLogic.updateStatus(ctx.getSource()))
+                .then(Commands.literal("check")
+                    .executes(ctx -> CommonCommandLogic.updateCheck(ctx.getSource())))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.updateStatus(ctx.getSource())))
+                .then(Commands.literal("link")
+                    .executes(ctx -> CommonCommandLogic.updateLink(ctx.getSource()))))
         );
     }
 }

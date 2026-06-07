@@ -10,6 +10,7 @@ import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.knowledge.OptimizationModKnowledgeBase;
+import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -100,6 +101,12 @@ public class StutterAnalyzerMod {
             } catch (Throwable t) {
                 LOGGER.error("[StutterAnalyzer] Crash importer failed: {}", t.getMessage(), t);
                 SubsystemHealth.setStatus("CrashReportImporter", SubsystemHealth.Status.FAILED, t.getMessage());
+            }
+
+            try {
+                UpdateChecker.scheduleStartupCheck();
+            } catch (Throwable t) {
+                LOGGER.warn("[StutterAnalyzer] Update checker failed to schedule: {}", t.getMessage());
             }
 
             if (SAConfig.INSTANCE.guardEmergencyMode.get()) {

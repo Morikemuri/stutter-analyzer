@@ -145,6 +145,18 @@ public class SAConfig {
     public final ForgeConfigSpec.DoubleValue minimumAutoGuardConfidence;
     public final ForgeConfigSpec.DoubleValue minimumWarnConfidence;
 
+    // ── [updates] ─────────────────────────────────────────────────────────
+    public final ForgeConfigSpec.BooleanValue checkForUpdates;
+    public final ForgeConfigSpec.BooleanValue checkOnStartup;
+    public final ForgeConfigSpec.IntValue startupCheckDelaySeconds;
+    public final ForgeConfigSpec.IntValue checkIntervalHours;
+    public final ForgeConfigSpec.BooleanValue notifyOnlyOncePerVersion;
+    public final ForgeConfigSpec.BooleanValue notifyWhenUpToDate;
+    public final ForgeConfigSpec.ConfigValue<String> updateVersionUrl;
+    public final ForgeConfigSpec.ConfigValue<String> updateGithubPage;
+    public final ForgeConfigSpec.ConfigValue<String> updateCurseforgeUrl;
+    public final ForgeConfigSpec.BooleanValue openLinksOnClick;
+
     // ── [debug_hud] ───────────────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue debugHudEnabled;
     public final ForgeConfigSpec.BooleanValue debugHudShowColored;
@@ -290,6 +302,19 @@ public class SAConfig {
         submissionIncludeSystemInfo = b.comment("Include system info in submitted reports").define("include_system_info", true);
         submissionIncludeRecentEvents = b.comment("Include recent event timeline in submitted reports").define("include_recent_events", true);
         askBeforeEveryUpload = b.comment("Ask for confirmation before every upload").define("ask_before_every_upload", true);
+        b.pop();
+
+        b.comment("Automatic update checker").push("updates");
+        checkForUpdates = b.comment("Check GitHub for new releases. Only downloads a public version.json file. No user data is sent.").define("check_for_updates", true);
+        checkOnStartup = b.comment("Run the update check automatically on startup.").define("check_on_startup", true);
+        startupCheckDelaySeconds = b.comment("Seconds after startup before the first update check. Does not block game loading.").defineInRange("startup_check_delay_seconds", 10, 1, 300);
+        checkIntervalHours = b.comment("Minimum hours between automatic update checks.").defineInRange("check_interval_hours", 12, 1, 168);
+        notifyOnlyOncePerVersion = b.comment("Notify in chat only once per discovered new version.").define("notify_only_once_per_version", true);
+        notifyWhenUpToDate = b.comment("Show a chat message when already up to date. Off by default.").define("notify_when_up_to_date", false);
+        updateVersionUrl = b.comment("URL of the remote version.json to check. GET only, no authentication.").define("version_url", "https://raw.githubusercontent.com/Morikemuri/stutter-analyzer/main/version.json");
+        updateGithubPage = b.comment("GitHub page shown in /sa update link.").define("github_page", "https://github.com/Morikemuri/stutter-analyzer");
+        updateCurseforgeUrl = b.comment("CurseForge page shown in /sa update link.").define("curseforge_url", "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer");
+        openLinksOnClick = b.comment("Allow clickable chat links for update URLs on client.").define("open_links_on_click", true);
         b.pop();
 
         b.comment("Emergency Compatibility Guard").push("compatibility_guard");
