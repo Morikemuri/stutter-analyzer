@@ -14,6 +14,7 @@ import com.stutteranalyzer.report.FreezeReport;
 import com.stutteranalyzer.report.ReportWriter;
 import com.stutteranalyzer.submission.SubmissionManager;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.api.distmarker.Dist;
 
@@ -31,21 +32,37 @@ public class CommonCommandLogic {
 
     public static int showStatus(CommandSourceStack src) {
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
-        src.sendSuccess(() -> CommandFeedback.header("StutterAnalyzer Status"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Enabled", "true"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Side", src.getServer().isDedicatedServer() ? "dedicated server" : "integrated server"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Monitoring", "server tick, memory, GC, chunk events"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Last freeze",
-            last != null ? last.category() + ", " + last.durationMs() + " ms, confidence " + last.confidencePct() + "%" : "none"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Reports saved", String.valueOf(ReportWriter.savedReports())), false);
-        src.sendSuccess(() -> CommandFeedback.row("Crashes imported", String.valueOf(PreviousCrashImporter.allImported().size())), false);
+        boolean isDedicated = src.getServer().isDedicatedServer();
+        Component lastFreezeValue = last != null
+            ? Component.literal(last.category() + ", " + last.durationMs() + " ms, confidence " + last.confidencePct() + "%")
+            : Component.translatable("stutteranalyzer.cmd.status.no_freeze");
+
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.enabled"), Component.literal("true")), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.side"),
+            Component.translatable(isDedicated ? "stutteranalyzer.cmd.status.side.dedicated" : "stutteranalyzer.cmd.status.side.integrated")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.monitoring"),
+            Component.translatable("stutteranalyzer.cmd.status.monitoring")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.last_freeze"), lastFreezeValue), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.reports_saved"),
+            String.valueOf(ReportWriter.savedReports())
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.crashes_imported"),
+            String.valueOf(PreviousCrashImporter.allImported().size())
+        ), false);
         if (SubsystemHealth.anyDegraded())
-            src.sendSuccess(() -> CommandFeedback.warn("One or more subsystems are degraded. Use /sa health for details."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
         return 1;
     }
 
     public static int showHealth(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("Subsystem Health"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.health.header")), false);
         for (Map.Entry<String, SubsystemHealth.Status> e : SubsystemHealth.all().entrySet()) {
             String note = SubsystemHealth.note(e.getKey());
             String label = e.getValue() == SubsystemHealth.Status.OK ? "OK" :
@@ -58,59 +75,59 @@ public class CommonCommandLogic {
     public static int showLast(CommandSourceStack src) {
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
         if (last == null) {
-            src.sendSuccess(() -> CommandFeedback.info("No freeze events recorded yet."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.last.none")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.header("Last Freeze"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Category", last.category().name()), false);
-        src.sendSuccess(() -> CommandFeedback.row("Duration", last.durationMs() + " ms"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Side", last.side()), false);
-        src.sendSuccess(() -> CommandFeedback.row("Confidence", last.confidencePct() + "%"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.last.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.category"), last.category().name()), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.duration"), last.durationMs() + " ms"), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.side"), last.side()), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), last.confidencePct() + "%"), false);
         FreezeReport rep = ReportWriter.lastReport();
         if (rep != null) {
-            src.sendSuccess(() -> CommandFeedback.row("Report ID", rep.reportId), false);
-            src.sendSuccess(() -> CommandFeedback.info("Use /sa show " + rep.reportId + " for details."), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.report_id"), rep.reportId), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.last.use_show", rep.reportId)), false);
         }
         return 1;
     }
 
     public static int generateReport(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.info("Generating report from current data..."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.report.generating")), false);
         FreezeReport rep = ReportWriter.lastReport();
-        if (rep != null) src.sendSuccess(() -> CommandFeedback.success("Last report: " + rep.reportId), false);
-        else src.sendSuccess(() -> CommandFeedback.warn("No freeze data collected yet. Trigger a freeze or wait for a spike."), false);
+        if (rep != null) src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.report.saved", rep.reportId)), false);
+        else src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.report.no_data")), false);
         return 1;
     }
 
     public static int exportReport(CommandSourceStack src) {
         FreezeReport rep = ReportWriter.lastReport();
         if (rep == null) {
-            src.sendSuccess(() -> CommandFeedback.warn("No report to export yet."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.report.no_export")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.info("Latest report: config/stutter-analyzer/reports/" + rep.reportId), false);
-        src.sendSuccess(() -> CommandFeedback.success("Reports are saved as .md and .json automatically after each freeze."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.report.export_path", rep.reportId)), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.report.export_auto")), false);
         return 1;
     }
 
     public static int listReports(CommandSourceStack src) {
         FreezeReport last = ReportWriter.lastReport();
         if (last == null) {
-            src.sendSuccess(() -> CommandFeedback.info("No reports saved yet."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.report.none")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.header("Saved Reports (" + ReportWriter.savedReports() + ")"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Latest", last.reportId), false);
-        src.sendSuccess(() -> CommandFeedback.info("Full report list is in config/stutter-analyzer/reports/"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.report.list_header", ReportWriter.savedReports())), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.latest"), last.reportId), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.report.list_location")), false);
         return 1;
     }
 
     public static int listUnknownReports(CommandSourceStack src) {
         FreezeReport last = ReportWriter.lastReport();
         if (last != null && last.event.category().name().equals("UNKNOWN_FREEZE")) {
-            src.sendSuccess(() -> CommandFeedback.row("Latest unknown", last.reportId), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.latest_unknown"), last.reportId), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("No unknown freeze reports in current session."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.report.no_unknown")), false);
         }
         return 1;
     }
@@ -119,16 +136,16 @@ public class CommonCommandLogic {
         FreezeReport last = ReportWriter.lastReport();
         if (last != null && last.reportId.equals(reportId)) {
             FreezeEvent e = last.event;
-            src.sendSuccess(() -> CommandFeedback.header("Report: " + last.reportId), false);
-            src.sendSuccess(() -> CommandFeedback.row("Category", e.category().name()), false);
-            src.sendSuccess(() -> CommandFeedback.row("Duration", e.durationMs() + " ms"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Side", e.side()), false);
-            src.sendSuccess(() -> CommandFeedback.row("Confidence", e.confidencePct() + "%"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Reason", e.reason()), false);
+            src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.report.header", last.reportId)), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.category"), e.category().name()), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.duration"), e.durationMs() + " ms"), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.side"), e.side()), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), e.confidencePct() + "%"), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.reason"), e.reason()), false);
             if (!e.recommendation().isEmpty())
-                src.sendSuccess(() -> CommandFeedback.row("Recommendation", e.recommendation()), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.recommendation"), e.recommendation()), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.warn("Report not found in memory: " + reportId + ". Check config/stutter-analyzer/reports/"), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.report.not_found", reportId)), false);
         }
         return 1;
     }
@@ -138,7 +155,7 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.success("Delete request noted for: " + reportId + ". Delete the file manually from config/stutter-analyzer/reports/"), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.report.delete_note", reportId)), false);
         return 1;
     }
 
@@ -147,7 +164,7 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.success("Config reloaded. Some values require restart."), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.config.reloaded")), false);
         return 1;
     }
 
@@ -156,7 +173,7 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.warn("Set debug = true in stutteranalyzer-common.toml and reload config."), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.config.debug_enable")), false);
         return 1;
     }
 
@@ -165,7 +182,7 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.warn("Set debug = false in stutteranalyzer-common.toml and reload config."), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.config.debug_disable")), false);
         return 1;
     }
 
@@ -224,25 +241,25 @@ public class CommonCommandLogic {
     public static int crashLast(CommandSourceStack src) {
         CrashEvent ce = PreviousCrashImporter.last();
         if (ce == null) {
-            src.sendSuccess(() -> CommandFeedback.info("No imported crash reports from this session."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.none")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.header("Last Imported Crash"), false);
-        src.sendSuccess(() -> CommandFeedback.row("ID", ce.crashId), false);
-        src.sendSuccess(() -> CommandFeedback.row("Type", ce.crashType), false);
-        src.sendSuccess(() -> CommandFeedback.row("Summary", ce.summary), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.last_header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.id"), ce.crashId), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.type"), ce.crashType), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.summary"), ce.summary), false);
         if (ce.hasKnownPattern())
-            src.sendSuccess(() -> CommandFeedback.row("Known Pattern", ce.bestMatch().patternId + " (" + ce.bestMatch().confidencePct() + "%)"), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.known_pattern"), ce.bestMatch().patternId + " (" + ce.bestMatch().confidencePct() + "%)"), false);
         return 1;
     }
 
     public static int crashList(CommandSourceStack src) {
         List<CrashEvent> all = PreviousCrashImporter.allImported();
         if (all.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.info("No imported crash reports."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.list_none")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.header("Imported Crashes (" + all.size() + ")"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.list_header", all.size())), false);
         for (CrashEvent ce : all) {
             String pat = ce.hasKnownPattern() ? " [" + ce.bestMatch().patternId + "]" : "";
             src.sendSuccess(() -> CommandFeedback.info("- " + ce.crashId + pat), false);
@@ -253,24 +270,24 @@ public class CommonCommandLogic {
     public static int crashShow(CommandSourceStack src, String crashId) {
         List<CrashEvent> all = PreviousCrashImported(crashId);
         if (all.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.warn("Crash not found: " + crashId), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.crash.not_found", crashId)), false);
             return 1;
         }
         CrashEvent ce = all.get(0);
-        src.sendSuccess(() -> CommandFeedback.header("Crash: " + ce.crashId), false);
-        src.sendSuccess(() -> CommandFeedback.row("Type", ce.crashType), false);
-        src.sendSuccess(() -> CommandFeedback.row("Summary", ce.summary), false);
-        src.sendSuccess(() -> CommandFeedback.row("Timestamp", ce.timestamp.toString()), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.header", ce.crashId)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.type"), ce.crashType), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.summary"), ce.summary), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.timestamp"), ce.timestamp.toString()), false);
         if (ce.hasKnownPattern()) {
-            src.sendSuccess(() -> CommandFeedback.row("Pattern", ce.bestMatch().patternId), false);
-            src.sendSuccess(() -> CommandFeedback.row("Confidence", ce.bestMatch().confidencePct() + "%"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Reason", ce.bestMatch().reason), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.pattern"), ce.bestMatch().patternId), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), ce.bestMatch().confidencePct() + "%"), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.reason"), ce.bestMatch().reason), false);
         }
         return 1;
     }
 
     public static int crashExport(CommandSourceStack src, String crashId) {
-        src.sendSuccess(() -> CommandFeedback.info("Crash export: check config/stutter-analyzer/reports/ and crash-reports/ for hint files related to: " + crashId), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.export_hint", crashId)), false);
         return 1;
     }
 
@@ -279,18 +296,18 @@ public class CommonCommandLogic {
     public static int guardStatus(CommandSourceStack src) {
         boolean em = com.stutteranalyzer.config.SAConfig.INSTANCE.guardEmergencyMode.get();
         boolean enabled = com.stutteranalyzer.config.SAConfig.INSTANCE.guardEnabled.get();
-        src.sendSuccess(() -> CommandFeedback.header("Emergency Guard Status"), false);
-        src.sendSuccess(() -> CommandFeedback.row("System enabled", String.valueOf(enabled)), false);
-        src.sendSuccess(() -> CommandFeedback.row("Emergency mode", em ? "ENABLED" : "disabled"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Session triggers", String.valueOf(com.stutteranalyzer.guard.GuardWarningRateLimiter.sessionTriggerCount())), false);
-        src.sendSuccess(() -> CommandFeedback.row("Guards registered", String.valueOf(EmergencyGuardManager.allGuards().size())), false);
-        if (em) src.sendSuccess(() -> CommandFeedback.warn("Emergency mode is ON. Safe guards may activate automatically."), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.status_header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.system_enabled"), String.valueOf(enabled)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.emergency_mode"), em ? "ENABLED" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.session_triggers"), String.valueOf(com.stutteranalyzer.guard.GuardWarningRateLimiter.sessionTriggerCount())), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.guards_registered"), String.valueOf(EmergencyGuardManager.allGuards().size())), false);
+        if (em) src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.emergency_warning")), false);
         return 1;
     }
 
     public static int guardList(CommandSourceStack src) {
         List<EmergencyGuard> guards = EmergencyGuardManager.allGuards();
-        src.sendSuccess(() -> CommandFeedback.header("Emergency Guards (" + guards.size() + ")"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.list_header", guards.size())), false);
         for (EmergencyGuard g : guards) {
             String status = EmergencyGuardManager.isEnabled(g.patternId()) ? "enabled" : "disabled";
             src.sendSuccess(() -> CommandFeedback.row(g.patternId(), g.safetyLevel().name() + " | " + status), false);
@@ -301,14 +318,14 @@ public class CommonCommandLogic {
     public static int guardInfo(CommandSourceStack src, String guardId) {
         for (EmergencyGuard g : EmergencyGuardManager.allGuards()) {
             if (g.patternId().equalsIgnoreCase(guardId) || g.patternId().toLowerCase().contains(guardId.toLowerCase())) {
-                src.sendSuccess(() -> CommandFeedback.header("Guard: " + g.patternId()), false);
-                src.sendSuccess(() -> CommandFeedback.row("Safety level", g.safetyLevel().name()), false);
-                src.sendSuccess(() -> CommandFeedback.row("Enabled", String.valueOf(EmergencyGuardManager.isEnabled(g.patternId()))), false);
-                src.sendSuccess(() -> CommandFeedback.row("Config key", g.patternId().toLowerCase()), false);
+                src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.header", g.patternId())), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.safety_level"), g.safetyLevel().name()), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.enabled"), String.valueOf(EmergencyGuardManager.isEnabled(g.patternId()))), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.config_key"), g.patternId().toLowerCase()), false);
                 return 1;
             }
         }
-        src.sendSuccess(() -> CommandFeedback.warn("Guard not found: " + guardId), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.not_found", guardId)), false);
         return 1;
     }
 
@@ -318,7 +335,7 @@ public class CommonCommandLogic {
             return 0;
         }
         EmergencyGuardManager.setEnabled(guardId.toUpperCase(), true);
-        src.sendSuccess(() -> CommandFeedback.success("Guard enabled: " + guardId), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.guard.enabled", guardId)), false);
         return 1;
     }
 
@@ -328,48 +345,48 @@ public class CommonCommandLogic {
             return 0;
         }
         EmergencyGuardManager.setEnabled(guardId.toUpperCase(), false);
-        src.sendSuccess(() -> CommandFeedback.warn("Guard disabled: " + guardId), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.disabled", guardId)), false);
         return 1;
     }
 
     public static int guardReportLast(CommandSourceStack src) {
         EmergencyGuardReport rep = EmergencyGuardManager.lastReport();
         if (rep == null) {
-            src.sendSuccess(() -> CommandFeedback.info("No guard reports from this session."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.guard.no_reports")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.header("Last Guard Report"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Pattern", rep.patternId), false);
-        src.sendSuccess(() -> CommandFeedback.row("Outcome", rep.outcome.name()), false);
-        src.sendSuccess(() -> CommandFeedback.row("Confidence", (int)(rep.confidence * 100) + "%"), false);
-        if (!rep.action.isEmpty()) src.sendSuccess(() -> CommandFeedback.row("Action", rep.action), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.last_header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.pattern"), rep.patternId), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.outcome"), rep.outcome.name()), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), (int)(rep.confidence * 100) + "%"), false);
+        if (!rep.action.isEmpty()) src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.action"), rep.action), false);
         return 1;
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("StutterAnalyzer Help"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa status            - Analyzer status and current freeze count"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa health            - Subsystem health. Green good, yellow suspicious, red please look at me."), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa last              - Last detected freeze, if Minecraft recently had a dramatic pause"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa report            - Generate report from current data"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa export            - Export latest report for GitHub, Discord, or your nearest support channel"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa list              - List saved reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa list unknown      - List unknown freezes"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa show <id>         - Show report details"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa delete <id>       - Delete report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit last       - Submit last report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit <id>       - Submit report by ID"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit crash last - Submit last crash report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit guard last - Submit last guard report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa crash last/list/show/export - Crash commands"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa guard status/list/info/enable/disable/report - Guard commands. Seatbelts, not sorcery."), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa f3 on/off/toggle/status - F3 status line toggle (client only)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa selfcheck / /sa test - Checks whether the analyzer is alive, awake, and not crying in the logs"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa config reload     - Reload config (some values require restart)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa server ...        - Server subcommands"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa overlay ...       - Overlay (client only)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa client ...        - Client subcommands"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa debug ...         - Debug commands (requires op + debug mode)"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.help.header")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.status")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.health")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.last")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.report")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.export")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.list")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.list_unknown")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.show")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.delete")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_last")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_id")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_crash")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.submit_guard")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.crash_cmds")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.guard_cmds")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.f3")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.selfcheck")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.config")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.server")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.overlay")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.client_cmds")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.help.debug")), false);
         return 1;
     }
 
@@ -420,7 +437,7 @@ public class CommonCommandLogic {
         result.ok("Emergency Guard");
         result.ok("Submission manager");
 
-        src.sendSuccess(() -> CommandFeedback.header("StutterAnalyzer Self-Check"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.selfcheck.header")), false);
         for (SelfCheckResult.CheckItem item : result.items()) {
             String label = switch (item.status) {
                 case OK          -> "OK";
@@ -433,8 +450,8 @@ public class CommonCommandLogic {
         }
         String overall = result.overall();
         src.sendSuccess(() -> (result.isHealthy()
-            ? CommandFeedback.success("Result: " + overall)
-            : CommandFeedback.warn("Result: " + overall + ". Use /sa health for details.")), false);
+            ? CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.selfcheck.overall_ok", overall))
+            : CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.selfcheck.overall_warn", overall))), false);
         return 1;
     }
 
@@ -445,10 +462,13 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.clientOnly()); return 0;
         }
         boolean enabled = SAConfig.INSTANCE.debugHudEnabled.get();
-        src.sendSuccess(() -> CommandFeedback.row("F3 status line", enabled ? "enabled" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.f3_status_line"),
+            Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
+        ), false);
         if (enabled) {
-            src.sendSuccess(() -> CommandFeedback.info("Current F3 text: " +
-                com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("§.", "")), false);
+            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("§.", "");
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
         }
         return 1;
     }

@@ -1,6 +1,7 @@
 package com.stutteranalyzer.submission;
 
 import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.command.CommandFeedback;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.crash.CrashEvent;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
@@ -23,10 +24,6 @@ import java.util.concurrent.Executors;
 
 public class SubmissionManager {
 
-    public static final String WARNING =
-        "[Stutter Analyzer] This report may contain your mod list, Minecraft version, Java version, " +
-        "system information, and recent in-game performance events. Please review before submitting.";
-
     // Upload goes off-thread. Blocking the game for a network request is not an option.
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "stutteranalyzer-gist-uploader");
@@ -36,12 +33,12 @@ public class SubmissionManager {
 
     public static int submitLast(CommandSourceStack src) {
         if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
-            src.sendFailure(Component.literal("[SA] Manual submission is disabled in config."));
+            src.sendFailure(CommandFeedback.error(Component.translatable("stutteranalyzer.submit.disabled")));
             return 0;
         }
         FreezeReport report = ReportWriter.lastReport();
         if (report == null) {
-            src.sendSuccess(() -> Component.literal("[SA] No freeze report available to submit."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report")), false);
             return 1;
         }
         return doSubmit(src, report.reportId, report.toMarkdown());
@@ -49,22 +46,21 @@ public class SubmissionManager {
 
     public static int submitById(CommandSourceStack src, String reportId) {
         if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
-            src.sendFailure(Component.literal("[SA] Manual submission is disabled in config."));
+            src.sendFailure(CommandFeedback.error(Component.translatable("stutteranalyzer.submit.disabled")));
             return 0;
         }
         FreezeReport last = ReportWriter.lastReport();
         if (last != null && last.reportId.equals(reportId)) {
             return doSubmit(src, last.reportId, last.toMarkdown());
         }
-        src.sendSuccess(() -> Component.literal("[SA] Report not found in memory: " + reportId +
-            ". Try /sa export to find the file path."), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.not_found", reportId)), false);
         return 1;
     }
 
     public static int submitCrashLast(CommandSourceStack src) {
         CrashEvent ce = PreviousCrashImporter.last();
         if (ce == null) {
-            src.sendSuccess(() -> Component.literal("[SA] No imported crash reports available."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_crash")), false);
             return 1;
         }
         return doSubmit(src, ce.crashId, buildCrashMarkdown(ce));
@@ -73,15 +69,15 @@ public class SubmissionManager {
     public static int submitGuardLast(CommandSourceStack src) {
         EmergencyGuardReport rep = EmergencyGuardManager.lastReport();
         if (rep == null) {
-            src.sendSuccess(() -> Component.literal("[SA] No guard reports available."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_guard")), false);
             return 1;
         }
         return doSubmit(src, rep.guardId, rep.toMarkdown());
     }
 
     private static int doSubmit(CommandSourceStack src, String id, String markdown) {
-        src.sendSuccess(() -> Component.literal("§7" + WARNING), false);
-        src.sendSuccess(() -> Component.literal("§7[SA] Uploading report to GitHub Gist..."), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.warning")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.uploading")), false);
 
         Path gameDir = FMLEnvironment.dist == Dist.CLIENT
             ? clientGameDir()
@@ -95,19 +91,15 @@ public class SubmissionManager {
                 String gistUrl  = result.gistUrl();
                 String issueUrl = buildIssueUrl(id, gistUrl);
 
-                src.sendSuccess(() -> Component.literal(
-                    "§a[SA] Report uploaded: §f" + gistUrl), false);
-                src.sendSuccess(() -> Component.literal(
-                    "§a[SA] Opening GitHub issue form in browser..."), false);
+                src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.uploaded", gistUrl)), false);
+                src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.opening_browser")), false);
 
                 openBrowser(issueUrl);
             } else {
+                String errMsg     = result.error();
                 String fallbackUrl = SAConfig.INSTANCE.githubIssueUrl.get();
-                src.sendSuccess(() -> Component.literal(
-                    "§c[SA] Gist upload failed: " + result.error()), false);
-                src.sendSuccess(() -> Component.literal(
-                    "§7[SA] Submit manually: paste the .md file from " +
-                    "config/stutter-analyzer/reports/ into a new issue at " + fallbackUrl), false);
+                src.sendSuccess(() -> CommandFeedback.error(Component.translatable("stutteranalyzer.submit.failed", errMsg)), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.fallback", fallbackUrl)), false);
             }
         });
 

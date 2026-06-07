@@ -6,6 +6,7 @@ import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.guard.EmergencyGuardManager;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.ReportWriter;
+import net.minecraft.client.resources.language.I18n;
 
 /**
  * Holds a cached snapshot of analyzer state for the F3 line.
@@ -39,7 +40,7 @@ public class DebugHudStatusProvider {
 
     private static String buildLine() {
         if (!SAConfig.INSTANCE.enabled.get()) {
-            return colored("SA: DISABLED | Config disabled", F3StatusFormatter.COLOR_GRAY);
+            return colored(I18n.get("stutteranalyzer.f3.disabled_config"), F3StatusFormatter.COLOR_GRAY);
         }
 
         OverallStatus status = computeStatus();
@@ -50,8 +51,8 @@ public class DebugHudStatusProvider {
                 .map(e -> e.getKey() + " " + e.getValue().name().toLowerCase())
                 .findFirst().orElse("subsystem degraded");
             String color = status == OverallStatus.ERROR ? F3StatusFormatter.COLOR_RED : F3StatusFormatter.COLOR_YELLOW;
-            String statusLabel = status == OverallStatus.ERROR ? "ERROR" : "WARNING";
-            return colored("SA: " + statusLabel + " | " + degraded + " | Use /sa health", color);
+            String key   = status == OverallStatus.ERROR ? "stutteranalyzer.f3.status_error" : "stutteranalyzer.f3.status_warn";
+            return colored(I18n.get(key, degraded), color);
         }
 
         if (!SAConfig.INSTANCE.debugHudCompactMode.get()) {
@@ -62,25 +63,25 @@ public class DebugHudStatusProvider {
 
     private static String buildCompact() {
         StringBuilder sb = new StringBuilder();
-        sb.append(colored("SA: ACTIVE", F3StatusFormatter.COLOR_GREEN));
+        sb.append(colored(I18n.get("stutteranalyzer.f3.active"), F3StatusFormatter.COLOR_GREEN));
 
         if (SAConfig.INSTANCE.debugHudShowLastFreeze.get()) {
             FreezeEvent last = FreezeDetector.lastFreezeEvent();
             if (last != null) {
-                sb.append(colored(" | Last: " + last.category().name() + " " + last.durationMs() + "ms", F3StatusFormatter.COLOR_YELLOW));
+                sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_last", last.category().name(), last.durationMs()), F3StatusFormatter.COLOR_YELLOW));
             } else {
-                sb.append(colored(" | Last: none", F3StatusFormatter.COLOR_GRAY));
+                sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_no_freeze"), F3StatusFormatter.COLOR_GRAY));
             }
         }
 
         if (SAConfig.INSTANCE.debugHudShowReportCount.get()) {
-            sb.append(colored(" | Reports: " + ReportWriter.savedReports(), F3StatusFormatter.COLOR_GRAY));
+            sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_reports", ReportWriter.savedReports()), F3StatusFormatter.COLOR_GRAY));
         }
 
         if (SAConfig.INSTANCE.debugHudShowEmergencyMode.get() && SAConfig.INSTANCE.guardEmergencyMode.get()) {
             long activeGuards = EmergencyGuardManager.allGuards().stream()
                 .filter(g -> EmergencyGuardManager.isEnabled(g.patternId())).count();
-            sb.append(colored(" | Emergency Mode: ON | Safe Guards: " + activeGuards, F3StatusFormatter.COLOR_AQUA));
+            sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.emergency_on", activeGuards), F3StatusFormatter.COLOR_AQUA));
         }
 
         return sb.toString();
@@ -89,9 +90,9 @@ public class DebugHudStatusProvider {
     private static String buildFull() {
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
         if (last != null) {
-            return colored("SA: ACTIVE | Last: " + last.category().name() + " " + last.durationMs() + " ms | Report saved", F3StatusFormatter.COLOR_YELLOW);
+            return colored(I18n.get("stutteranalyzer.f3.active_full_last", last.category().name(), last.durationMs()), F3StatusFormatter.COLOR_YELLOW);
         }
-        return colored("SA: ACTIVE | FPS watch: ON | Last freeze: none | Reports: " + ReportWriter.savedReports(), F3StatusFormatter.COLOR_GREEN);
+        return colored(I18n.get("stutteranalyzer.f3.active_full_no_freeze", ReportWriter.savedReports()), F3StatusFormatter.COLOR_GREEN);
     }
 
     private static String colored(String text, String code) {

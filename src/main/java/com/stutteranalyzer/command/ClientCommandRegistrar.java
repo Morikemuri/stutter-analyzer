@@ -6,6 +6,7 @@ import com.stutteranalyzer.client.F3StatusFormatter;
 import com.stutteranalyzer.config.SAConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -26,22 +27,22 @@ public class ClientCommandRegistrar {
             .then(Commands.literal("overlay")
                 .then(Commands.literal("on")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.success("Overlay enabled."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.overlay.enabled")), false);
                         return 1;
                     }))
                 .then(Commands.literal("off")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.success("Overlay disabled."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.overlay.disabled")), false);
                         return 1;
                     }))
                 .then(Commands.literal("toggle")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info("Overlay toggled."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.overlay.toggled")), false);
                         return 1;
                     }))
                 .then(Commands.literal("status")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info("Overlay: disabled"), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.overlay.status_off")), false);
                         return 1;
                     })))
 
@@ -50,36 +51,43 @@ public class ClientCommandRegistrar {
                 .executes(ctx -> {
                     boolean enabled = SAConfig.INSTANCE.debugHudEnabled.get();
                     String current = F3StatusFormatter.format().replaceAll("§.", "");
-                    ctx.getSource().sendSuccess(() -> CommandFeedback.row("F3 status line", enabled ? "enabled" : "disabled"), false);
-                    if (enabled) ctx.getSource().sendSuccess(() -> CommandFeedback.info("Current: " + current), false);
+                    ctx.getSource().sendSuccess(() -> CommandFeedback.row(
+                        Component.translatable("stutteranalyzer.row.f3_status_line"),
+                        Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
+                    ), false);
+                    if (enabled) ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
                     return 1;
                 })
                 .then(Commands.literal("on")
                     .executes(ctx -> {
-                        // Config is read-only at runtime; we toggle the cached provider behavior via a runtime flag
                         DebugHudStatusProvider.setF3Enabled(true);
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.success("F3 status line enabled for this session."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.f3.enabled_session")), false);
                         return 1;
                     }))
                 .then(Commands.literal("off")
                     .executes(ctx -> {
                         DebugHudStatusProvider.setF3Enabled(false);
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.success("F3 status line disabled for this session."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.f3.disabled_session")), false);
                         return 1;
                     }))
                 .then(Commands.literal("toggle")
                     .executes(ctx -> {
                         boolean now = !DebugHudStatusProvider.isF3Enabled();
                         DebugHudStatusProvider.setF3Enabled(now);
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info("F3 status line " + (now ? "enabled" : "disabled") + "."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(
+                            Component.translatable(now ? "stutteranalyzer.cmd.f3.toggled_on" : "stutteranalyzer.cmd.f3.toggled_off")
+                        ), false);
                         return 1;
                     }))
                 .then(Commands.literal("status")
                     .executes(ctx -> {
                         boolean enabled = DebugHudStatusProvider.isF3Enabled();
                         String current = F3StatusFormatter.format().replaceAll("§.", "");
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.row("F3 status line", enabled ? "enabled" : "disabled"), false);
-                        if (enabled) ctx.getSource().sendSuccess(() -> CommandFeedback.info("Current F3 text: " + current), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.row(
+                            Component.translatable("stutteranalyzer.row.f3_status_line"),
+                            Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
+                        ), false);
+                        if (enabled) ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
                         return 1;
                     })))
             // ── selfcheck / test (client side has full info) ──────────────────
@@ -92,12 +100,12 @@ public class ClientCommandRegistrar {
             .then(Commands.literal("client")
                 .then(Commands.literal("last")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info("No client-side freeze events recorded yet."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.no_data")), false);
                         return 1;
                     }))
                 .then(Commands.literal("report")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info("Client report generation not yet implemented."), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.report_not_impl")), false);
                         return 1;
                     }))
                 .then(Commands.literal("export")
@@ -107,13 +115,13 @@ public class ClientCommandRegistrar {
                             src.sendFailure(CommandFeedback.noPermission());
                             return 0;
                         }
-                        src.sendSuccess(() -> CommandFeedback.info("Client export not yet implemented."), false);
+                        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.export_not_impl")), false);
                         return 1;
                     }))
                 .then(Commands.literal("submit")
                     .then(Commands.literal("last")
                         .executes(ctx -> {
-                            ctx.getSource().sendSuccess(() -> CommandFeedback.info("Client submit not yet implemented."), false);
+                            ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.client.submit_not_impl")), false);
                             return 1;
                         }))))
         );

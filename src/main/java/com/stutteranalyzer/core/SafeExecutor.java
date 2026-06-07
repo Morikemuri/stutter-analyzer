@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 
 /**
  * Wraps subsystem calls so one broken component does not take down the whole mod.
- * If something fails, disable it and move on. We are a doctor, not a grenade.
+ * If something fails, disable it and move on. We are doctors, not monkeys with a grenade.
  */
 public class SafeExecutor {
 

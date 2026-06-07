@@ -165,7 +165,7 @@ public class SAConfig {
 
         b.comment("Safety and failure isolation").push("safety");
         failSilently = b.comment("Suppress all non-fatal analyzer errors from the game log").define("fail_silently", false);
-        disableFailedSubsystems = b.comment("Automatically disable subsystems that fail rather than crashing everything. We are a doctor, not a grenade.").define("disable_failed_subsystems", true);
+        disableFailedSubsystems = b.comment("Automatically disable subsystems that fail rather than crashing everything. We are doctors, not monkeys with a grenade.").define("disable_failed_subsystems", true);
         neverCrashGame = b.comment("Never throw from event callbacks. The analyzer watching Minecraft crash is ironic enough already.").define("never_crash_game", true);
         b.pop();
 

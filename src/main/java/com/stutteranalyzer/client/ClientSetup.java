@@ -46,10 +46,11 @@ public class ClientSetup {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
-        String duration = last != null ? " §7(" + last.durationMs() + " ms)" : "";
-        mc.player.sendSystemMessage(Component.literal(
-            "§e[Stutter Analyzer] §fUnknown freeze detected" + duration + "§f. " +
-            "Report saved. Use §a/sa submit last §fto send it."));
+        if (last != null) {
+            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify_duration", last.durationMs()));
+        } else {
+            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify"));
+        }
     }
 
     private static void showStartupMessageIfNeeded() {
@@ -57,8 +58,7 @@ public class ClientSetup {
         if (SAConfig.INSTANCE.showStartupMessageOncePerSession.get() && startupMessageShown) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.sendSystemMessage(Component.literal(
-            "§7[Stutter Analyzer] §aLoaded. §7Press §aF3 §7to see SA status or use §a/sa selfcheck§7."));
+        mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.startup.loaded"));
         startupMessageShown = true;
     }
 }
