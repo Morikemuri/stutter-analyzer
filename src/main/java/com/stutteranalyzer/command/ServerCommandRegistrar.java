@@ -110,9 +110,19 @@ public class ServerCommandRegistrar {
                     .then(Commands.argument("report_id", StringArgumentType.word())
                         .executes(ctx -> CommonCommandLogic.submitReport(
                             ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
+                .then(Commands.literal("yes")
+                    .executes(ctx -> CommonCommandLogic.submitYes(ctx.getSource())))
+                .then(Commands.literal("send")
+                    .executes(ctx -> CommonCommandLogic.submitSend(ctx.getSource())))
                 .then(Commands.literal("confirm")
-                    .then(Commands.argument("prepared_id", StringArgumentType.word())
+                    .then(Commands.literal("last")
+                        .executes(ctx -> CommonCommandLogic.submitConfirmLast(ctx.getSource())))
+                    .then(Commands.argument("prepared_id", StringArgumentType.greedyString())
                         .executes(ctx -> CommonCommandLogic.submitConfirm(
+                            ctx.getSource(), StringArgumentType.getString(ctx, "prepared_id")))))
+                .then(Commands.literal("cancel")
+                    .then(Commands.argument("prepared_id", StringArgumentType.greedyString())
+                        .executes(ctx -> CommonCommandLogic.submitCancelPrepared(
                             ctx.getSource(), StringArgumentType.getString(ctx, "prepared_id")))))
                 .then(Commands.literal("local")
                     .then(Commands.literal("last")

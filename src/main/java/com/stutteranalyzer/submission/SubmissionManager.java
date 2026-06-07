@@ -34,6 +34,7 @@ public class SubmissionManager {
     private record PendingSubmission(FreezeReport report, String markdown, String reportHash) {}
 
     private static final ConcurrentHashMap<String, PendingSubmission> PENDING = new ConcurrentHashMap<>();
+    private static volatile String lastPendingId = null;
 
     private static final Executor UPLOAD_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "SA-Cloudflare-Upload");
@@ -113,6 +114,7 @@ public class SubmissionManager {
         String markdown = report.toMarkdown();
         String hash = sha256Hex(markdown);
         PENDING.put(report.reportId, new PendingSubmission(report, markdown, hash));
+        lastPendingId = report.reportId;
 
         try {
             Path dir = resolveSubmissionsDir();
@@ -123,7 +125,8 @@ public class SubmissionManager {
             String rid = report.reportId;
             src.sendSuccess(() -> CommandFeedback.success("[SA] Report prepared: " + rid), false);
             src.sendSuccess(() -> CommandFeedback.info("[SA] Review: " + mdPath), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit confirm " + rid + " to upload."), false);
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Run /sa submit yes to upload."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Advanced: /sa submit confirm " + rid), false);
         } catch (Exception e) {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Could not save prepared report: " + e.getMessage()), false);
         }
@@ -228,17 +231,20 @@ public class SubmissionManager {
         boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
         boolean fallback = SAConfig.INSTANCE.fallbackToLocal.get();
 
+        String pendingInfo = lastPendingId != null ? lastPendingId : "none";
         src.sendSuccess(() -> CommandFeedback.header("[SA] Submit routing"), false);
-        if (cfEnabled) {
-            src.sendSuccess(() -> CommandFeedback.row("/sa submit last", "CloudflareSubmitCommand"), false);
-        } else {
-            src.sendSuccess(() -> CommandFeedback.row("/sa submit last", "ManualGitHubIssueFlow (WRONG - run /sa submit mode cloudflare)"), false);
-        }
-        src.sendSuccess(() -> CommandFeedback.row("endpoint", cfEnabled ? endpoint : "not set"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit last",
+            cfEnabled ? "CloudflareSubmitCommand.prepareOrSubmitLatest" : "ManualGitHubIssueFlow (WRONG - run /sa submit mode cloudflare)"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit yes", "CloudflareSubmitCommand.confirmLatestPrepared"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit send", "CloudflareSubmitCommand.confirmLatestPrepared"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit confirm last", "CloudflareSubmitCommand.confirmLatestPrepared"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit confirm <prepared_id>", "CloudflareSubmitCommand.confirmPrepared"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit local last", "LocalManualSubmissionCommand"), false);
         src.sendSuccess(() -> CommandFeedback.row("browser opening", browserOpen ? "enabled (WRONG)" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("clipboard issue body", clipboard ? "enabled (WRONG)" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row("endpoint", cfEnabled ? endpoint : "not set"), false);
         src.sendSuccess(() -> CommandFeedback.row("fallback", fallback ? "local" : "none"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit local last", "ManualGitHubIssueFlow (explicit only)"), false);
+        src.sendSuccess(() -> CommandFeedback.row("pending submission", pendingInfo), false);
         return 1;
     }
 
@@ -335,12 +341,46 @@ public class SubmissionManager {
         String markdown = report.toMarkdown();
         String hash = sha256Hex(markdown);
         PENDING.put(report.reportId, new PendingSubmission(report, markdown, hash));
+        lastPendingId = report.reportId;
         String rid = report.reportId;
         src.sendSuccess(() -> CommandFeedback.info("[SA] This will send a sanitized performance report to the Stutter Analyzer report server."), false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] It may include mod list, Minecraft version, Java version, system info, and recent performance events."), false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] It will not include tokens, passwords, auth data, full file paths, or session data."), false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue creation happens server-side. You do not need a GitHub account."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit confirm " + rid + " to send."), false);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Run /sa submit yes to send."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Advanced: /sa submit confirm " + rid), false);
+        return 1;
+    }
+
+    public static int confirmLatestPending(CommandSourceStack src) {
+        if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
+            src.sendFailure(CommandFeedback.error(Component.translatable("stutteranalyzer.submit.disabled")));
+            return 0;
+        }
+        String id = lastPendingId;
+        if (id == null || !PENDING.containsKey(id)) {
+            // Try last report as fallback
+            FreezeReport last = ReportWriter.lastReport();
+            if (last != null && PENDING.containsKey(last.reportId)) {
+                id = last.reportId;
+            } else {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] No prepared submission is waiting for confirmation."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit last first."), false);
+                return 1;
+            }
+        }
+        final String finalId = id;
+        return submitConfirm(src, finalId);
+    }
+
+    public static int cancelPrepared(CommandSourceStack src, String preparedId) {
+        PendingSubmission removed = PENDING.remove(preparedId);
+        if (removed == null) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No pending submission found with ID: " + preparedId), false);
+            return 1;
+        }
+        if (preparedId.equals(lastPendingId)) lastPendingId = null;
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Submission cancelled: " + preparedId), false);
         return 1;
     }
 

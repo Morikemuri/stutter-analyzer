@@ -846,6 +846,31 @@ public class CommonCommandLogic {
         return SubmissionManager.submitHealth(src);
     }
 
+    public static int submitYes(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.confirmLatestPending(src);
+    }
+
+    public static int submitSend(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.confirmLatestPending(src);
+    }
+
+    public static int submitConfirmLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.confirmLatestPending(src);
+    }
+
+    public static int submitCancelPrepared(CommandSourceStack src, String preparedId) {
+        return SubmissionManager.cancelPrepared(src, preparedId);
+    }
+
     public static int generateTestReport(CommandSourceStack src) {
         if (!CommandPermissionHelper.canUseDebug(src)) {
             src.sendFailure(CommandFeedback.noPermission());

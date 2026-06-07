@@ -32,7 +32,7 @@ public class StutterAnalyzerMod {
 
     public static final String MOD_ID      = "stutteranalyzer";
     public static final String MOD_VERSION = "1.0.0";
-    public static final String BUILD_DATE  = "2026-06-07-b5";
+    public static final String BUILD_DATE  = "2026-06-08-b1";
     public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,config-migration";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
@@ -104,6 +104,11 @@ public class StutterAnalyzerMod {
                     SAConfig.INSTANCE.copyIssueBodyToClipboard.set(false);
                     LOGGER.info("[StutterAnalyzer] Submission config migrated: default submit now uses Cloudflare Worker. Manual GitHub browser flow is disabled.");
                     SubmissionManager.setPendingMigrationNotice();
+                }
+                // Always disable ask_first_time - submit goes directly to Cloudflare without manual consent step
+                if (SAConfig.INSTANCE.askFirstTime.get()) {
+                    SAConfig.INSTANCE.askFirstTime.set(false);
+                    LOGGER.info("[StutterAnalyzer] Submission config: ask_first_time disabled, submit no longer requires manual confirmation.");
                 }
             } catch (Throwable t) {
                 LOGGER.warn("[StutterAnalyzer] Config migration check failed: {}", t.getMessage());
