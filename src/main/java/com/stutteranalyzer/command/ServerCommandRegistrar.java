@@ -194,7 +194,32 @@ public class ServerCommandRegistrar {
                         return 1;
                     }))
                 .then(Commands.literal("generate-test-report")
-                    .executes(ctx -> CommonCommandLogic.generateTestReport(ctx.getSource()))))
+                    .executes(ctx -> CommonCommandLogic.generateTestReport(ctx.getSource())))
+                .then(Commands.literal("test")
+                    .then(Commands.literal("minor")
+                        .executes(ctx -> CommonCommandLogic.debugTestMinor(ctx.getSource())))
+                    .then(Commands.literal("medium")
+                        .executes(ctx -> CommonCommandLogic.debugTestMedium(ctx.getSource())))
+                    .then(Commands.literal("severe")
+                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))))
+
+            // ── verbose mode ─────────────────────────────────────────────────
+            .then(Commands.literal("verbose")
+                .executes(ctx -> CommonCommandLogic.verboseStatus(ctx.getSource()))
+                .then(Commands.literal("on")
+                    .executes(ctx -> CommonCommandLogic.verboseOn(ctx.getSource())))
+                .then(Commands.literal("off")
+                    .executes(ctx -> CommonCommandLogic.verboseOff(ctx.getSource())))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.verboseStatus(ctx.getSource()))))
+            .then(Commands.literal("notifications")
+                .then(Commands.literal("minor")
+                    .then(Commands.literal("on")
+                        .executes(ctx -> CommonCommandLogic.verboseOn(ctx.getSource())))
+                    .then(Commands.literal("off")
+                        .executes(ctx -> CommonCommandLogic.verboseOff(ctx.getSource()))))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.verboseStatus(ctx.getSource()))))
 
             // ── server subcommands ───────────────────────────────────────────
             .then(Commands.literal("server")

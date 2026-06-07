@@ -2,6 +2,7 @@ package com.stutteranalyzer.client;
 
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.guard.EmergencyGuardManager;
 import com.stutteranalyzer.report.FreezeEvent;
@@ -65,10 +66,22 @@ public class DebugHudStatusProvider {
         StringBuilder sb = new StringBuilder();
         sb.append(colored(I18n.get("stutteranalyzer.f3.active"), F3StatusFormatter.COLOR_GREEN));
 
+        // Prefer showing minor/medium counters when no saved report exists
+        FreezeEvent last = FreezeDetector.lastFreezeEvent();
+        int minorIn30 = StutterCounter.minorCountInSeconds(30);
+        long worstMinor = StutterCounter.worstMinorInSeconds(30);
+        long lastMedium = StutterCounter.lastMediumMs();
+
         if (SAConfig.INSTANCE.debugHudShowLastFreeze.get()) {
-            FreezeEvent last = FreezeDetector.lastFreezeEvent();
-            if (last != null) {
+            if (last != null && last.durationMs() >= SAConfig.INSTANCE.severeFrameMs.get()) {
+                // Severe or extreme: show full category + duration
                 sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_last", last.category().name(), last.durationMs()), F3StatusFormatter.COLOR_YELLOW));
+            } else if (lastMedium > 0) {
+                // Medium stutter tracked
+                sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_medium", lastMedium), F3StatusFormatter.COLOR_YELLOW));
+            } else if (minorIn30 > 0) {
+                // Minor stutters tracked in last 30s
+                sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_minor", minorIn30, 30, worstMinor), F3StatusFormatter.COLOR_GRAY));
             } else {
                 sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_no_freeze"), F3StatusFormatter.COLOR_GRAY));
             }
@@ -76,6 +89,12 @@ public class DebugHudStatusProvider {
 
         if (SAConfig.INSTANCE.debugHudShowReportCount.get()) {
             sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_reports", ReportWriter.savedReports()), F3StatusFormatter.COLOR_GRAY));
+        }
+
+        // Cloudflare upload status
+        String cfEndpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        if (!cfEndpoint.isBlank() && "cloudflare".equalsIgnoreCase(SAConfig.INSTANCE.submissionTarget.get())) {
+            sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.upload_ready"), F3StatusFormatter.COLOR_AQUA));
         }
 
         if (SAConfig.INSTANCE.debugHudShowEmergencyMode.get() && SAConfig.INSTANCE.guardEmergencyMode.get()) {

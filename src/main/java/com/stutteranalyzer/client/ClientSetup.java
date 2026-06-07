@@ -4,7 +4,9 @@ import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.MetricsCollector;
+import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
+import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.report.FreezeEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -42,12 +44,41 @@ public class ClientSetup {
                 DebugHudStatusProvider.refresh();
             } catch (Throwable ignored) {}
         }
+        // Severe/extreme freeze chat notification with cooldown
         if (FreezeDetector.consumeUnknownFreezeNotification()) {
             long cooldownMs = SAConfig.INSTANCE.chatNotificationCooldownSeconds.get() * 1000L;
             long now = System.currentTimeMillis();
             if (now - lastChatNotifyTime >= cooldownMs) {
                 showUnknownFreezeNotification();
                 lastChatNotifyTime = now;
+            }
+        }
+
+        // Verbose mode: show minor/medium stutters in chat
+        long verboseMs = FreezeDetector.consumeVerboseNotification();
+        if (verboseMs > 0 && VerboseMode.isEnabled()) {
+            int severe = SAConfig.INSTANCE.severeFrameMs.get();
+            int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+            boolean showMinor  = verboseMs < medium && SAConfig.INSTANCE.minorChatInVerbose.get();
+            boolean showMedium = verboseMs >= medium && verboseMs < severe && SAConfig.INSTANCE.mediumChatInVerbose.get();
+            if ((showMinor || showMedium) && VerboseMode.tryNotify(SAConfig.INSTANCE.verboseChatCooldownSeconds.get())) {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.verbose.stutter_detected", verboseMs));
+                }
+            }
+        }
+
+        // Aggregate minor stutter notification
+        long[] aggregate = FreezeDetector.consumeAggregateNotification();
+        if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                long count = aggregate[0];
+                long worst = aggregate[1];
+                int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
+                mc.player.sendSystemMessage(Component.translatable(
+                    "stutteranalyzer.verbose.aggregate", count, window, worst));
             }
         }
     }
@@ -73,10 +104,14 @@ public class ClientSetup {
         if (SAConfig.INSTANCE.showStartupMessageOncePerSession.get() && startupMessageShown) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.sendSystemMessage(
-            Component.literal("[Stutter Analyzer] ").withStyle(ChatFormatting.GRAY)
-            .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN))
-        );
+        if (SAConfig.INSTANCE.mentionSilentMinorTracking.get()) {
+            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.startup.loaded_silent"));
+        } else {
+            mc.player.sendSystemMessage(
+                Component.literal("[Stutter Analyzer] ").withStyle(ChatFormatting.GRAY)
+                .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN))
+            );
+        }
         startupMessageShown = true;
     }
 }

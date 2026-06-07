@@ -3,6 +3,7 @@ package com.stutteranalyzer.classifier;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SafeExecutor;
+import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.events.RecentEventBuffer;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.FreezeReport;
@@ -20,15 +21,24 @@ public class FreezeDetector {
     private static final FreezeClassifier classifier = new FreezeClassifier();
     private static FreezeEvent lastFreezeEvent = null;
     private static volatile boolean unknownFreezePendingNotification = false;
+    private static volatile boolean aggregatePendingNotification = false;
+    private static volatile long aggregatePendingWorstMs = 0;
+    private static volatile int aggregatePendingCount = 0;
+    private static volatile boolean verboseNotificationPending = false;
+    private static volatile long verboseNotificationMs = 0;
     private static int unknownFreezeCount = 0;
 
     private static long lastReportTime = 0;
-    // Rate-limit reports. One freeze every 5 seconds is enough drama.
+    // Rate-limit full classification. One per 5 seconds is enough drama.
     private static final long REPORT_RATE_LIMIT_MS = 5000;
 
     public static void onClientFrameSpike(long frameMs, RecentEventBuffer buffer, boolean isDedicatedServer) {
         if (!SAConfig.INSTANCE.enableClientStutterDetection.get()) return;
         if (frameMs < SAConfig.INSTANCE.minorFrameMs.get()) return;
+
+        // Always count before rate-limit so F3/status stay accurate
+        countSilent(frameMs);
+
         if (System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
 
         SafeExecutor.run("FreezeDetector", () -> {
@@ -50,6 +60,35 @@ public class FreezeDetector {
                 MetricsCollector.frameTime(), MetricsCollector.serverTick(), MetricsCollector.memoryGc(), recent);
             handleEvent(event, buffer, mspt);
         });
+    }
+
+    private static void countSilent(long frameMs) {
+        int severe = SAConfig.INSTANCE.severeFrameMs.get();
+        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+        if (frameMs < medium) {
+            StutterCounter.recordMinor(frameMs);
+            if (com.stutteranalyzer.core.VerboseMode.isEnabled()) {
+                verboseNotificationPending = true;
+                verboseNotificationMs = frameMs;
+            }
+            // aggregate check
+            if (SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()) {
+                int window  = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
+                int thresh  = SAConfig.INSTANCE.minorStutterAggregateCount.get();
+                long coolMs = SAConfig.INSTANCE.minorStutterAggregateChatCooldownSeconds.get() * 1000L;
+                if (StutterCounter.shouldNotifyAggregate(window, thresh, coolMs)) {
+                    aggregatePendingNotification = true;
+                    aggregatePendingCount  = StutterCounter.minorCountInSeconds(window);
+                    aggregatePendingWorstMs = StutterCounter.worstMinorInSeconds(window);
+                }
+            }
+        } else if (frameMs < severe) {
+            StutterCounter.recordMedium(frameMs);
+            if (com.stutteranalyzer.core.VerboseMode.isEnabled()) {
+                verboseNotificationPending = true;
+                verboseNotificationMs = frameMs;
+            }
+        }
     }
 
     private static boolean shouldSaveReport(long durationMs) {
@@ -102,12 +141,35 @@ public class FreezeDetector {
         handleEvent(event, buffer);
     }
 
-    /** Returns true (and clears the flag) if an Unknown Freeze was detected since last check. */
+    /** Simulates a silent stutter for /sa debug test minor/medium. */
+    public static void injectSilent(long durationMs) {
+        countSilent(durationMs);
+    }
+
+    /** Returns true (and clears flag) if an Unknown Freeze was detected since last check. */
     public static boolean consumeUnknownFreezeNotification() {
         if (unknownFreezePendingNotification) {
             unknownFreezePendingNotification = false;
             return true;
         }
         return false;
+    }
+
+    /** Returns the pending verbose stutter ms (0 = none) and clears the flag. */
+    public static long consumeVerboseNotification() {
+        if (verboseNotificationPending) {
+            verboseNotificationPending = false;
+            return verboseNotificationMs;
+        }
+        return 0;
+    }
+
+    /** Returns [count, worstMs] if an aggregate notification is pending, null otherwise. */
+    public static long[] consumeAggregateNotification() {
+        if (aggregatePendingNotification) {
+            aggregatePendingNotification = false;
+            return new long[]{ aggregatePendingCount, aggregatePendingWorstMs };
+        }
+        return null;
     }
 }

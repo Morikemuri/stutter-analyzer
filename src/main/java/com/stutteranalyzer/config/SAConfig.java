@@ -82,6 +82,14 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue aggregateRepeatedMinorStutters;
     public final ForgeConfigSpec.IntValue minorStutterAggregateWindowSeconds;
     public final ForgeConfigSpec.IntValue minorStutterAggregateCount;
+    public final ForgeConfigSpec.IntValue minorStutterAggregateChatCooldownSeconds;
+
+    // ── [notifications] verbose mode ──────────────────────────────────────
+    public final ForgeConfigSpec.BooleanValue verboseMode;
+    public final ForgeConfigSpec.BooleanValue verboseModeSessionOnly;
+    public final ForgeConfigSpec.BooleanValue minorChatInVerbose;
+    public final ForgeConfigSpec.BooleanValue mediumChatInVerbose;
+    public final ForgeConfigSpec.IntValue verboseChatCooldownSeconds;
 
     // ── [submission] ──────────────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue enableManualSubmission;
@@ -130,6 +138,7 @@ public class SAConfig {
     // ── [startup_message] ─────────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue showStartupMessage;
     public final ForgeConfigSpec.BooleanValue showStartupMessageOncePerSession;
+    public final ForgeConfigSpec.BooleanValue mentionSilentMinorTracking;
 
     // ── [compatibility_guard.guards] ──────────────────────────────────────
     public final ForgeConfigSpec.ConfigValue<String> guardRubidiumLava;
@@ -213,6 +222,15 @@ public class SAConfig {
         aggregateRepeatedMinorStutters = b.comment("Aggregate repeated minor stutters into a cluster report instead of spamming.").define("aggregate_repeated_minor_stutters", true);
         minorStutterAggregateWindowSeconds = b.comment("Time window (seconds) for aggregating minor stutters.").defineInRange("minor_stutter_aggregate_window_seconds", 30, 5, 3600);
         minorStutterAggregateCount = b.comment("Number of minor stutters within the window to trigger a cluster report.").defineInRange("minor_stutter_aggregate_count", 5, 2, 100);
+        minorStutterAggregateChatCooldownSeconds = b.comment("Minimum seconds between aggregate minor stutter chat messages.").defineInRange("minor_stutter_aggregate_chat_cooldown_seconds", 60, 5, 3600);
+        b.pop();
+
+        b.comment("Verbose notification mode").push("notifications");
+        verboseMode = b.comment("Temporarily show minor/medium stutters in chat. Off by default - use /sa verbose on to enable.").define("verbose_mode", false);
+        verboseModeSessionOnly = b.comment("Verbose mode resets when the game exits. Prevents accidental permanent spam.").define("verbose_mode_session_only", true);
+        minorChatInVerbose = b.comment("Show minor (50-99ms) stutters in chat when verbose mode is on.").define("minor_chat_in_verbose", true);
+        mediumChatInVerbose = b.comment("Show medium (100-249ms) stutters in chat when verbose mode is on.").define("medium_chat_in_verbose", true);
+        verboseChatCooldownSeconds = b.comment("Seconds between verbose chat messages. Prevents spam even in verbose mode.").defineInRange("verbose_chat_cooldown_seconds", 5, 1, 60);
         b.pop();
 
         b.comment("Report submission").push("submission");
@@ -252,6 +270,7 @@ public class SAConfig {
         b.comment("Startup confirmation message").push("startup_message");
         showStartupMessage = b.comment("Show a startup message when joining a world. Once per session - not every time Minecraft loads 847 mods.").define("show_startup_message", true);
         showStartupMessageOncePerSession = b.comment("Only show the startup message once per session").define("show_only_once_per_session", true);
+        mentionSilentMinorTracking = b.comment("Include a note in startup message that minor stutters are tracked silently.").define("mention_silent_minor_tracking", true);
         b.pop();
 
         b.comment("Emergency Compatibility Guard").push("compatibility_guard");

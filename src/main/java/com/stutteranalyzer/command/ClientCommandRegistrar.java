@@ -120,6 +120,24 @@ public class ClientCommandRegistrar {
                     .then(Commands.literal("last")
                         .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource())))))
 
+            // ── verbose mode ───────────────────────────────────────────────────
+            .then(Commands.literal("verbose")
+                .executes(ctx -> CommonCommandLogic.verboseStatus(ctx.getSource()))
+                .then(Commands.literal("on")
+                    .executes(ctx -> CommonCommandLogic.verboseOn(ctx.getSource())))
+                .then(Commands.literal("off")
+                    .executes(ctx -> CommonCommandLogic.verboseOff(ctx.getSource())))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.verboseStatus(ctx.getSource()))))
+            .then(Commands.literal("notifications")
+                .then(Commands.literal("minor")
+                    .then(Commands.literal("on")
+                        .executes(ctx -> CommonCommandLogic.verboseOn(ctx.getSource())))
+                    .then(Commands.literal("off")
+                        .executes(ctx -> CommonCommandLogic.verboseOff(ctx.getSource()))))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.verboseStatus(ctx.getSource()))))
+
             // ── debug (client-side freeze injection) ──────────────────────────
             .then(Commands.literal("debug")
                 .then(Commands.literal("freeze")
@@ -136,7 +154,14 @@ public class ClientCommandRegistrar {
                                 FreezeDetector.onClientFrameSpike(ms, MetricsCollector.eventBuffer(), false);
                                 src.sendSuccess(() -> CommandFeedback.debug("Client freeze injected (" + ms + " ms)."), true);
                                 return 1;
-                            })))))
+                            }))))
+                .then(Commands.literal("test")
+                    .then(Commands.literal("minor")
+                        .executes(ctx -> CommonCommandLogic.debugTestMinor(ctx.getSource())))
+                    .then(Commands.literal("medium")
+                        .executes(ctx -> CommonCommandLogic.debugTestMedium(ctx.getSource())))
+                    .then(Commands.literal("severe")
+                        .executes(ctx -> CommonCommandLogic.debugTestSevere(ctx.getSource())))))
         );
     }
 }
