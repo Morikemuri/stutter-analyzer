@@ -18,22 +18,35 @@ No setup needed. Install, launch, play.
 
 ---
 
+## What it does NOT do
+
+- **Does not boost FPS directly.** It is a diagnostic tool, not an optimizer.
+- **Does not upload anything automatically.** Reports are saved locally by default.
+- **Does not require a token or account.** Everything works without signing in anywhere.
+- **Does not modify game rendering.** The Emergency Guard system warns and reports, it does not patch mods.
+
+If you installed 47 performance mods and the game got slower, this mod will not judge you. It will simply produce evidence.
+
+---
+
 ## Features
 
 - **Automatic freeze detection** - catches lag spikes you did not even notice
 - **Smart classification** - tells you if it was GC, chunk loading, server lag, or something unknown
 - **Freeze reports** - every freeze gets a `.md` and `.json` report in `config/stutter-analyzer/reports/`
-- **One-command bug submission** - `/sa submit last` uploads your report to GitHub Gist and opens the issue form in your browser. No account needed - uploads are anonymous
+- **Privacy-first submission** - `/sa submit last` shows you the file path and the issue URL, does not upload anything unless you opt in
 - **F3 status line** - tiny status indicator in the debug screen so you always know the mod is running
-- **Emergency Guard system** - optional safeguards for serious and repeating freeze patterns
+- **Emergency Guard system** - detects known crash patterns and writes hints (warn-only by default)
+- **Previous crash importer** - scans `crash-reports/` on startup and detects known crash causes
 - **Russian language support** - works in English and Russian automatically based on your game language
+- **Dedicated server support** - server-side MSPT tracking and commands work on console
 
 ---
 
 ## Installation
 
 1. Install [Forge 49.2.0 for Minecraft 1.20.4](https://files.minecraftforge.net/)
-2. Put `StutterAnalyzer-1.0.0.jar` into your `.minecraft/mods/` folder
+2. Put `StutterAnalyzer-0.1.0-beta.jar` into your `.minecraft/mods/` folder
 3. Launch Minecraft
 4. Type `/sa selfcheck` in chat to confirm everything is working
 
@@ -49,9 +62,9 @@ Once you are in a world, StutterAnalyzer is already running. If the game freezes
 
 | Command | What it does |
 |---------|--------------|
-| `/sa status` | See if the mod is running and what it is monitoring |
+| `/sa status` | See the current state: side, trackers, last event, report count, unknown freezes, submission mode |
 | `/sa last` | Show the last detected freeze |
-| `/sa health` | Check if all parts of the mod are working |
+| `/sa health` | Check if all subsystems are working |
 | `/sa selfcheck` | Full self-test - good to run after installation |
 | `/sa help` | Show all available commands |
 
@@ -65,14 +78,15 @@ Once you are in a world, StutterAnalyzer is already running. If the game freezes
 
 ### Submitting a bug report
 
-If you see an **unknown freeze** and want help:
+If you see an unknown freeze and want help:
 
 1. Run `/sa submit last` in chat
-2. Your report is uploaded to GitHub Gist anonymously (no account, no token)
-3. A GitHub issue form opens in your browser with the report already attached
-4. Describe what you were doing and submit
+2. The mod shows you the local report file path and the GitHub issue URL
+3. Open the issue URL in your browser, paste the report, and describe what you were doing
 
-No token is stored in the mod. Uploads go to anonymous GitHub Gists and do not expire.
+By default, **no upload happens automatically**. If you want the mod to upload to GitHub Gist for you, set `submission_target = github` in `config/stutteranalyzer-common.toml`.
+
+See [PRIVACY.md](PRIVACY.md) for full details on what is collected and what is not.
 
 ---
 
@@ -97,7 +111,7 @@ Toggle the overlay on or off:
 
 ---
 
-## Unknown Freeze notification
+## Unknown Freeze
 
 When StutterAnalyzer detects a freeze it cannot classify, it will send you a chat message:
 
@@ -105,7 +119,46 @@ When StutterAnalyzer detects a freeze it cannot classify, it will send you a cha
 [SA] Unknown freeze detected (312 ms). Report saved. Use /sa submit last to send it.
 ```
 
-This means the mod saved a full freeze report but could not determine the cause. Submitting it helps improve the classifier.
+**UNKNOWN_FREEZE means the analyzer did not have enough evidence to assign a cause.** This is honest behavior, not a bug. The mod refuses to make things up.
+
+Submitting the report helps improve the classifier for future versions.
+
+---
+
+## Previous crash import
+
+If Minecraft crashed before, StutterAnalyzer scans `crash-reports/` on startup:
+
+```
+/sa crash last     - show last imported crash
+/sa crash list     - list all imported crashes
+/sa crash show <id>
+/sa submit crash last
+```
+
+Known crash patterns are detected automatically. For example, the Rubidium lava fluid render crash is recognized if there is evidence for it in the crash file.
+
+**Pattern detection requires evidence.** Having Rubidium installed alone is not enough.
+
+---
+
+## Emergency Guard
+
+The Emergency Guard system watches for known problematic patterns and writes a diagnostic hint when one is detected.
+
+By default, guards are in **warn-only or report-only mode**. They do not patch game code or modify rendering.
+
+Check guard status:
+```
+/sa guard status
+/sa guard list
+/sa guard info rubidium_lava_fluid_render
+```
+
+If a guard is listed as `warn-only`, it means:
+- The pattern was detected
+- A hint was written to the log and to a report file
+- No automatic fix was applied
 
 ---
 
@@ -118,23 +171,11 @@ Key settings:
 | Setting | Default | What it does |
 |---------|---------|--------------|
 | `enabled` | `true` | Turn the whole mod on or off |
-| `debugHudEnabled` | `true` | Show the F3 status line |
-| `enableManualSubmission` | `true` | Allow `/sa submit` to upload reports |
-| `guardEnabled` | `true` | Enable the Emergency Guard system |
-| `showStartupMessage` | `true` | Show a message when you join a world |
-
----
-
-## Crash analysis
-
-If Minecraft crashes and you want to analyze it:
-
-```
-/sa crash last     - show last imported crash
-/sa crash list     - list all imported crashes
-/sa crash show <id>
-/sa submit crash last
-```
+| `enable_f3_status_line` | `true` | Show the F3 status line |
+| `enable_manual_submission` | `true` | Allow `/sa submit` commands |
+| `submission_target` | `local` | `local` = show path only, `github` = upload to Gist |
+| `guard_enabled` | `true` | Enable the Emergency Guard system |
+| `show_startup_message` | `true` | Show a message when you join a world |
 
 ---
 
@@ -148,10 +189,25 @@ If Minecraft crashes and you want to analyze it:
 
 ## For server owners
 
-StutterAnalyzer works on dedicated servers too. The server-side commands monitor server tick performance, memory, GC, and chunk events.
+StutterAnalyzer works on dedicated servers. The server-side commands monitor server tick performance, memory, GC, and chunk events. No client classes are loaded on the server.
 
-Permission level 0 (all players): status, health, last, list, show, selfcheck, help
-Permission level 2 (operators): delete, config reload, guard enable/disable, debug commands
+Default permission levels:
+- Level 0 (all players): status, health, last, list, show, selfcheck, help
+- Level 2 (operators): server report, list, show
+- Level 3 (operators): delete, config reload, submit, guard enable/disable
+- Level 4 (operators): debug commands
+
+Debug commands are disabled by default and require both operator level 4 and `debug = true` in config.
+
+---
+
+## Known limitations
+
+- `/sa debug freeze client <ms>` is registered but does not yet generate a report after the sleep (client-side only)
+- `/sa debug generate-test-report` is registered but not yet implemented
+- `/sa client` subcommands are stubs for a future client-only command surface
+- The Emergency Guard system detects patterns and writes hints; it does not patch game rendering by default
+- Report count in `/sa status` resets on each session (not persisted across restarts)
 
 ---
 
@@ -159,7 +215,7 @@ Permission level 2 (operators): delete, config reload, guard enable/disable, deb
 
 Open an issue at: https://github.com/Morikemuri/stutter-analyzer/issues
 
-When reporting a problem with a freeze, use `/sa submit last` inside the game - it uploads the freeze report automatically and opens the issue form for you.
+When reporting a problem with a freeze, run `/sa submit last` to get the local report file path, then paste the report contents into your issue.
 
 ---
 

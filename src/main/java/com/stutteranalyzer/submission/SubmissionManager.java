@@ -77,6 +77,19 @@ public class SubmissionManager {
 
     private static int doSubmit(CommandSourceStack src, String id, String markdown) {
         src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.warning")), false);
+
+        String target = SAConfig.INSTANCE.submissionTarget.get();
+
+        if (!"github".equalsIgnoreCase(target)) {
+            // Local-only: show path and issue URL, do not contact any external service.
+            String issueUrl = SAConfig.INSTANCE.githubIssueUrl.get();
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.local_saved")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.local_path", id)), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.local_hint", issueUrl)), false);
+            return 1;
+        }
+
+        // Upload mode - user explicitly set submission_target = github
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.uploading")), false);
 
         Path gameDir = FMLEnvironment.dist == Dist.CLIENT

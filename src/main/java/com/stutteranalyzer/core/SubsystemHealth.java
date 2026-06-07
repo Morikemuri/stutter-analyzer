@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class SubsystemHealth {
 
-    public enum Status { OK, DEGRADED, DISABLED, FAILED }
+    public enum Status { OK, DEGRADED, DISABLED, FAILED, UNAVAILABLE }
 
     private static final Map<String, Status> statuses = new LinkedHashMap<>();
     private static final Map<String, String> notes = new LinkedHashMap<>();

@@ -5,8 +5,25 @@
 
   "stutteranalyzer.cmd.status.header": "Состояние StutterAnalyzer",
   "stutteranalyzer.cmd.status.degraded": "Одна или несколько подсистем работают с ошибками. Используйте /sa health для подробностей.",
-  "stutteranalyzer.cmd.status.side.dedicated": "выделенный сервер",
-  "stutteranalyzer.cmd.status.side.integrated": "встроенный сервер",
+  "stutteranalyzer.cmd.status.state": "Состояние",
+  "stutteranalyzer.cmd.status.state_active": "АКТИВЕН",
+  "stutteranalyzer.cmd.status.state_degraded": "ДЕГРАДИРОВАЛ",
+  "stutteranalyzer.cmd.status.client_tracker": "Трекер кадров (клиент)",
+  "stutteranalyzer.cmd.status.server_tracker": "Трекер тиков (сервер)",
+  "stutteranalyzer.cmd.status.f3_line": "Строка F3",
+  "stutteranalyzer.cmd.status.tracker_on": "ВКЛ",
+  "stutteranalyzer.cmd.status.tracker_unavailable": "недоступен",
+  "stutteranalyzer.cmd.status.f3_on": "активна",
+  "stutteranalyzer.cmd.status.f3_unavailable": "недоступна на сервере",
+  "stutteranalyzer.cmd.status.unknown_freezes": "Неизвестных зависаний",
+  "stutteranalyzer.cmd.status.emergency_on": "ВКЛ",
+  "stutteranalyzer.cmd.status.emergency_off": "ВЫКЛ",
+  "stutteranalyzer.cmd.status.submission": "Отправка",
+  "stutteranalyzer.cmd.status.submission_local": "только локально",
+  "stutteranalyzer.cmd.status.submission_upload": "загрузка включена",
+  "stutteranalyzer.cmd.status.side.dedicated": "Выделенный сервер",
+  "stutteranalyzer.cmd.status.side.integrated": "Встроенный сервер",
+  "stutteranalyzer.cmd.status.side.client_integrated": "Клиент + встроенный сервер",
   "stutteranalyzer.cmd.status.monitoring": "тик сервера, память, GC, события чанков",
   "stutteranalyzer.cmd.status.no_freeze": "нет",
 
@@ -110,6 +127,9 @@
   "stutteranalyzer.submit.not_found": "Отчёт не найден в памяти: %s. Попробуйте /sa export.",
   "stutteranalyzer.submit.no_crash": "Нет доступных импортированных отчётов о крашах.",
   "stutteranalyzer.submit.no_guard": "Нет доступных отчётов о защитах.",
+  "stutteranalyzer.submit.local_saved": "Отчёт сохранён локально. Проверьте файл перед отправкой.",
+  "stutteranalyzer.submit.local_path": "Файл: config/stutter-analyzer/reports/%s",
+  "stutteranalyzer.submit.local_hint": "Чтобы открыть issue на GitHub, перейдите по ссылке: %s",
 
   "stutteranalyzer.startup.loaded": "Загружен. Нажмите F3 для статуса SA или используйте /sa selfcheck.",
   "stutteranalyzer.unknown_freeze.notify": "Обнаружено неизвестное зависание. Отчёт сохранён. Используйте /sa submit last для отправки.",
@@ -154,5 +174,34 @@
   "stutteranalyzer.row.config_key": "Ключ конфига",
   "stutteranalyzer.row.outcome": "Результат",
   "stutteranalyzer.row.action": "Действие",
-  "stutteranalyzer.row.f3_status_line": "Строка статуса F3"
+  "stutteranalyzer.row.f3_status_line": "Строка статуса F3",
+
+  "stutteranalyzer.selfcheck.item.core": "Ядро",
+  "stutteranalyzer.selfcheck.item.config": "Конфигурация",
+  "stutteranalyzer.selfcheck.item.commands": "Команды",
+  "stutteranalyzer.selfcheck.item.report_folder": "Папка отчётов",
+  "stutteranalyzer.selfcheck.item.client_tracker": "Трекер кадров",
+  "stutteranalyzer.selfcheck.item.server_tracker": "Трекер тиков",
+  "stutteranalyzer.selfcheck.item.f3": "Строка F3",
+  "stutteranalyzer.selfcheck.item.knowledge_base": "База знаний",
+  "stutteranalyzer.selfcheck.item.pattern_detector": "Детектор паттернов",
+  "stutteranalyzer.selfcheck.item.emergency_guard": "Аварийная защита",
+  "stutteranalyzer.selfcheck.item.submission": "Менеджер отправки",
+
+  "stutteranalyzer.selfcheck.status.ok": "ОК",
+  "stutteranalyzer.selfcheck.status.warn": "ПРЕДУПРЕЖДЕНИЕ",
+  "stutteranalyzer.selfcheck.status.error": "ОШИБКА",
+  "stutteranalyzer.selfcheck.status.unavailable": "недоступно",
+
+  "stutteranalyzer.health.status.ok": "ОК",
+  "stutteranalyzer.health.status.degraded": "ДЕГРАДИРОВАЛ",
+  "stutteranalyzer.health.status.disabled": "ОТКЛЮЧЁН",
+  "stutteranalyzer.health.status.failed": "СБОЙ",
+  "stutteranalyzer.health.status.unavailable": "недоступно",
+
+  "stutteranalyzer.guard.list.enabled": "включена",
+  "stutteranalyzer.guard.list.disabled": "отключена",
+
+  "stutteranalyzer.cmd.crash.submit_id_hint": "Отправка по ID краша пока недоступна. Используйте /sa crash show %s для просмотра отчёта.",
+  "stutteranalyzer.cmd.guard.submit_id_hint": "Отправка по ID защиты пока недоступна. Используйте /sa guard report last."
 }

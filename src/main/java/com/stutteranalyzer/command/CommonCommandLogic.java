@@ -33,19 +33,33 @@ public class CommonCommandLogic {
     public static int showStatus(CommandSourceStack src) {
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
         boolean isDedicated = src.getServer().isDedicatedServer();
+        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
+        boolean degraded = SubsystemHealth.anyDegraded();
+
+        Component state = Component.translatable(degraded
+            ? "stutteranalyzer.cmd.status.state_degraded"
+            : "stutteranalyzer.cmd.status.state_active");
+        Component sideValue = Component.translatable(isDedicated
+            ? "stutteranalyzer.cmd.status.side.dedicated"
+            : isClient ? "stutteranalyzer.cmd.status.side.client_integrated" : "stutteranalyzer.cmd.status.side.integrated");
         Component lastFreezeValue = last != null
-            ? Component.literal(last.category() + ", " + last.durationMs() + " ms, confidence " + last.confidencePct() + "%")
+            ? Component.literal(last.category() + ", " + last.durationMs() + " ms")
             : Component.translatable("stutteranalyzer.cmd.status.no_freeze");
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.enabled"), Component.literal("true")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.state"), state), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.side"), sideValue), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.row.side"),
-            Component.translatable(isDedicated ? "stutteranalyzer.cmd.status.side.dedicated" : "stutteranalyzer.cmd.status.side.integrated")
+            Component.translatable("stutteranalyzer.cmd.status.client_tracker"),
+            Component.translatable(isClient ? "stutteranalyzer.cmd.status.tracker_on" : "stutteranalyzer.cmd.status.tracker_unavailable")
         ), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.row.monitoring"),
-            Component.translatable("stutteranalyzer.cmd.status.monitoring")
+            Component.translatable("stutteranalyzer.cmd.status.server_tracker"),
+            Component.translatable("stutteranalyzer.cmd.status.tracker_on")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.f3_line"),
+            Component.translatable(isClient ? "stutteranalyzer.cmd.status.f3_on" : "stutteranalyzer.cmd.status.f3_unavailable")
         ), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.last_freeze"), lastFreezeValue), false);
         src.sendSuccess(() -> CommandFeedback.row(
@@ -53,10 +67,22 @@ public class CommonCommandLogic {
             String.valueOf(ReportWriter.savedReports())
         ), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.row.crashes_imported"),
-            String.valueOf(PreviousCrashImporter.allImported().size())
+            Component.translatable("stutteranalyzer.cmd.status.unknown_freezes"),
+            String.valueOf(com.stutteranalyzer.classifier.FreezeDetector.unknownFreezeCount())
         ), false);
-        if (SubsystemHealth.anyDegraded())
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.emergency_mode"),
+            Component.translatable(SAConfig.INSTANCE.guardEmergencyMode.get()
+                ? "stutteranalyzer.cmd.status.emergency_on"
+                : "stutteranalyzer.cmd.status.emergency_off")
+        ), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.submission"),
+            Component.translatable("local".equalsIgnoreCase(SAConfig.INSTANCE.submissionTarget.get())
+                ? "stutteranalyzer.cmd.status.submission_local"
+                : "stutteranalyzer.cmd.status.submission_upload")
+        ), false);
+        if (degraded)
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
         return 1;
     }
@@ -65,9 +91,18 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.health.header")), false);
         for (Map.Entry<String, SubsystemHealth.Status> e : SubsystemHealth.all().entrySet()) {
             String note = SubsystemHealth.note(e.getKey());
-            String label = e.getValue() == SubsystemHealth.Status.OK ? "OK" :
-                e.getValue().name() + (note.isEmpty() ? "" : " - " + note);
-            src.sendSuccess(() -> CommandFeedback.row(e.getKey(), label), false);
+            String statusKey = switch (e.getValue()) {
+                case OK          -> "stutteranalyzer.health.status.ok";
+                case DEGRADED    -> "stutteranalyzer.health.status.degraded";
+                case DISABLED    -> "stutteranalyzer.health.status.disabled";
+                case FAILED      -> "stutteranalyzer.health.status.failed";
+                case UNAVAILABLE -> "stutteranalyzer.health.status.unavailable";
+            };
+            Component statusComp = note.isEmpty()
+                ? Component.translatable(statusKey)
+                : Component.translatable(statusKey).copy()
+                    .append(Component.literal(", " + note));
+            src.sendSuccess(() -> CommandFeedback.row(e.getKey(), statusComp), false);
         }
         return 1;
     }
@@ -215,7 +250,7 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.info("Submission by crash ID not yet implemented. Use /sa crash show " + crashId + " to view."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.submit_id_hint", crashId)), false);
         return 1;
     }
 
@@ -232,7 +267,7 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.info("Submission by guard ID not yet implemented. Use /sa guard report last."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.guard.submit_id_hint")), false);
         return 1;
     }
 
@@ -309,8 +344,11 @@ public class CommonCommandLogic {
         List<EmergencyGuard> guards = EmergencyGuardManager.allGuards();
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.list_header", guards.size())), false);
         for (EmergencyGuard g : guards) {
-            String status = EmergencyGuardManager.isEnabled(g.patternId()) ? "enabled" : "disabled";
-            src.sendSuccess(() -> CommandFeedback.row(g.patternId(), g.safetyLevel().name() + " | " + status), false);
+            Component statusComp = Component.literal(g.safetyLevel().name() + " | ")
+                .append(Component.translatable(EmergencyGuardManager.isEnabled(g.patternId())
+                    ? "stutteranalyzer.guard.list.enabled"
+                    : "stutteranalyzer.guard.list.disabled"));
+            src.sendSuccess(() -> CommandFeedback.row(g.patternId(), statusComp), false);
         }
         return 1;
     }
@@ -439,14 +477,21 @@ public class CommonCommandLogic {
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.selfcheck.header")), false);
         for (SelfCheckResult.CheckItem item : result.items()) {
-            String label = switch (item.status) {
-                case OK          -> "OK";
-                case WARN        -> "WARN";
-                case ERROR       -> "ERROR";
-                case UNAVAILABLE -> "unavailable";
+            String statusKey = switch (item.status) {
+                case OK          -> "stutteranalyzer.selfcheck.status.ok";
+                case WARN        -> "stutteranalyzer.selfcheck.status.warn";
+                case ERROR       -> "stutteranalyzer.selfcheck.status.error";
+                case UNAVAILABLE -> "stutteranalyzer.selfcheck.status.unavailable";
             };
-            String detail = item.note.isEmpty() ? label : label + " - " + item.note;
-            src.sendSuccess(() -> CommandFeedback.row("- " + item.name, detail), false);
+            Component statusComp = item.note.isEmpty()
+                ? Component.translatable(statusKey)
+                : Component.translatable(statusKey).copy()
+                    .append(Component.literal(" - " + item.note));
+            String nameKey = selfCheckItemKey(item.name);
+            Component nameComp = nameKey != null
+                ? Component.literal("- ").append(Component.translatable(nameKey))
+                : Component.literal("- " + item.name);
+            src.sendSuccess(() -> CommandFeedback.row(nameComp, statusComp), false);
         }
         String overall = result.overall();
         src.sendSuccess(() -> (result.isHealthy()
@@ -483,5 +528,22 @@ public class CommonCommandLogic {
         return PreviousCrashImporter.allImported().stream()
             .filter(ce -> ce.crashId.equals(crashId))
             .toList();
+    }
+
+    private static String selfCheckItemKey(String itemName) {
+        return switch (itemName) {
+            case "Core"                   -> "stutteranalyzer.selfcheck.item.core";
+            case "Config"                 -> "stutteranalyzer.selfcheck.item.config";
+            case "Commands"               -> "stutteranalyzer.selfcheck.item.commands";
+            case "Report folder"          -> "stutteranalyzer.selfcheck.item.report_folder";
+            case "Client frame tracker"   -> "stutteranalyzer.selfcheck.item.client_tracker";
+            case "Server tick tracker"    -> "stutteranalyzer.selfcheck.item.server_tracker";
+            case "F3 status line"         -> "stutteranalyzer.selfcheck.item.f3";
+            case "Knowledge base"         -> "stutteranalyzer.selfcheck.item.knowledge_base";
+            case "Known pattern detector" -> "stutteranalyzer.selfcheck.item.pattern_detector";
+            case "Emergency Guard"        -> "stutteranalyzer.selfcheck.item.emergency_guard";
+            case "Submission manager"     -> "stutteranalyzer.selfcheck.item.submission";
+            default                       -> null;
+        };
     }
 }

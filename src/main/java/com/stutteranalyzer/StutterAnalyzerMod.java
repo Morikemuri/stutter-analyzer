@@ -57,6 +57,10 @@ public class StutterAnalyzerMod {
 
     private void onCommonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            if (FMLEnvironment.dist != Dist.CLIENT) {
+                SubsystemHealth.setStatus("F3StatusLineRenderer", SubsystemHealth.Status.UNAVAILABLE, "dedicated server has no debug screen");
+            }
+
             try {
                 OptimizationModKnowledgeBase.load();
             } catch (Throwable t) {

@@ -5,8 +5,25 @@
 
   "stutteranalyzer.cmd.status.header": "StutterAnalyzer Status",
   "stutteranalyzer.cmd.status.degraded": "One or more subsystems are degraded. Use /sa health for details.",
-  "stutteranalyzer.cmd.status.side.dedicated": "dedicated server",
-  "stutteranalyzer.cmd.status.side.integrated": "integrated server",
+  "stutteranalyzer.cmd.status.state": "State",
+  "stutteranalyzer.cmd.status.state_active": "ACTIVE",
+  "stutteranalyzer.cmd.status.state_degraded": "DEGRADED",
+  "stutteranalyzer.cmd.status.client_tracker": "Client frame tracker",
+  "stutteranalyzer.cmd.status.server_tracker": "Server tick tracker",
+  "stutteranalyzer.cmd.status.f3_line": "F3 line",
+  "stutteranalyzer.cmd.status.tracker_on": "ON",
+  "stutteranalyzer.cmd.status.tracker_unavailable": "unavailable",
+  "stutteranalyzer.cmd.status.f3_on": "active",
+  "stutteranalyzer.cmd.status.f3_unavailable": "unavailable on server",
+  "stutteranalyzer.cmd.status.unknown_freezes": "Unknown freezes",
+  "stutteranalyzer.cmd.status.emergency_on": "ON",
+  "stutteranalyzer.cmd.status.emergency_off": "OFF",
+  "stutteranalyzer.cmd.status.submission": "Submission",
+  "stutteranalyzer.cmd.status.submission_local": "local-only",
+  "stutteranalyzer.cmd.status.submission_upload": "upload enabled",
+  "stutteranalyzer.cmd.status.side.dedicated": "Dedicated Server",
+  "stutteranalyzer.cmd.status.side.integrated": "Integrated Server",
+  "stutteranalyzer.cmd.status.side.client_integrated": "Client + Integrated Server",
   "stutteranalyzer.cmd.status.monitoring": "server tick, memory, GC, chunk events",
   "stutteranalyzer.cmd.status.no_freeze": "none",
 
@@ -110,6 +127,9 @@
   "stutteranalyzer.submit.not_found": "Report not found in memory: %s. Try /sa export to find the file path.",
   "stutteranalyzer.submit.no_crash": "No imported crash reports available.",
   "stutteranalyzer.submit.no_guard": "No guard reports available.",
+  "stutteranalyzer.submit.local_saved": "Report saved locally. Review the file before submitting.",
+  "stutteranalyzer.submit.local_path": "File: config/stutter-analyzer/reports/%s",
+  "stutteranalyzer.submit.local_hint": "To open a GitHub issue, go to: %s",
 
   "stutteranalyzer.startup.loaded": "Loaded. Press F3 to see SA status or use /sa selfcheck.",
   "stutteranalyzer.unknown_freeze.notify": "Unknown freeze detected. Report saved. Use /sa submit last to send it.",
@@ -154,5 +174,34 @@
   "stutteranalyzer.row.config_key": "Config key",
   "stutteranalyzer.row.outcome": "Outcome",
   "stutteranalyzer.row.action": "Action",
-  "stutteranalyzer.row.f3_status_line": "F3 status line"
+  "stutteranalyzer.row.f3_status_line": "F3 status line",
+
+  "stutteranalyzer.selfcheck.item.core": "Core",
+  "stutteranalyzer.selfcheck.item.config": "Config",
+  "stutteranalyzer.selfcheck.item.commands": "Commands",
+  "stutteranalyzer.selfcheck.item.report_folder": "Report folder",
+  "stutteranalyzer.selfcheck.item.client_tracker": "Client frame tracker",
+  "stutteranalyzer.selfcheck.item.server_tracker": "Server tick tracker",
+  "stutteranalyzer.selfcheck.item.f3": "F3 status line",
+  "stutteranalyzer.selfcheck.item.knowledge_base": "Knowledge base",
+  "stutteranalyzer.selfcheck.item.pattern_detector": "Known pattern detector",
+  "stutteranalyzer.selfcheck.item.emergency_guard": "Emergency Guard",
+  "stutteranalyzer.selfcheck.item.submission": "Submission manager",
+
+  "stutteranalyzer.selfcheck.status.ok": "OK",
+  "stutteranalyzer.selfcheck.status.warn": "WARN",
+  "stutteranalyzer.selfcheck.status.error": "ERROR",
+  "stutteranalyzer.selfcheck.status.unavailable": "unavailable",
+
+  "stutteranalyzer.health.status.ok": "OK",
+  "stutteranalyzer.health.status.degraded": "DEGRADED",
+  "stutteranalyzer.health.status.disabled": "DISABLED",
+  "stutteranalyzer.health.status.failed": "FAILED",
+  "stutteranalyzer.health.status.unavailable": "unavailable",
+
+  "stutteranalyzer.guard.list.enabled": "enabled",
+  "stutteranalyzer.guard.list.disabled": "disabled",
+
+  "stutteranalyzer.cmd.crash.submit_id_hint": "Submit by crash ID is not yet available. Use /sa crash show %s to view the report.",
+  "stutteranalyzer.cmd.guard.submit_id_hint": "Submit by guard ID is not yet available. Use /sa guard report last."
 }

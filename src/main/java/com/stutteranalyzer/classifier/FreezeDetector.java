@@ -20,6 +20,7 @@ public class FreezeDetector {
     private static final FreezeClassifier classifier = new FreezeClassifier();
     private static FreezeEvent lastFreezeEvent = null;
     private static volatile boolean unknownFreezePendingNotification = false;
+    private static int unknownFreezeCount = 0;
 
     private static long lastReportTime = 0;
     // Rate-limit reports. One freeze every 5 seconds is enough drama.
@@ -57,12 +58,14 @@ public class FreezeDetector {
         buffer.push(RecentEventBuffer.EventType.FREEZE_DETECTED, event.category().name() + " " + event.durationMs() + "ms");
         if (event.category() == FreezeCategory.UNKNOWN_FREEZE) {
             unknownFreezePendingNotification = true;
+            unknownFreezeCount++;
         }
         FreezeReport report = FreezeReport.from(event);
         ReportWriter.writeAsync(report);
     }
 
     public static FreezeEvent lastFreezeEvent() { return lastFreezeEvent; }
+    public static int unknownFreezeCount() { return unknownFreezeCount; }
 
     /** Returns true (and clears the flag) if an Unknown Freeze was detected since last check. */
     public static boolean consumeUnknownFreezeNotification() {

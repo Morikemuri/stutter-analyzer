@@ -180,7 +180,7 @@ public class SAConfig {
         b.comment("Report submission").push("submission");
         enableManualSubmission = b.comment("Allow manual report submission through commands").define("enable_manual_submission", true);
         enableAutomaticUnknownFreezeUpload = b.comment("Upload unknown freeze reports automatically. DISABLED by default. Automatic uploads require explicit opt-in - trust matters more than data hoarding.").define("enable_automatic_unknown_freeze_upload", false);
-        submissionTarget = b.comment("Submission target: github, local").define("submission_target", "github");
+        submissionTarget = b.comment("Submission target: local or github. Default is local - reports are never uploaded without explicit opt-in.").define("submission_target", "local");
         githubIssueUrl = b.comment("GitHub new issue URL for manual submission").define("github_issue_url", "https://github.com/Morikemuri/stutter-analyzer/issues/new");
         anonymizeReports = b.comment("Anonymize reports before submission").define("anonymize_reports", true);
         redactUsernames = b.comment("Redact usernames from file paths in reports").define("redact_usernames", true);

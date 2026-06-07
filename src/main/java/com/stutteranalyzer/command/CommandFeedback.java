@@ -60,6 +60,12 @@ public class CommandFeedback {
             .append(text.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
     }
 
+    // String label, translated Component value
+    public static Component row(String label, Component value) {
+        return Component.literal("  " + label + ": ").withStyle(ChatFormatting.GRAY)
+            .append(value.copy().withStyle(ChatFormatting.WHITE));
+    }
+
     // Translated label, dynamic String value
     public static Component row(Component label, String value) {
         return Component.literal("  ").withStyle(ChatFormatting.GRAY)
