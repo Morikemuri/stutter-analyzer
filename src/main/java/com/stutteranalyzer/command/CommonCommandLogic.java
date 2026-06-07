@@ -461,6 +461,7 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
         src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge 49.x"), false);
         src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
+        src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerMod.BUILD_FEATURES), false);
 
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
             src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
