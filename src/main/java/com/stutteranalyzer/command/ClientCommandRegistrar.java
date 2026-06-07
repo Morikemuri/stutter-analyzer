@@ -167,6 +167,16 @@ public class ClientCommandRegistrar {
                 .then(Commands.literal("visibility-test")
                     .executes(ctx -> CommonCommandLogic.debugVisibilityTest(ctx.getSource()))))
 
+            // ── quiet mode ────────────────────────────────────────────────────
+            .then(Commands.literal("quiet")
+                .executes(ctx -> CommonCommandLogic.quietStatus(ctx.getSource()))
+                .then(Commands.literal("on")
+                    .executes(ctx -> CommonCommandLogic.quietOn(ctx.getSource())))
+                .then(Commands.literal("off")
+                    .executes(ctx -> CommonCommandLogic.quietOff(ctx.getSource())))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.quietStatus(ctx.getSource()))))
+
             // ── version ───────────────────────────────────────────────────────
             .then(Commands.literal("version")
                 .executes(ctx -> CommonCommandLogic.showVersion(ctx.getSource())))

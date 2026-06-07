@@ -27,6 +27,16 @@ public class ServerCommandRegistrar {
             .then(Commands.literal("version")
                 .executes(ctx -> CommonCommandLogic.showVersion(ctx.getSource())))
 
+            // ── quiet mode ────────────────────────────────────────────────────
+            .then(Commands.literal("quiet")
+                .executes(ctx -> CommonCommandLogic.quietStatus(ctx.getSource()))
+                .then(Commands.literal("on")
+                    .executes(ctx -> CommonCommandLogic.quietOn(ctx.getSource())))
+                .then(Commands.literal("off")
+                    .executes(ctx -> CommonCommandLogic.quietOff(ctx.getSource())))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.quietStatus(ctx.getSource()))))
+
             // ── status / health / last / help / selfcheck (level 0) ──────────
             .then(Commands.literal("status")
                 .executes(ctx -> CommonCommandLogic.showStatus(ctx.getSource())))

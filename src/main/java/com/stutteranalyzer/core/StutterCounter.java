@@ -1,10 +1,13 @@
 package com.stutteranalyzer.core;
 
+import com.stutteranalyzer.config.SAConfig;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
  * Thread-safe windowed counters for minor, medium, and severe stutters.
+ * Tracks both raw frame counts and episode counts (continuous bad-frame periods).
  * Updated before the rate-limiter gate so F3/status show real counts.
  * No file I/O, no report generation.
  */
@@ -14,9 +17,18 @@ public class StutterCounter {
 
     private record Entry(long time, long durationMs) {}
 
+    // Raw frame entries
     private static final Deque<Entry> minorEntries  = new ArrayDeque<>();
     private static final Deque<Entry> mediumEntries = new ArrayDeque<>();
     private static final Deque<Entry> severeEntries = new ArrayDeque<>();
+
+    // Episode timestamps (one entry per episode start)
+    private static final Deque<Long> minorEpisodes  = new ArrayDeque<>();
+    private static final Deque<Long> mediumEpisodes = new ArrayDeque<>();
+
+    // Last stutter timestamps for episode boundary detection
+    private static long lastMinorEpisodeTs  = 0;
+    private static long lastMediumEpisodeTs = 0;
 
     private static long lastMinorMs   = -1;
     private static long lastMinorTime = 0;
@@ -31,6 +43,13 @@ public class StutterCounter {
         lastMinorTime = now;
         minorEntries.addLast(new Entry(now, durationMs));
         prune(minorEntries, now, STATUS_WINDOW_MS);
+        // Episode: new episode if gap since last stutter exceeds threshold
+        long gapMs = SAConfig.INSTANCE.episodeGapMs.get();
+        if (now - lastMinorEpisodeTs > gapMs) {
+            minorEpisodes.addLast(now);
+            pruneEpisodes(minorEpisodes, now, STATUS_WINDOW_MS);
+        }
+        lastMinorEpisodeTs = now;
     }
 
     public static synchronized void recordMedium(long durationMs) {
@@ -38,6 +57,12 @@ public class StutterCounter {
         lastMediumMs = durationMs;
         mediumEntries.addLast(new Entry(now, durationMs));
         prune(mediumEntries, now, STATUS_WINDOW_MS);
+        long gapMs = SAConfig.INSTANCE.episodeGapMs.get();
+        if (now - lastMediumEpisodeTs > gapMs) {
+            mediumEpisodes.addLast(now);
+            pruneEpisodes(mediumEpisodes, now, STATUS_WINDOW_MS);
+        }
+        lastMediumEpisodeTs = now;
     }
 
     public static synchronized void recordSevere(long durationMs) {
@@ -47,24 +72,44 @@ public class StutterCounter {
         prune(severeEntries, now, STATUS_WINDOW_MS);
     }
 
+    // Raw frame counts
     public static synchronized int minorCountInSeconds(int seconds) {
-        long cutoff = System.currentTimeMillis() - seconds * 1000L;
-        prune(minorEntries, System.currentTimeMillis(), STATUS_WINDOW_MS);
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        prune(minorEntries, now, STATUS_WINDOW_MS);
         return (int) minorEntries.stream().filter(e -> e.time() >= cutoff).count();
     }
 
     public static synchronized int mediumCountInSeconds(int seconds) {
-        long cutoff = System.currentTimeMillis() - seconds * 1000L;
-        prune(mediumEntries, System.currentTimeMillis(), STATUS_WINDOW_MS);
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        prune(mediumEntries, now, STATUS_WINDOW_MS);
         return (int) mediumEntries.stream().filter(e -> e.time() >= cutoff).count();
     }
 
     public static synchronized int severeCountInSeconds(int seconds) {
-        long cutoff = System.currentTimeMillis() - seconds * 1000L;
-        prune(severeEntries, System.currentTimeMillis(), STATUS_WINDOW_MS);
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        prune(severeEntries, now, STATUS_WINDOW_MS);
         return (int) severeEntries.stream().filter(e -> e.time() >= cutoff).count();
     }
 
+    // Episode counts
+    public static synchronized int minorEpisodeCountInSeconds(int seconds) {
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        pruneEpisodes(minorEpisodes, now, STATUS_WINDOW_MS);
+        return (int) minorEpisodes.stream().filter(t -> t >= cutoff).count();
+    }
+
+    public static synchronized int mediumEpisodeCountInSeconds(int seconds) {
+        long now = System.currentTimeMillis();
+        long cutoff = now - seconds * 1000L;
+        pruneEpisodes(mediumEpisodes, now, STATUS_WINDOW_MS);
+        return (int) mediumEpisodes.stream().filter(t -> t >= cutoff).count();
+    }
+
+    // Worst values
     public static synchronized long worstMinorInSeconds(int seconds) {
         long cutoff = System.currentTimeMillis() - seconds * 1000L;
         return minorEntries.stream()
@@ -112,8 +157,22 @@ public class StutterCounter {
         return false;
     }
 
+    /** Remaining cooldown seconds until next aggregate chat is allowed. -1 if ready now. */
+    public static synchronized long aggregateCooldownRemainingSeconds() {
+        long cooldownMs = SAConfig.INSTANCE.minorAggregateChatCooldownSeconds.get() * 1000L;
+        long elapsed = System.currentTimeMillis() - lastAggregateChatTime;
+        long remaining = cooldownMs - elapsed;
+        return remaining > 0 ? remaining / 1000L : -1;
+    }
+
     private static void prune(Deque<Entry> q, long now, long windowMs) {
         while (!q.isEmpty() && now - q.peekFirst().time() > windowMs) {
+            q.pollFirst();
+        }
+    }
+
+    private static void pruneEpisodes(Deque<Long> q, long now, long windowMs) {
+        while (!q.isEmpty() && now - q.peekFirst() > windowMs) {
             q.pollFirst();
         }
     }

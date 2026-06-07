@@ -87,12 +87,28 @@ public class SAConfig {
     // ── [debug] ───────────────────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue logDetectionPipeline;
 
-    // ── [notifications] verbose mode ──────────────────────────────────────
+    // ── [stutter_counting] ────────────────────────────────────────────────
+    public final ForgeConfigSpec.ConfigValue<String> countMode;
+    public final ForgeConfigSpec.IntValue episodeGapMs;
+    public final ForgeConfigSpec.IntValue episodeMinDurationMs;
+    public final ForgeConfigSpec.BooleanValue showRawFrameSpikeCount;
+
+    // ── [notifications] verbose mode + quiet mode ─────────────────────────
+    public final ForgeConfigSpec.BooleanValue quietMode;
+    public final ForgeConfigSpec.BooleanValue minorAggregateChatEnabled;
+    public final ForgeConfigSpec.IntValue minorAggregateChatCooldownSeconds;
+    public final ForgeConfigSpec.BooleanValue minorAggregateShowOnlyIfWorse;
+    public final ForgeConfigSpec.IntValue minorAggregateMinCountIncrease;
+    public final ForgeConfigSpec.IntValue minorAggregateMinWorstIncreaseMs;
     public final ForgeConfigSpec.BooleanValue verboseMode;
     public final ForgeConfigSpec.BooleanValue verboseModeSessionOnly;
     public final ForgeConfigSpec.BooleanValue minorChatInVerbose;
     public final ForgeConfigSpec.BooleanValue mediumChatInVerbose;
     public final ForgeConfigSpec.IntValue verboseChatCooldownSeconds;
+
+    // ── [debug_hud] extra ─────────────────────────────────────────────────
+    public final ForgeConfigSpec.ConfigValue<String> f3CounterMode;
+    public final ForgeConfigSpec.BooleanValue showRawSpikeCountOnF3;
 
     // ── [submission] ──────────────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue enableManualSubmission;
@@ -232,7 +248,20 @@ public class SAConfig {
         logDetectionPipeline = b.comment("Log every stutter detection event to latest.log. Very verbose - disabled by default.").define("log_detection_pipeline", false);
         b.pop();
 
-        b.comment("Verbose notification mode").push("notifications");
+        b.comment("How stutters are counted for F3 and /sa status").push("stutter_counting");
+        countMode = b.comment("Count mode: episodes (continuous bad-frame periods), frames (every individual frame), or both.").define("count_mode", "episodes");
+        episodeGapMs = b.comment("Gap in ms between stutter frames to start a new episode. 250ms = any frame within 5 ticks is part of the same episode.").defineInRange("episode_gap_ms", 250, 50, 5000);
+        episodeMinDurationMs = b.comment("Minimum frame duration (ms) for episode tracking. Should match minor_frame_ms.").defineInRange("episode_min_duration_ms", 50, 1, 1000);
+        showRawFrameSpikeCount = b.comment("Show raw frame spike count in /sa status alongside episode count.").define("show_raw_frame_spike_count", false);
+        b.pop();
+
+        b.comment("Chat notification and quiet mode").push("notifications");
+        quietMode = b.comment("Quiet mode ON: minor/medium stutters shown in F3 and /sa status only. Severe/extreme still notify in chat. Use /sa quiet on/off to toggle.").define("quiet_mode", true);
+        minorAggregateChatEnabled = b.comment("Show aggregate minor stutter summary in chat (subject to quiet mode and cooldown).").define("minor_aggregate_chat_enabled", true);
+        minorAggregateChatCooldownSeconds = b.comment("Minimum seconds between aggregate minor stutter chat messages.").defineInRange("minor_aggregate_chat_cooldown_seconds", 120, 5, 3600);
+        minorAggregateShowOnlyIfWorse = b.comment("Only show another aggregate message if things got significantly worse since the last one.").define("minor_aggregate_show_only_if_worse", true);
+        minorAggregateMinCountIncrease = b.comment("Minimum stutter count increase since last message to trigger another.").defineInRange("minor_aggregate_min_count_increase", 25, 1, 500);
+        minorAggregateMinWorstIncreaseMs = b.comment("Minimum worst spike increase (ms) since last message to trigger another.").defineInRange("minor_aggregate_min_worst_increase_ms", 15, 1, 1000);
         verboseMode = b.comment("Temporarily show minor/medium stutters in chat. Off by default - use /sa verbose on to enable.").define("verbose_mode", false);
         verboseModeSessionOnly = b.comment("Verbose mode resets when the game exits. Prevents accidental permanent spam.").define("verbose_mode_session_only", true);
         minorChatInVerbose = b.comment("Show minor (50-99ms) stutters in chat when verbose mode is on.").define("minor_chat_in_verbose", true);
@@ -272,6 +301,8 @@ public class SAConfig {
         debugHudShowReportCount = b.comment("Show report count on F3 line").define("show_report_count_on_f3", true);
         debugHudShowSubsystemWarnings = b.comment("Show subsystem warnings on F3 line").define("show_subsystem_warnings_on_f3", true);
         debugHudCompactMode = b.comment("Use compact single-line format. F3 is crowded enough already.").define("compact_mode", true);
+        f3CounterMode = b.comment("What to show on F3: episodes (default), frames, or both.").define("f3_counter_mode", "episodes");
+        showRawSpikeCountOnF3 = b.comment("Also show raw frame spike count on F3 when counter mode is episodes.").define("show_raw_spike_count_on_f3", false);
         b.pop();
 
         b.comment("Startup confirmation message").push("startup_message");

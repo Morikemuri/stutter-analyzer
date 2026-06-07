@@ -8,6 +8,7 @@ import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
+import com.stutteranalyzer.core.QuietMode;
 import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.crash.CrashEvent;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
@@ -41,13 +42,24 @@ public class CommonCommandLogic {
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
         boolean degraded = SubsystemHealth.anyDegraded();
 
-        int minorIn60   = StutterCounter.minorCountInSeconds(60);
-        int mediumIn60  = StutterCounter.mediumCountInSeconds(60);
-        int severeIn60  = StutterCounter.severeCountInSeconds(60);
-        long worstMinor = StutterCounter.worstMinorInSeconds(60);
+        String countMode = SAConfig.INSTANCE.countMode.get();
+        boolean useEpisodes = !"frames".equalsIgnoreCase(countMode);
+        boolean showRaw     = SAConfig.INSTANCE.showRawFrameSpikeCount.get() || "both".equalsIgnoreCase(countMode);
+
+        int minorEp  = StutterCounter.minorEpisodeCountInSeconds(60);
+        int mediumEp = StutterCounter.mediumEpisodeCountInSeconds(60);
+        int minorRaw = StutterCounter.minorCountInSeconds(60);
+        int mediumRaw = StutterCounter.mediumCountInSeconds(60);
+        int severeIn60 = StutterCounter.severeCountInSeconds(60);
+        long worstMinor  = StutterCounter.worstMinorInSeconds(60);
         long worstMedium = StutterCounter.worstMediumInSeconds(60);
         String lastSeverity = AnalyzerRuntimeState.lastStutterSeverity();
         long lastDurationMs = AnalyzerRuntimeState.lastStutterDurationMs();
+
+        int minorDisplay  = useEpisodes ? minorEp  : minorRaw;
+        int mediumDisplay = useEpisodes ? mediumEp : mediumRaw;
+        String minorLabel  = useEpisodes ? "Minor episodes" : "Minor frames";
+        String mediumLabel = useEpisodes ? "Medium episodes" : "Medium frames";
 
         Component state = Component.translatable(degraded
             ? "stutteranalyzer.cmd.status.state_degraded"
@@ -71,14 +83,20 @@ public class CommonCommandLogic {
                 Component.literal(lastSeverity + " " + lastDurationMs + "ms")
             ), false);
         }
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.minor_count"),
-            Component.literal(minorIn60 + " in last 60s" + (worstMinor > 0 ? " | worst: " + worstMinor + "ms" : ""))
+
+        // Episode or frame counts
+        src.sendSuccess(() -> CommandFeedback.row(minorLabel,
+            minorDisplay + " in last 60s" + (worstMinor > 0 ? " | worst: " + worstMinor + "ms" : "")
         ), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.medium_count"),
-            Component.literal(mediumIn60 + " in last 60s" + (worstMedium > 0 ? " | worst: " + worstMedium + "ms" : ""))
+        if (showRaw && useEpisodes) {
+            src.sendSuccess(() -> CommandFeedback.row("Raw minor frames", minorRaw + " in last 60s"), false);
+        }
+        src.sendSuccess(() -> CommandFeedback.row(mediumLabel,
+            mediumDisplay + " in last 60s" + (worstMedium > 0 ? " | worst: " + worstMedium + "ms" : "")
         ), false);
+        if (showRaw && useEpisodes && mediumRaw != mediumDisplay) {
+            src.sendSuccess(() -> CommandFeedback.row("Raw medium frames", mediumRaw + " in last 60s"), false);
+        }
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.severe_count"),
             Component.literal(severeIn60 + " in last 60s")
@@ -94,18 +112,20 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.last_freeze"), lastFreezeValue), false);
         }
 
+        // Quiet mode and aggregate cooldown
+        boolean quiet = QuietMode.isEnabled();
+        src.sendSuccess(() -> CommandFeedback.row("Quiet mode",
+            quiet ? "ON (minor/medium in F3 only)" : "OFF"
+        ), false);
+        long aggRemaining = StutterCounter.aggregateCooldownRemainingSeconds();
+        if (aggRemaining > 0) {
+            src.sendSuccess(() -> CommandFeedback.row("Aggregate chat cooldown", aggRemaining + "s remaining"), false);
+        }
+
         // Chat and verbose mode
         boolean chatMinor  = SAConfig.INSTANCE.chatNotifyMinorStutters.get();
         boolean chatMedium = SAConfig.INSTANCE.chatNotifyMediumStutters.get();
         boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.chat_minor"),
-            Component.translatable(chatMinor ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.chat_medium"),
-            Component.translatable(chatMedium ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.chat_severe"),
             Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
@@ -119,11 +139,9 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
 
         // Hint when nothing recorded yet
-        if (minorIn60 == 0 && mediumIn60 == 0 && severeIn60 == 0) {
+        if (minorDisplay == 0 && mediumDisplay == 0 && severeIn60 == 0) {
             src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet."), false);
             src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa debug test minor to verify the pipeline."), false);
-        } else if (minorIn60 > 0 && !chatMinor && !VerboseMode.isEnabled()) {
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.status.minor_silent_hint")), false);
         }
         return 1;
     }
@@ -400,6 +418,34 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerMod.MOD_VERSION), false);
         src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerMod.BUILD_DATE), false);
         src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerMod.BUILD_FEATURES), false);
+        return 1;
+    }
+
+    // ── Quiet mode ────────────────────────────────────────────────────────
+
+    public static int quietOn(CommandSourceStack src) {
+        QuietMode.setEnabled(true);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Quiet mode: ON"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Minor/medium stutters visible in F3 and /sa status, not in chat."), false);
+        return 1;
+    }
+
+    public static int quietOff(CommandSourceStack src) {
+        QuietMode.setEnabled(false);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Quiet mode: OFF"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Using normal notification rules. Use /sa verbose on for per-stutter chat."), false);
+        return 1;
+    }
+
+    public static int quietStatus(CommandSourceStack src) {
+        boolean q = QuietMode.isEnabled();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Quiet Mode"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Quiet mode", q ? "ON" : "OFF"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Minor/medium chat", q ? "suppressed" : "per config"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Severe/extreme chat", "always ON"), false);
+        long aggCooldown = SAConfig.INSTANCE.minorAggregateChatCooldownSeconds.get();
+        long remaining = StutterCounter.aggregateCooldownRemainingSeconds();
+        src.sendSuccess(() -> CommandFeedback.row("Aggregate cooldown", aggCooldown + "s" + (remaining > 0 ? " (" + remaining + "s left)" : " (ready)")), false);
         return 1;
     }
 

@@ -66,27 +66,28 @@ public class DebugHudStatusProvider {
         StringBuilder sb = new StringBuilder();
         sb.append(colored(I18n.get("stutteranalyzer.f3.active"), F3StatusFormatter.COLOR_GREEN));
 
-        // Live stutter counters - always shown, read from AnalyzerRuntimeState + StutterCounter
         FreezeEvent lastClassified = FreezeDetector.lastFreezeEvent();
         int severeMs    = SAConfig.INSTANCE.severeFrameMs.get();
         int mediumMs    = SAConfig.INSTANCE.mediumFrameMs.get();
-        int minorIn60   = StutterCounter.minorCountInSeconds(60);
+        String mode     = SAConfig.INSTANCE.f3CounterMode.get();
+        boolean useEpisodes = !"frames".equalsIgnoreCase(mode);
+
+        int minorCount  = useEpisodes ? StutterCounter.minorEpisodeCountInSeconds(60)  : StutterCounter.minorCountInSeconds(60);
+        int mediumCount = useEpisodes ? StutterCounter.mediumEpisodeCountInSeconds(60) : StutterCounter.mediumCountInSeconds(60);
         long worstMinor = StutterCounter.worstMinorInSeconds(60);
-        int mediumIn60  = StutterCounter.mediumCountInSeconds(60);
         long worstMedium = StutterCounter.worstMediumInSeconds(60);
+        String minorLabel  = useEpisodes ? "stutteranalyzer.f3.compact_minor_ep"  : "stutteranalyzer.f3.compact_minor";
+        String mediumLabel = useEpisodes ? "stutteranalyzer.f3.compact_medium_ep" : "stutteranalyzer.f3.compact_medium_count";
 
         if (lastClassified != null && lastClassified.durationMs() >= severeMs) {
-            // Severe or extreme: show full event
             sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_last",
                 lastClassified.category().name(), lastClassified.durationMs()), F3StatusFormatter.COLOR_YELLOW));
-        } else if (mediumIn60 > 0) {
-            // Medium stutters in last 60s
-            sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_medium_count",
-                mediumIn60, 60, worstMedium), F3StatusFormatter.COLOR_YELLOW));
-        } else if (minorIn60 > 0) {
-            // Minor stutters in last 60s
-            sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_minor",
-                minorIn60, 60, worstMinor), F3StatusFormatter.COLOR_GRAY));
+        } else if (mediumCount > 0) {
+            sb.append(colored(" | " + I18n.get(mediumLabel,
+                mediumCount, 60, worstMedium), F3StatusFormatter.COLOR_YELLOW));
+        } else if (minorCount > 0) {
+            sb.append(colored(" | " + I18n.get(minorLabel,
+                minorCount, 60, worstMinor), F3StatusFormatter.COLOR_GRAY));
         } else {
             sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.compact_no_freeze"), F3StatusFormatter.COLOR_GRAY));
         }

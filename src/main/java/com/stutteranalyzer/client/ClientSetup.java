@@ -5,6 +5,7 @@ import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
+import com.stutteranalyzer.core.QuietMode;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.core.VerboseMode;
@@ -23,6 +24,10 @@ public class ClientSetup {
     private static boolean startupMessageShown = false;
     private static int tickCounter = 0;
     private static long lastChatNotifyTime = 0;
+    // Aggregate chat suppression state
+    private static long lastAggregateChatShownTime = 0;
+    private static long lastAggregateShownCount = 0;
+    private static long lastAggregateShownWorstMs = 0;
 
     public static void onClientSetup(FMLClientSetupEvent event) {
         StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Client setup complete.");
@@ -60,9 +65,9 @@ public class ClientSetup {
             }
         }
 
-        // Verbose mode: show minor/medium stutters in chat
+        // Verbose mode: show minor/medium stutters in chat (suppressed by quiet mode)
         long verboseMs = FreezeDetector.consumeVerboseNotification();
-        if (verboseMs > 0 && VerboseMode.isEnabled()) {
+        if (verboseMs > 0 && VerboseMode.isEnabled() && !QuietMode.isEnabled()) {
             int severe = SAConfig.INSTANCE.severeFrameMs.get();
             int medium = SAConfig.INSTANCE.mediumFrameMs.get();
             boolean showMinor  = verboseMs < medium && SAConfig.INSTANCE.minorChatInVerbose.get();
@@ -75,16 +80,35 @@ public class ClientSetup {
             }
         }
 
-        // Aggregate minor stutter notification
+        // Aggregate minor stutter notification - smart suppression
         long[] aggregate = FreezeDetector.consumeAggregateNotification();
-        if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()) {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) {
+        if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()
+                && SAConfig.INSTANCE.minorAggregateChatEnabled.get()
+                && !QuietMode.isEnabled()) {
+            long now = System.currentTimeMillis();
+            long cooldownMs = SAConfig.INSTANCE.minorAggregateChatCooldownSeconds.get() * 1000L;
+            if (now - lastAggregateChatShownTime >= cooldownMs) {
                 long count = aggregate[0];
                 long worst = aggregate[1];
-                int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
-                mc.player.sendSystemMessage(Component.translatable(
-                    "stutteranalyzer.verbose.aggregate", count, window, worst).withStyle(ChatFormatting.GREEN));
+                boolean shouldShow = true;
+                if (SAConfig.INSTANCE.minorAggregateShowOnlyIfWorse.get() && lastAggregateShownCount > 0) {
+                    long countIncrease = count - lastAggregateShownCount;
+                    long worstIncrease = worst - lastAggregateShownWorstMs;
+                    int minCount = SAConfig.INSTANCE.minorAggregateMinCountIncrease.get();
+                    int minWorst = SAConfig.INSTANCE.minorAggregateMinWorstIncreaseMs.get();
+                    shouldShow = countIncrease >= minCount || worstIncrease >= minWorst;
+                }
+                if (shouldShow) {
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc.player != null) {
+                        int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
+                        mc.player.sendSystemMessage(Component.translatable(
+                            "stutteranalyzer.verbose.aggregate", count, window, worst).withStyle(ChatFormatting.GREEN));
+                        lastAggregateChatShownTime = now;
+                        lastAggregateShownCount = count;
+                        lastAggregateShownWorstMs = worst;
+                    }
+                }
             }
         }
     }
