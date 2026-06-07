@@ -306,7 +306,6 @@ public class CommonCommandLogic {
     // ── Debug test commands ───────────────────────────────────────────────
 
     public static int debugTestMinor(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         FreezeDetector.injectSilent(55);
         // Request immediate F3 refresh so user sees the update without waiting
         AnalyzerRuntimeState.requestF3Refresh();
@@ -321,7 +320,6 @@ public class CommonCommandLogic {
     }
 
     public static int debugTestMedium(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         FreezeDetector.injectSilent(150);
         AnalyzerRuntimeState.requestF3Refresh();
         int mediumIn60 = StutterCounter.mediumCountInSeconds(60);
@@ -331,7 +329,6 @@ public class CommonCommandLogic {
     }
 
     public static int debugTestSevere(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
         FreezeEvent testEvent = new FreezeEvent(
             FreezeCategory.UNKNOWN_FREEZE, 0.5,
@@ -350,7 +347,6 @@ public class CommonCommandLogic {
     }
 
     public static int debugTestExtreme(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
         FreezeEvent testEvent = new FreezeEvent(
             FreezeCategory.UNKNOWN_FREEZE, 0.5,
@@ -368,7 +364,6 @@ public class CommonCommandLogic {
     }
 
     public static int debugVisibilityTest(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canUseDebug(src)) { src.sendFailure(CommandFeedback.noPermission()); return 0; }
         // Step 1: inject minor
         FreezeDetector.injectSilent(55);
         // Step 2: inject medium
