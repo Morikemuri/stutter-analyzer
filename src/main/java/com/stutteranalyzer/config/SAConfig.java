@@ -72,6 +72,10 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue enableAutomaticUnknownFreezeUpload;
     public final ForgeConfigSpec.ConfigValue<String> submissionTarget;
     public final ForgeConfigSpec.ConfigValue<String> githubIssueUrl;
+    public final ForgeConfigSpec.BooleanValue copyIssueBodyToClipboard;
+    public final ForgeConfigSpec.BooleanValue openIssueUrlOnClient;
+    public final ForgeConfigSpec.BooleanValue enableGistUpload;
+    public final ForgeConfigSpec.BooleanValue enableTokenUpload;
     public final ForgeConfigSpec.BooleanValue anonymizeReports;
     public final ForgeConfigSpec.BooleanValue redactUsernames;
     public final ForgeConfigSpec.BooleanValue redactFilePaths;
@@ -182,6 +186,10 @@ public class SAConfig {
         enableAutomaticUnknownFreezeUpload = b.comment("Upload unknown freeze reports automatically. DISABLED by default. Automatic uploads require explicit opt-in - trust matters more than data hoarding.").define("enable_automatic_unknown_freeze_upload", false);
         submissionTarget = b.comment("Submission target: local or github. Default is local - reports are never uploaded without explicit opt-in.").define("submission_target", "local");
         githubIssueUrl = b.comment("GitHub new issue URL for manual submission").define("github_issue_url", "https://github.com/Morikemuri/stutter-analyzer/issues/new");
+        copyIssueBodyToClipboard = b.comment("Copy the prepared GitHub issue body to clipboard when running /sa submit last on a client.").define("copy_issue_body_to_clipboard", true);
+        openIssueUrlOnClient = b.comment("Open the GitHub issue URL in the browser after preparing a submission on a client.").define("open_issue_url_on_client", true);
+        enableGistUpload = b.comment("Enable GitHub Gist upload. Disabled by default - public builds never upload.").define("enable_gist_upload", false);
+        enableTokenUpload = b.comment("Enable token-based upload. Disabled by default. Never store tokens in config.").define("enable_token_upload", false);
         anonymizeReports = b.comment("Anonymize reports before submission").define("anonymize_reports", true);
         redactUsernames = b.comment("Redact usernames from file paths in reports").define("redact_usernames", true);
         redactFilePaths = b.comment("Redact absolute file paths in reports").define("redact_file_paths", true);

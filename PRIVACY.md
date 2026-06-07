@@ -23,37 +23,53 @@ All data is stored locally in `config/stutter-analyzer/reports/`.
 - Authentication or session tokens
 - Any data sent automatically or silently
 
-## Automatic upload
+## No token storage
 
-**Automatic upload is disabled by default.**
+StutterAnalyzer does not store GitHub tokens.
 
-The config option `enable_automatic_unknown_freeze_upload` defaults to `false`.
+No token field exists in the config file.
 
-Reports are never uploaded without your explicit action.
+No token is shipped inside the jar.
+
+No token is written to logs, reports, crash reports, or chat messages.
+
+If you ever see a mod asking you to put a GitHub token into a Minecraft config file, do not do it.
+
+## No silent upload
+
+**Nothing is uploaded automatically.**
+
+The config option `enable_automatic_unknown_freeze_upload` defaults to `false` and there is no upload path enabled in public builds.
 
 ## Manual submission
 
-When you run `/sa submit last`, the default behavior (`submission_target = local`) is:
+When you run `/sa submit last`, the mod:
 
-1. Show the local file path for the saved report
-2. Show the GitHub issue URL
-3. Ask you to review the file manually
-4. **Not contact any external service**
+1. Creates three files in `config/stutter-analyzer/submissions/`:
+   - `<id>.md` - the freeze report
+   - `<id>.json` - machine-readable version
+   - `<id>-github-issue-body.md` - pre-filled GitHub issue template
+2. Shows the file paths in chat
+3. On a client: copies the issue body to clipboard and opens the GitHub issue page in the browser
+4. On a dedicated server: prints the paths and issue URL to console
 
-To enable Gist upload, set `submission_target = github` in `stutteranalyzer-common.toml`.
-Even with upload enabled, only the sanitized report is sent - never raw logs, usernames, or tokens.
+**No external service is contacted. No upload is performed.**
 
-## What is sanitized before upload
+You review the files yourself and decide what to include when opening a GitHub issue.
+
+## What is sanitized
+
+Before files are written, the following is redacted (configurable):
 
 - Usernames in file paths replaced with `<username>`
 - IP addresses replaced with `<ip-address>`
 - Absolute file paths shortened to relative paths
 
-## Third-party services
+## No third-party services
 
-If `submission_target = github` is set, reports are uploaded to GitHub Gist anonymously.
-No authentication token is used. No account is required.
-GitHub Gist is a third-party service subject to GitHub's own privacy policy.
+Public builds of StutterAnalyzer do not contact GitHub, GitHub Gist, or any other external service.
+
+The GitHub issue URL (default: `https://github.com/Morikemuri/stutter-analyzer/issues/new`) is only opened in your browser if you have `open_issue_url_on_client = true` in config (default: true). No data is sent to that URL automatically.
 
 ## Contact
 

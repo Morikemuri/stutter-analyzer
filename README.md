@@ -81,10 +81,14 @@ Once you are in a world, StutterAnalyzer is already running. If the game freezes
 If you see an unknown freeze and want help:
 
 1. Run `/sa submit last` in chat
-2. The mod shows you the local report file path and the GitHub issue URL
-3. Open the issue URL in your browser, paste the report, and describe what you were doing
+2. The mod creates three files in `config/stutter-analyzer/submissions/`:
+   - `<id>.md` - the full freeze report
+   - `<id>.json` - machine-readable version
+   - `<id>-github-issue-body.md` - pre-filled GitHub issue text
+3. On the client, the issue body is copied to your clipboard and the GitHub issue page opens automatically
+4. Paste the issue body and attach the `.md` file - done
 
-By default, **no upload happens automatically**. If you want the mod to upload to GitHub Gist for you, set `submission_target = github` in `config/stutteranalyzer-common.toml`.
+**No upload is performed.** The mod never contacts any external service.
 
 See [PRIVACY.md](PRIVACY.md) for full details on what is collected and what is not.
 
@@ -173,9 +177,24 @@ Key settings:
 | `enabled` | `true` | Turn the whole mod on or off |
 | `enable_f3_status_line` | `true` | Show the F3 status line |
 | `enable_manual_submission` | `true` | Allow `/sa submit` commands |
-| `submission_target` | `local` | `local` = show path only, `github` = upload to Gist |
 | `guard_enabled` | `true` | Enable the Emergency Guard system |
 | `show_startup_message` | `true` | Show a message when you join a world |
+| `copy_issue_body_to_clipboard` | `true` | Copy the prepared issue body to clipboard after `/sa submit last` |
+| `open_issue_url_on_client` | `true` | Open the GitHub issue page in the browser after `/sa submit last` |
+
+---
+
+## Submission and privacy
+
+StutterAnalyzer does not store GitHub tokens.
+
+Public builds do not upload reports automatically.
+
+`/sa submit last` prepares local files only. You review them and manually paste or attach them to a GitHub issue.
+
+This is intentional. Minecraft mods are not a safe place to store API tokens.
+
+See [PRIVACY.md](PRIVACY.md) for full details.
 
 ---
 
@@ -203,11 +222,9 @@ Debug commands are disabled by default and require both operator level 4 and `de
 
 ## Known limitations
 
-- `/sa debug freeze client <ms>` is registered but does not yet generate a report after the sleep (client-side only)
-- `/sa debug generate-test-report` is registered but not yet implemented
-- `/sa client` subcommands are stubs for a future client-only command surface
 - The Emergency Guard system detects patterns and writes hints; it does not patch game rendering by default
 - Report count in `/sa status` resets on each session (not persisted across restarts)
+- `/sa submit confirm <prepared_id>` shows a "disabled in public builds" message; direct upload is intentionally not available
 
 ---
 

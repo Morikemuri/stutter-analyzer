@@ -430,6 +430,16 @@ public class CommonCommandLogic {
         return 1;
     }
 
+    public static int submitConfirm(CommandSourceStack src, String preparedId) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.confirm_disabled")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.confirm_use_files", preparedId)), false);
+        return 1;
+    }
+
     public static int generateTestReport(CommandSourceStack src) {
         if (!CommandPermissionHelper.canUseDebug(src)) {
             src.sendFailure(CommandFeedback.noPermission());

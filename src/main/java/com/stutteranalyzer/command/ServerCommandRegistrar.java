@@ -86,6 +86,10 @@ public class ServerCommandRegistrar {
                     .then(Commands.argument("report_id", StringArgumentType.word())
                         .executes(ctx -> CommonCommandLogic.submitReport(
                             ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
+                .then(Commands.literal("confirm")
+                    .then(Commands.argument("prepared_id", StringArgumentType.word())
+                        .executes(ctx -> CommonCommandLogic.submitConfirm(
+                            ctx.getSource(), StringArgumentType.getString(ctx, "prepared_id")))))
                 .then(Commands.literal("crash")
                     .then(Commands.literal("last")
                         .executes(ctx -> CommonCommandLogic.submitCrashLast(ctx.getSource())))

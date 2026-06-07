@@ -16,20 +16,21 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
+/**
+ * Prepares local submission files only.
+ * No upload. No tokens. No Gist. Reports stay on disk until the user submits manually.
+ */
 public class SubmissionManager {
 
-    // Upload goes off-thread. Blocking the game for a network request is not an option.
-    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "stutteranalyzer-gist-uploader");
-        t.setDaemon(true);
-        return t;
-    });
+    // Dev-only upload gate: requires both a system property AND an environment variable.
+    // Never active in public builds. Never stored. Never logged.
+    private static final boolean DEV_UPLOAD_ENABLED =
+        Boolean.getBoolean("stutterAnalyzer.devUpload") &&
+        System.getenv("STUTTER_ANALYZER_GITHUB_TOKEN") != null &&
+        !System.getenv("STUTTER_ANALYZER_GITHUB_TOKEN").isBlank();
 
     public static int submitLast(CommandSourceStack src) {
         if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
@@ -41,7 +42,7 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report")), false);
             return 1;
         }
-        return doSubmit(src, report.reportId, report.toMarkdown());
+        return prepareLocally(src, report.reportId, report.toMarkdown(), report.toJson(), buildFreezeIssueBody(report));
     }
 
     public static int submitById(CommandSourceStack src, String reportId) {
@@ -51,7 +52,7 @@ public class SubmissionManager {
         }
         FreezeReport last = ReportWriter.lastReport();
         if (last != null && last.reportId.equals(reportId)) {
-            return doSubmit(src, last.reportId, last.toMarkdown());
+            return prepareLocally(src, last.reportId, last.toMarkdown(), last.toJson(), buildFreezeIssueBody(last));
         }
         src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.not_found", reportId)), false);
         return 1;
@@ -63,7 +64,7 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_crash")), false);
             return 1;
         }
-        return doSubmit(src, ce.crashId, buildCrashMarkdown(ce));
+        return prepareLocally(src, ce.crashId, buildCrashMarkdown(ce), buildCrashJson(ce), buildCrashIssueBody(ce));
     }
 
     public static int submitGuardLast(CommandSourceStack src) {
@@ -72,72 +73,77 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_guard")), false);
             return 1;
         }
-        return doSubmit(src, rep.guardId, rep.toMarkdown());
+        return prepareLocally(src, rep.guardId, rep.toMarkdown(), "{}", buildGuardIssueBody(rep));
     }
 
-    private static int doSubmit(CommandSourceStack src, String id, String markdown) {
-        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.warning")), false);
+    // ── Core: prepare local files ─────────────────────────────────────────
 
-        String target = SAConfig.INSTANCE.submissionTarget.get();
+    private static int prepareLocally(CommandSourceStack src, String id,
+                                      String markdown, String json, String issueBody) {
+        Path submissionsDir = resolveSubmissionsDir();
 
-        if (!"github".equalsIgnoreCase(target)) {
-            // Local-only: show path and issue URL, do not contact any external service.
+        try {
+            Files.createDirectories(submissionsDir);
+
+            Path mdPath    = submissionsDir.resolve(id + ".md");
+            Path jsonPath  = submissionsDir.resolve(id + ".json");
+            Path issuePath = submissionsDir.resolve(id + "-github-issue-body.md");
+
+            Files.writeString(mdPath, markdown);
+            Files.writeString(jsonPath, json);
+            Files.writeString(issuePath, issueBody);
+
+            String mdStr    = mdPath.toString();
+            String jsonStr  = jsonPath.toString();
+            String issueStr = issuePath.toString();
             String issueUrl = SAConfig.INSTANCE.githubIssueUrl.get();
-            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.local_saved")), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.local_path", id)), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.local_hint", issueUrl)), false);
-            return 1;
-        }
 
-        // Upload mode - user explicitly set submission_target = github
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.uploading")), false);
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.prepared")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.prepared_md", mdStr)), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.prepared_json", jsonStr)), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.prepared_issue_body", issueStr)), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.prepared_open_hint")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.prepared_issue_url", issueUrl)), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.prepared_no_upload")), false);
 
-        Path gameDir = FMLEnvironment.dist == Dist.CLIENT
-            ? clientGameDir()
-            : FMLPaths.GAMEDIR.get();
-
-        EXECUTOR.submit(() -> {
-            String logSnippet = LogSnippetExtractor.extract(gameDir);
-            GistUploader.Result result = GistUploader.upload(id, markdown, logSnippet);
-
-            if (result.success()) {
-                String gistUrl  = result.gistUrl();
-                String issueUrl = buildIssueUrl(id, gistUrl);
-
-                src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.uploaded", gistUrl)), false);
-                src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.opening_browser")), false);
-
-                openBrowser(issueUrl);
-            } else {
-                String errMsg     = result.error();
-                String fallbackUrl = SAConfig.INSTANCE.githubIssueUrl.get();
-                src.sendSuccess(() -> CommandFeedback.error(Component.translatable("stutteranalyzer.submit.failed", errMsg)), false);
-                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.fallback", fallbackUrl)), false);
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                if (SAConfig.INSTANCE.copyIssueBodyToClipboard.get()) {
+                    copyToClipboard(src, issueBody);
+                }
+                if (SAConfig.INSTANCE.openIssueUrlOnClient.get()) {
+                    openBrowser(src, issueUrl);
+                }
             }
-        });
+
+        } catch (Exception e) {
+            StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] Failed to write submission files: {}", e.getMessage(), e);
+            src.sendFailure(CommandFeedback.error(Component.literal("Failed to write submission files: " + e.getMessage())));
+            return 0;
+        }
 
         return 1;
     }
 
-    private static String buildIssueUrl(String reportId, String gistUrl) {
-        String base  = SAConfig.INSTANCE.githubIssueUrl.get();
-        String title = enc("Unknown Freeze Report [" + reportId + "]");
-        String body  = enc(
-            "**Freeze report (Gist):** " + gistUrl + "\n\n" +
-            "**What were you doing when the freeze occurred?**\n\n" +
-            "(describe here)\n\n" +
-            "---\n*Submitted via StutterAnalyzer /sa submit last*"
-        );
-        return base + "?title=" + title + "&body=" + body;
+    // ── Client extras ─────────────────────────────────────────────────────
+
+    private static void copyToClipboard(CommandSourceStack src, String text) {
+        try {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            mc.execute(() -> {
+                try {
+                    org.lwjgl.glfw.GLFW.glfwSetClipboardString(mc.getWindow().getWindow(), text);
+                } catch (Exception ex) {
+                    StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] GLFW clipboard failed: {}", ex.getMessage());
+                }
+            });
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.copied_to_clipboard")), false);
+        } catch (Exception e) {
+            StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Clipboard copy failed: {}", e.getMessage());
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.clipboard_failed")), false);
+        }
     }
 
-    private static String enc(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8);
-    }
-
-    /** Opens a URL in the system browser. Client-only. No-op on dedicated server. */
-    private static void openBrowser(String url) {
-        if (FMLEnvironment.dist != Dist.CLIENT) return;
+    private static void openBrowser(CommandSourceStack src, String url) {
         try {
             net.minecraft.client.Minecraft.getInstance().execute(() -> {
                 try {
@@ -146,13 +152,40 @@ public class SubmissionManager {
                     StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Failed to open browser: {}", e.getMessage());
                 }
             });
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.opening_issue_url")), false);
         } catch (Exception e) {
             StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Failed to schedule browser open: {}", e.getMessage());
         }
     }
 
-    private static Path clientGameDir() {
-        return net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath();
+    // ── Path resolution ───────────────────────────────────────────────────
+
+    private static Path resolveSubmissionsDir() {
+        try {
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                return net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath()
+                    .resolve("config/stutter-analyzer/submissions");
+            }
+        } catch (Exception ignored) {}
+        return FMLPaths.GAMEDIR.get().resolve("config/stutter-analyzer/submissions");
+    }
+
+    // ── Issue body builders ───────────────────────────────────────────────
+
+    private static String buildFreezeIssueBody(FreezeReport report) {
+        return "## StutterAnalyzer Freeze Report\n\n" +
+            "**Report ID:** `" + report.reportId + "`\n" +
+            "**Category:** " + report.event.category() + "\n" +
+            "**Duration:** " + report.event.durationMs() + " ms\n" +
+            "**Confidence:** " + report.event.confidencePct() + "%\n" +
+            "**Side:** " + report.event.side() + "\n\n" +
+            "## What were you doing?\n\n" +
+            "(describe the situation when the freeze occurred)\n\n" +
+            "## Attached files\n\n" +
+            "Please attach or paste the contents of `" + report.reportId + ".md`" +
+            " from `config/stutter-analyzer/submissions/`.\n\n" +
+            "---\n" +
+            "*Prepared via StutterAnalyzer /sa submit last*\n";
     }
 
     private static String buildCrashMarkdown(CrashEvent ce) {
@@ -165,5 +198,48 @@ public class SubmissionManager {
                 ? "\n**Known Pattern:** " + ce.bestMatch().patternId +
                   " (" + ce.bestMatch().confidencePct() + "% confidence)\n"
                 : "\n**Pattern:** Unknown\n");
+    }
+
+    private static String buildCrashJson(CrashEvent ce) {
+        return "{\n" +
+            "  \"crash_id\": \"" + ce.crashId + "\",\n" +
+            "  \"timestamp\": \"" + ce.timestamp + "\",\n" +
+            "  \"type\": \"" + esc(ce.crashType) + "\",\n" +
+            "  \"summary\": \"" + esc(ce.summary) + "\",\n" +
+            "  \"known_pattern\": " + (ce.hasKnownPattern() ? "\"" + ce.bestMatch().patternId + "\"" : "null") + "\n" +
+            "}\n";
+    }
+
+    private static String buildCrashIssueBody(CrashEvent ce) {
+        return "## Crash Report\n\n" +
+            "**Crash ID:** `" + ce.crashId + "`\n" +
+            "**Type:** " + ce.crashType + "\n" +
+            "**Summary:** " + ce.summary + "\n\n" +
+            "## What were you doing?\n\n" +
+            "(describe the situation when the crash occurred)\n\n" +
+            "## Attached files\n\n" +
+            "Please attach or paste the contents of `" + ce.crashId + ".md`" +
+            " from `config/stutter-analyzer/submissions/`.\n\n" +
+            "---\n" +
+            "*Prepared via StutterAnalyzer /sa submit crash last*\n";
+    }
+
+    private static String buildGuardIssueBody(EmergencyGuardReport rep) {
+        return "## Emergency Guard Report\n\n" +
+            "**Guard ID:** `" + rep.guardId + "`\n" +
+            "**Pattern:** " + rep.patternId + "\n" +
+            "**Outcome:** " + rep.outcome.name() + "\n" +
+            "**Confidence:** " + (int)(rep.confidence * 100) + "%\n\n" +
+            "## What were you doing?\n\n" +
+            "(describe the situation)\n\n" +
+            "## Attached files\n\n" +
+            "Please attach or paste the contents of `" + rep.guardId + ".md`" +
+            " from `config/stutter-analyzer/submissions/`.\n\n" +
+            "---\n" +
+            "*Prepared via StutterAnalyzer /sa submit guard last*\n";
+    }
+
+    private static String esc(String s) {
+        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
 }
