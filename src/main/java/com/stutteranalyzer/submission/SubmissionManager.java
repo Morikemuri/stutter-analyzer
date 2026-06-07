@@ -54,6 +54,8 @@ public class SubmissionManager {
 
     private static volatile String lastSubmissionStatus = "none";
     private static volatile boolean pendingMigrationNotice = false;
+    private static volatile boolean submissionInProgress = false;
+    private static volatile long lastSubmissionEpochMs = 0L;
 
     public static void setPendingMigrationNotice() {
         pendingMigrationNotice = true;
@@ -66,19 +68,27 @@ public class SubmissionManager {
             src.sendFailure(CommandFeedback.error(Component.translatable("stutteranalyzer.submit.disabled")));
             return 0;
         }
+        if (submissionInProgress) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] A report upload is already in progress. Please wait."), false);
+            return 1;
+        }
+        int cooldown = SAConfig.INSTANCE.submitCommandCooldownSeconds.get();
+        long elapsedSec = (System.currentTimeMillis() - lastSubmissionEpochMs) / 1000L;
+        if (cooldown > 0 && elapsedSec < cooldown) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Please wait before submitting another report."), false);
+            return 1;
+        }
         checkMigrationNotice(src);
         FreezeReport report = ReportWriter.lastReport();
         if (report == null) {
-            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report")), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No saved freeze report is available yet."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Severe/extreme events create reports automatically. Minor stutters are tracked in F3/status only."), false);
             return 1;
         }
         if (!isCloudflareEnabled()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cloudflare endpoint not configured. Use /sa submit mode cloudflare to fix."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] For manual local save, use /sa submit local last."), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cloudflare endpoint not configured. Use /sa admin submit mode cloudflare to fix."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] For manual local save, use /sa admin submit local."), false);
             return 1;
-        }
-        if (needsConsent()) {
-            return prepareForConsent(src, report);
         }
         String markdown = report.toMarkdown();
         String hash = sha256Hex(markdown);
@@ -411,26 +421,34 @@ public class SubmissionManager {
     }
 
     private static void submitToCloudflare(CommandSourceStack src, FreezeReport report, String markdown, String reportHash) {
+        submissionInProgress = true;
+        lastSubmissionEpochMs = System.currentTimeMillis();
+
         src.sendSuccess(() -> CommandFeedback.info("[SA] Preparing latest report..."), false);
 
         // Sanitize markdown before sending
         ReportSanitizer.SanitizeResult mdResult = ReportSanitizer.sanitize(markdown);
         if (mdResult.hadSensitiveData()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report blocked: sensitive data detected during sanitization."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Saving local fallback instead."), false);
-            if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+            submissionInProgress = false;
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Submission blocked for privacy: sensitive data detected."), false);
+            if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                saveLocalFallback(src, report, markdown);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Local sanitized fallback saved."), false);
+            }
             return;
         }
         String sanitizedMarkdown = mdResult.text();
 
-        // Extract log excerpt
-        String logExcerpt = LogExcerpter.extractExcerpt(report.event.timestamp());
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Collecting diagnostics and sanitized logs..."), false);
 
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Report sanitized."), false);
+        // Extract log excerpt and full log (can be slow for large files, do before async)
+        String logExcerpt = LogExcerpter.extractExcerpt(report.event.timestamp());
+        String fullLog    = LogExcerpter.readFullLog();
+
         src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
 
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
-        String payload = buildCloudflarePayload(report, sanitizedMarkdown, reportHash, logExcerpt);
+        String payload = buildCloudflarePayload(report, sanitizedMarkdown, reportHash, logExcerpt, fullLog);
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -449,11 +467,11 @@ public class SubmissionManager {
             } catch (Exception e) {
                 StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit error: {}", e.getMessage());
                 lastSubmissionStatus = "failure";
+                submissionInProgress = false;
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server unavailable."), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                     saveLocalFallback(src, report, markdown);
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] Manual GitHub fallback is available with /sa submit local last"), false);
                 }
             }
         }, UPLOAD_EXECUTOR);
@@ -461,6 +479,7 @@ public class SubmissionManager {
 
     private static void handleCloudflareResponse(CommandSourceStack src, FreezeReport report,
                                                   String markdown, int status, String body) {
+        submissionInProgress = false;
         if (status == 409) {
             lastSubmissionStatus = "duplicate";
             src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
@@ -479,6 +498,7 @@ public class SubmissionManager {
             String incMd      = extractJsonField(body, "included_markdown_report");
             String incJson    = extractJsonField(body, "included_json_report");
             String incLog     = extractJsonField(body, "included_log_excerpt");
+            String incFull    = extractJsonField(body, "included_full_log");
             String finalId    = reportId != null ? reportId : report.reportId;
 
             lastSubmissionStatus = "success";
@@ -498,7 +518,8 @@ public class SubmissionManager {
             StringBuilder included = new StringBuilder();
             if ("true".equals(incMd))   included.append("report, ");
             if ("true".equals(incJson)) included.append("JSON, ");
-            if ("true".equals(incLog))  included.append("sanitized log excerpt, ");
+            if ("true".equals(incLog))  included.append("log excerpt, ");
+            if ("true".equals(incFull)) included.append("full log, ");
             if (included.length() > 2) {
                 String inclStr = included.substring(0, included.length() - 2);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Included: " + inclStr + "."), false);
@@ -508,10 +529,11 @@ public class SubmissionManager {
         } else {
             StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit failed: {} {}", status, body);
             lastSubmissionStatus = "failure";
+            submissionInProgress = false;
 
             String errorCode = extractJsonField(body, "error_code");
             if ("RATE_LIMITED".equals(errorCode)) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached. Local fallback saved."), false);
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached."), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             } else if ("DUPLICATE_REPORT".equals(errorCode)) {
                 lastSubmissionStatus = "duplicate";
@@ -521,7 +543,6 @@ public class SubmissionManager {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                     saveLocalFallback(src, report, markdown);
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] Manual GitHub fallback is available with /sa submit local last"), false);
                 }
             }
         }
@@ -654,14 +675,15 @@ public class SubmissionManager {
     // ── Payload builder ───────────────────────────────────────────────────────
 
     private static String buildCloudflarePayload(FreezeReport report, String markdown, String reportHash,
-                                                  String logExcerpt) {
+                                                  String logExcerpt, String fullLog) {
         String category   = report.event.category().name();
         long durationMs   = report.event.durationMs();
         double confidence = report.event.confidence();
-        boolean inclMods  = SAConfig.INSTANCE.submissionIncludeModList.get();
-        boolean inclSys   = SAConfig.INSTANCE.submissionIncludeSystemInfo.get();
-        boolean inclEvt   = SAConfig.INSTANCE.submissionIncludeRecentEvents.get();
-        boolean inclLog   = logExcerpt != null && !logExcerpt.isBlank();
+        boolean inclMods    = SAConfig.INSTANCE.submissionIncludeModList.get();
+        boolean inclSys     = SAConfig.INSTANCE.submissionIncludeSystemInfo.get();
+        boolean inclEvt     = SAConfig.INSTANCE.submissionIncludeRecentEvents.get();
+        boolean inclLog     = logExcerpt != null && !logExcerpt.isBlank();
+        boolean inclFullLog = fullLog != null && !fullLog.isBlank();
 
         // ── json_report object ──────────────────────────────────────────────
         StringBuilder jr = new StringBuilder();
@@ -761,13 +783,15 @@ public class SubmissionManager {
             "  \"markdown_report\": " + escJson(markdown) + ",\n" +
             "  \"json_report\": " + jsonReport + ",\n" +
             (inclLog ? "  \"log_excerpt\": " + escJson(logExcerpt) + ",\n" : "") +
+            (inclFullLog ? "  \"full_latest_log\": " + escJson(fullLog) + ",\n" : "") +
             "  \"client_generated_at\": " + esc(Instant.now().toString()) + ",\n" +
             "  \"privacy\": {\n" +
             "    \"sanitized\": true,\n" +
             "    \"contains_mod_list\": " + inclMods + ",\n" +
             "    \"contains_system_info\": " + inclSys + ",\n" +
             "    \"contains_logs\": " + inclLog + ",\n" +
-            "    \"contains_full_latest_log\": false\n" +
+            "    \"contains_full_latest_log\": " + inclFullLog + ",\n" +
+            "    \"contains_tokens\": false\n" +
             "  }\n" +
             "}\n";
     }

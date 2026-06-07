@@ -774,17 +774,14 @@ public class CommonCommandLogic {
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Commands"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa              - quick status dashboard"), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa              - quick status"), false);
         src.sendSuccess(() -> CommandFeedback.info("/sa status       - detailed analyzer status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit       - send latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa yes          - confirm pending submission"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa cancel       - cancel pending submission"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa last         - show latest report info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa reports      - list recent reports"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit       - send latest report and logs"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa last         - show latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa reports      - list reports"), false);
         src.sendSuccess(() -> CommandFeedback.info("/sa version      - version and update info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa privacy      - what data is collected"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Developer commands: /sa dev help"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa privacy      - what gets submitted"), false);
         return 1;
     }
 
@@ -816,11 +813,11 @@ public class CommonCommandLogic {
     }
 
     public static int showPrivacy(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Privacy Info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Reports contain: spike timing, category, game version, Java version, recent event buffer."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Reports do NOT contain: player name, UUID, IP address, or world data."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Reports are sent to the Stutter Analyzer Cloudflare Worker."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issues are created server-side. No account is required."), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Privacy"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit sends a sanitized report to the Stutter Analyzer report server."), false);
+        src.sendSuccess(() -> CommandFeedback.info("It may include mod list, Minecraft version, Java version, system info, recent performance events, and sanitized log excerpts."), false);
+        src.sendSuccess(() -> CommandFeedback.info("It does not include tokens, passwords, auth data, session data, or full unredacted file paths."), false);
+        src.sendSuccess(() -> CommandFeedback.info("GitHub issue creation happens server-side. You do not need a GitHub account."), false);
         return 1;
     }
 

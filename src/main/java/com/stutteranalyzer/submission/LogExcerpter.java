@@ -134,6 +134,43 @@ public class LogExcerpter {
         }
     }
 
+    public static String readFullLog() {
+        if (!SAConfig.INSTANCE.includeFullLatestLog.get()) return null;
+
+        int maxChars = SAConfig.INSTANCE.maxFullLogChars.get();
+        try {
+            Path logFile = resolveLogFile();
+            if (logFile == null || !Files.exists(logFile)) return null;
+
+            long fileSize = Files.size(logFile);
+            if (fileSize == 0) return null;
+
+            byte[] buf;
+            long readOffset = Math.max(0, fileSize - (long) maxChars * 2);
+            try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
+                raf.seek(readOffset);
+                int len = (int) (fileSize - readOffset);
+                buf = new byte[len];
+                raf.readFully(buf);
+            }
+
+            String content = new String(buf, StandardCharsets.UTF_8);
+            if (content.length() > maxChars) {
+                content = "...(truncated to last " + maxChars + " chars)\n" + content.substring(content.length() - maxChars);
+            }
+
+            ReportSanitizer.SanitizeResult sanitized = ReportSanitizer.sanitize(content);
+            if (sanitized.hadSensitiveData()) {
+                StutterAnalyzerMod.LOGGER.warn("[SA] Full log blocked: sensitive data detected.");
+                return null;
+            }
+            return sanitized.text();
+        } catch (Exception e) {
+            StutterAnalyzerMod.LOGGER.debug("[SA] Full log read failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
     private static Path resolveLogFile() {
         try {
             if (FMLEnvironment.dist == Dist.CLIENT) {

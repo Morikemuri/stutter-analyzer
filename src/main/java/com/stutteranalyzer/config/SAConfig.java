@@ -131,11 +131,16 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue submissionIncludeSystemInfo;
     public final ForgeConfigSpec.BooleanValue submissionIncludeRecentEvents;
     public final ForgeConfigSpec.BooleanValue askBeforeEveryUpload;
+    public final ForgeConfigSpec.IntValue submitCommandCooldownSeconds;
     public final ForgeConfigSpec.BooleanValue includeLogExcerpt;
     public final ForgeConfigSpec.IntValue logExcerptMaxLines;
     public final ForgeConfigSpec.IntValue logExcerptContextSeconds;
     public final ForgeConfigSpec.BooleanValue includeFullLatestLog;
     public final ForgeConfigSpec.IntValue maxLogExcerptChars;
+    public final ForgeConfigSpec.BooleanValue includeDebugLog;
+    public final ForgeConfigSpec.IntValue maxFullLogChars;
+    public final ForgeConfigSpec.IntValue maxIssueBodyChars;
+    public final ForgeConfigSpec.BooleanValue storeOversizedLogsInWorkerStorage;
 
     // ── [compatibility_guard] ─────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue guardEnabled;
@@ -307,12 +312,17 @@ public class SAConfig {
         submissionIncludeSystemInfo = b.comment("Include system info in submitted reports").define("include_system_info", true);
         submissionIncludeRecentEvents = b.comment("Include recent event timeline in submitted reports").define("include_recent_events", true);
         askBeforeEveryUpload = b.comment("Ask for confirmation before every upload").define("ask_before_every_upload", true);
-        b.comment("Log excerpt settings").push("logs");
-        includeLogExcerpt = b.comment("Include a sanitized latest.log excerpt around the event in reports. Paths and IPs are redacted.").define("include_log_excerpt", true);
-        logExcerptMaxLines = b.comment("Maximum number of log lines to include in the excerpt.").defineInRange("log_excerpt_max_lines", 120, 10, 500);
+        submitCommandCooldownSeconds = b.comment("Cooldown in seconds between /sa submit invocations. Prevents spam and duplicate uploads.").defineInRange("submit_command_cooldown_seconds", 10, 0, 300);
+        b.comment("Log and report inclusion settings").push("logs");
+        includeLogExcerpt = b.comment("Include a sanitized latest.log excerpt around the event. Paths and IPs are redacted.").define("include_log_excerpt", true);
+        logExcerptMaxLines = b.comment("Maximum number of log lines to include in the excerpt.").defineInRange("log_excerpt_max_lines", 200, 10, 1000);
         logExcerptContextSeconds = b.comment("Seconds before/after the event to include from the log.").defineInRange("log_excerpt_context_seconds", 30, 5, 300);
-        includeFullLatestLog = b.comment("Include the full latest.log file. Disabled by default - only sanitized excerpts are sent.").define("include_full_latest_log", false);
-        maxLogExcerptChars = b.comment("Maximum characters of log excerpt to include. Truncated if larger.").defineInRange("max_log_excerpt_chars", 16000, 1000, 65000);
+        includeFullLatestLog = b.comment("Include the full sanitized latest.log in submitted reports. Large logs are stored server-side if too big for GitHub.").define("include_full_latest_log", true);
+        maxLogExcerptChars = b.comment("Maximum characters of log excerpt to include.").defineInRange("max_log_excerpt_chars", 16000, 1000, 65000);
+        includeDebugLog = b.comment("Include debug.log in submitted reports. Disabled by default.").define("include_debug_log", false);
+        maxFullLogChars = b.comment("Maximum characters of full latest.log to include in payload.").defineInRange("max_full_log_chars", 120000, 10000, 500000);
+        maxIssueBodyChars = b.comment("Maximum characters for the GitHub issue body. Content is truncated and stored server-side if larger.").defineInRange("max_issue_body_chars", 55000, 10000, 65000);
+        storeOversizedLogsInWorkerStorage = b.comment("Store full sanitized log in Cloudflare KV/R2 if too large for GitHub issue body.").define("store_oversized_logs_in_worker_storage", true);
         b.pop();
         b.pop();
 
