@@ -1,0 +1,99 @@
+{
+  "version": "1.0.0",
+  "global_bad_recommendations": [
+    "Delete this mod.",
+    "This mod is definitely broken.",
+    "This mod caused your lag.",
+    "Disable half your modpack blindly.",
+    "Auto-change configs without permission.",
+    "Auto-disable mods.",
+    "Auto-edit worlds."
+  ],
+  "global_good_recommendations": [
+    "Try reproducing with debug mode enabled.",
+    "Try reproducing while standing still.",
+    "Try reproducing while moving into new terrain.",
+    "Try reproducing with shaders disabled.",
+    "Try reproducing with resource packs disabled.",
+    "Try reproducing after updating the renderer mod.",
+    "Compare a report with and without recently added optimization mods.",
+    "Attach Markdown and JSON reports to GitHub.",
+    "Back up the world before changing chunk-recovery settings."
+  ],
+  "per_category": {
+    "GARBAGE_COLLECTION": [
+      "Increase JVM heap size with -Xmx.",
+      "Reduce allocation rate (fewer entities, particles, chunk updates).",
+      "Add FerriteCore or Memory Leak Fix.",
+      "Attach the JSON report with GC log if available."
+    ],
+    "MEMORY_PRESSURE": [
+      "Increase -Xmx in launcher JVM arguments.",
+      "Add FerriteCore and ModernFix.",
+      "Reduce render distance and entity counts.",
+      "Reproduce and export report with heap info."
+    ],
+    "SERVER_TICK_SPIKE": [
+      "Use spark profiler to identify the ticking hotspot.",
+      "Reduce entity counts in affected areas.",
+      "Check for complex redstone contraptions.",
+      "Test with fewer chunk-heavy mods.",
+      "Attach the JSON report and spark profile."
+    ],
+    "CLIENT_RENDER_STUTTER": [
+      "Check GPU usage and temperature.",
+      "Reduce render distance.",
+      "Disable shaders to test.",
+      "Test with Entity Culling and More Culling.",
+      "Attach the JSON report."
+    ],
+    "CHUNK_GENERATION": [
+      "Pregenerate the world after backup.",
+      "Reduce world generation view distance.",
+      "Compare with and without heavy worldgen datapacks.",
+      "Attach JSON report."
+    ],
+    "CHUNK_LOADING": [
+      "Reduce view distance.",
+      "Add a chunk loading optimization mod.",
+      "Pregenerate commonly visited areas.",
+      "Attach JSON report."
+    ],
+    "RESOURCE_RELOAD": [
+      "Expected during resource pack reload. No action needed unless severe.",
+      "Update resource packs if reload is slow.",
+      "Consider ImmediatelyFast to speed up reload."
+    ],
+    "SHADER_OR_RESOURCE_PACK_RELOAD": [
+      "Expected during shader reload.",
+      "Update Iris/Oculus and Sodium/Embeddium together.",
+      "Test with simpler shader pack.",
+      "Attach crash report and latest.log."
+    ],
+    "WORLD_SAVE": [
+      "Enable async chunk saving if available.",
+      "Reduce world save frequency if configurable.",
+      "Consider Smooth Chunk Save."
+    ],
+    "PLAYER_JOIN": [
+      "Use Krypton/Pluto to reduce join overhead.",
+      "Check server TPS around join events.",
+      "Pregen spawn area chunks."
+    ],
+    "PLAYER_TELEPORT_OR_DIMENSION_CHANGE": [
+      "Expected for cross-dimension travel.",
+      "Reduce chunk loading radius.",
+      "Pregen destination area."
+    ],
+    "BACKGROUND_THROTTLING": [
+      "This is probably intentional background throttling, not a gameplay stutter.",
+      "No action needed unless FPS is low after refocusing."
+    ],
+    "UNKNOWN_FREEZE": [
+      "Enable debug mode and reproduce the freeze.",
+      "Export report and compare with a run without recently added mods.",
+      "Submit the report via /sa submit last.",
+      "Attach Markdown and JSON files to GitHub."
+    ]
+  }
+}

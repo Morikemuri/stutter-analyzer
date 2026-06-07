@@ -1,0 +1,119 @@
+{
+  "version": "1.0.0",
+  "minimum_confidence": 0.60,
+  "unknown_freeze_enabled": true,
+  "rules": [
+    {
+      "id": "gc_pause",
+      "category": "GARBAGE_COLLECTION",
+      "conditions": ["gc_pause_detected", "gc_pause_covers_50pct_of_freeze"],
+      "confidence": 0.80,
+      "priority": 1
+    },
+    {
+      "id": "memory_pressure",
+      "category": "MEMORY_PRESSURE",
+      "conditions": ["heap_above_90pct"],
+      "confidence": 0.70,
+      "priority": 2
+    },
+    {
+      "id": "server_tick_extreme",
+      "category": "SERVER_TICK_SPIKE",
+      "conditions": ["server_side", "mspt_above_extreme_threshold"],
+      "confidence": 0.85,
+      "priority": 3
+    },
+    {
+      "id": "server_tick_severe",
+      "category": "SERVER_TICK_SPIKE",
+      "conditions": ["server_side", "mspt_above_severe_threshold"],
+      "confidence": 0.75,
+      "priority": 4
+    },
+    {
+      "id": "server_tick_warning",
+      "category": "SERVER_TICK_SPIKE",
+      "conditions": ["server_side", "mspt_above_warning_threshold"],
+      "confidence": 0.65,
+      "priority": 5
+    },
+    {
+      "id": "client_frame_extreme",
+      "category": "CLIENT_RENDER_STUTTER",
+      "conditions": ["client_side", "frame_above_extreme_threshold"],
+      "confidence": 0.70,
+      "priority": 6
+    },
+    {
+      "id": "client_frame_severe",
+      "category": "CLIENT_RENDER_STUTTER",
+      "conditions": ["client_side", "frame_above_severe_threshold"],
+      "confidence": 0.65,
+      "priority": 7
+    },
+    {
+      "id": "chunk_gen_event",
+      "category": "CHUNK_GENERATION",
+      "conditions": ["recent_event_chunk_generation"],
+      "confidence": 0.65,
+      "priority": 8
+    },
+    {
+      "id": "chunk_load_event",
+      "category": "CHUNK_LOADING",
+      "conditions": ["recent_event_chunk_load"],
+      "confidence": 0.60,
+      "priority": 9
+    },
+    {
+      "id": "resource_reload_event",
+      "category": "RESOURCE_RELOAD",
+      "conditions": ["recent_event_resource_reload"],
+      "confidence": 0.78,
+      "priority": 10
+    },
+    {
+      "id": "shader_reload_event",
+      "category": "SHADER_OR_RESOURCE_PACK_RELOAD",
+      "conditions": ["recent_event_shader_reload"],
+      "confidence": 0.80,
+      "priority": 11
+    },
+    {
+      "id": "world_save_event",
+      "category": "WORLD_SAVE",
+      "conditions": ["recent_event_server_save"],
+      "confidence": 0.72,
+      "priority": 12
+    },
+    {
+      "id": "player_join_event",
+      "category": "PLAYER_JOIN",
+      "conditions": ["recent_event_player_join"],
+      "confidence": 0.62,
+      "priority": 13
+    },
+    {
+      "id": "teleport_event",
+      "category": "PLAYER_TELEPORT_OR_DIMENSION_CHANGE",
+      "conditions": ["recent_event_teleport_or_dimension"],
+      "confidence": 0.65,
+      "priority": 14
+    },
+    {
+      "id": "background_throttle",
+      "category": "BACKGROUND_THROTTLING",
+      "conditions": ["client_unfocused", "dynamic_fps_installed", "no_server_mspt_spike"],
+      "confidence": 0.85,
+      "priority": 15
+    },
+    {
+      "id": "unknown_fallback",
+      "category": "UNKNOWN_FREEZE",
+      "conditions": ["no_match_above_minimum_confidence"],
+      "confidence": 0.0,
+      "priority": 999
+    }
+  ]
+}

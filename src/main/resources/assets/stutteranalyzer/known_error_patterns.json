@@ -1,0 +1,153 @@
+{
+  "RUBIDIUM_LAVA_FLUID_RENDER_CRASH": {
+    "display_name": "Rubidium Lava Fluid Render Crash",
+    "safety_level": "SAFE_AUTO_GUARD",
+    "side": "client",
+    "strong_tokens": [
+      "FluidRenderer.render",
+      "ChunkBuilderMeshingTask",
+      "ChunkBuilder WorkerRunnable",
+      "TextureAtlasSprite",
+      "sprite is null",
+      "Encountered exception while building chunk meshes",
+      "Block{minecraft:lava}[level=0]",
+      "minecraft:lava",
+      "rubidium",
+      "flywheel.sodium.mixins.json"
+    ],
+    "required_mods": ["rubidium"],
+    "description": "Rubidium FluidRenderer crashes with NPE during chunk mesh building, typically around lava blocks.",
+    "recommendation": "Replace or update Rubidium. Try Embeddium/Xenon if compatible.",
+    "emergency_action": "Skip only the unsafe lava fluid render operation for the affected chunk mesh."
+  },
+  "DYNAMIC_FPS_BACKGROUND_FALSE_POSITIVE": {
+    "display_name": "Dynamic FPS Background False Positive",
+    "safety_level": "SAFE_AUTO_GUARD",
+    "side": "client",
+    "strong_tokens": [],
+    "required_mods": ["dynamic_fps"],
+    "description": "Frame-time spike while window is unfocused due to intentional Dynamic FPS throttling.",
+    "recommendation": "Not a real stutter. Classify as BACKGROUND_THROTTLING.",
+    "emergency_action": "Classify as intentional background throttling instead of real stutter."
+  },
+  "C2ME_CORRUPTED_CHUNK_CONTEXT": {
+    "display_name": "C2ME Corrupted Chunk Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client_server",
+    "strong_tokens": ["chunk loading", "corrupted chunk", "region file", "c2me", "async chunk"],
+    "required_mods": ["c2me"],
+    "description": "C2ME crash or hang mentioning chunk loading, corruption, or region file.",
+    "recommendation": "Back up the world before changing C2ME recovery settings.",
+    "emergency_action": "none"
+  },
+  "C2ME_WORLDGEN_DEADLOCK_CONTEXT": {
+    "display_name": "C2ME Worldgen Deadlock Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client_server",
+    "strong_tokens": ["deadlock", "completablefuture", "worldgen", "chunk future", "c2me worker"],
+    "required_mods": ["c2me"],
+    "description": "C2ME worker thread stuck on worldgen or chunk future.",
+    "recommendation": "Test without C2ME or heavy worldgen datapacks.",
+    "emergency_action": "none"
+  },
+  "DISTANT_HORIZONS_LOD_STUTTER_OR_CACHE_IO": {
+    "display_name": "Distant Horizons LOD Stutter or Cache I/O",
+    "safety_level": "WARN_ONLY",
+    "side": "client",
+    "strong_tokens": ["distant horizons", "lod", "cache", "disk io"],
+    "required_mods": ["distanthorizons"],
+    "description": "Stutter during LOD generation or disk I/O spike while DH is active.",
+    "recommendation": "Reduce LOD distance or pregen. Expected during initial LOD generation.",
+    "emergency_action": "none"
+  },
+  "IRIS_OCULUS_SHADER_PIPELINE_CONTEXT": {
+    "display_name": "Iris/Oculus Shader Pipeline Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client",
+    "strong_tokens": ["shader", "compile", "glsl", "pipeline", "shaderpack"],
+    "required_mods": ["iris", "oculus"],
+    "description": "Freeze or crash during shader reload or compilation.",
+    "recommendation": "Test with shaders disabled. Update Iris/Oculus and Sodium/Embeddium together.",
+    "emergency_action": "none"
+  },
+  "EMBEDDIUM_OCULUS_TAINT_CONTEXT": {
+    "display_name": "Embeddium/Oculus Taint Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client",
+    "strong_tokens": ["tainted", "embeddium instance tainted"],
+    "required_mods": ["embeddium", "oculus"],
+    "description": "Oculus has tainted the Embeddium renderer instance.",
+    "recommendation": "Update both Embeddium and Oculus to compatible versions.",
+    "emergency_action": "none"
+  },
+  "CHUNK_ANIMATOR_RENDERER_MIXIN_CONFLICT": {
+    "display_name": "Chunk Animator Renderer Mixin Conflict",
+    "safety_level": "WARN_ONLY",
+    "side": "client",
+    "strong_tokens": ["InvalidInjectionException", "WorldRendererMixin", "chunk rendering failed injection"],
+    "required_mods": ["chunk_animator"],
+    "description": "Chunk Animator mixin injection into chunk renderer fails with Embeddium/Sodium/Oculus.",
+    "recommendation": "Remove Chunk Animator or update to a compatible version.",
+    "emergency_action": "none"
+  },
+  "LIGHTING_ENGINE_OPTIMIZATION_CONTEXT": {
+    "display_name": "Lighting Engine Optimization Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client_server",
+    "strong_tokens": ["light propagation", "chunk lighting", "block updates", "starlight", "scalablelux", "phosphor"],
+    "required_mods": ["starlight", "scalablelux", "phosphor"],
+    "description": "Lighting spike context with Starlight/ScalableLux/Phosphor installed.",
+    "recommendation": "Expected during heavy block updates. Check for multiple lighting mods installed together.",
+    "emergency_action": "none"
+  },
+  "GPU_BACKEND_RENDER_CONTEXT": {
+    "display_name": "GPU Backend Render Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client",
+    "strong_tokens": ["gpu driver", "vulkan device", "opengl context", "swapchain", "buffer upload", "terrain geometry"],
+    "required_mods": ["nvidium", "vulkanmod"],
+    "description": "GPU backend stutter or crash with Nvidium or VulkanMod.",
+    "recommendation": "Check GPU driver version. Test without experimental GPU backend mod.",
+    "emergency_action": "none"
+  },
+  "MODERNFIX_MEMORY_RESOURCE_CONTEXT": {
+    "display_name": "ModernFix Memory/Resource Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client_server",
+    "strong_tokens": ["model baking", "dynamic resources", "modernfix", "startup freeze"],
+    "required_mods": ["modernfix"],
+    "description": "Startup freeze, resource reload, or memory context with ModernFix.",
+    "recommendation": "Check ModernFix changelog for known issues with your mod set.",
+    "emergency_action": "none"
+  },
+  "FERRITECORE_MEMORY_CONTEXT": {
+    "display_name": "FerriteCore Memory Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client_server",
+    "strong_tokens": ["model memory", "state memory", "ferritecore"],
+    "required_mods": ["ferritecore"],
+    "description": "Memory pressure context with FerriteCore installed.",
+    "recommendation": "Do not blame FerriteCore without strong evidence. Increase heap size.",
+    "emergency_action": "none"
+  },
+  "LITHIUM_FAMILY_GAME_LOGIC_CONTEXT": {
+    "display_name": "Lithium Family Game Logic Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client_server",
+    "strong_tokens": ["entity ticking", "pathfinding", "block ticking", "hopper", "redstone", "lithium", "radium", "canary"],
+    "required_mods": ["lithium", "radium", "canary"],
+    "description": "Server tick spike in entity ticking, pathfinding, or block ticking with Lithium family.",
+    "recommendation": "Use spark to identify the specific ticking hotspot.",
+    "emergency_action": "none"
+  },
+  "CULLING_RENDER_CONTEXT": {
+    "display_name": "Culling Render Context",
+    "safety_level": "WARN_ONLY",
+    "side": "client",
+    "strong_tokens": ["entity rendering", "block entity rendering", "culling", "invisible", "entity-heavy"],
+    "required_mods": ["entity_culling", "moreculling"],
+    "description": "Entity/block entity rendering issue in culling context.",
+    "recommendation": "Check for entity count spike. Reduce entity render distance.",
+    "emergency_action": "none"
+  }
+}
