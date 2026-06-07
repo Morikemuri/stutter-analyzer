@@ -54,8 +54,9 @@ public class FreezeDetector {
             StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Real client frame spike detected: {}ms severity={}", frameMs, severity);
         }
 
-        // Step 4: Rate-limit expensive operations (full classification, report write)
-        if (System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
+        // Step 4: Rate-limit minor/medium. Severe/extreme always go through.
+        boolean isSevereOrExtreme = frameMs >= SAConfig.INSTANCE.severeFrameMs.get();
+        if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
             if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
                 StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Full classification rate-limited ({}/{}ms)",
                     System.currentTimeMillis() - lastReportTime, REPORT_RATE_LIMIT_MS);
@@ -74,7 +75,8 @@ public class FreezeDetector {
     public static void onServerTickSpike(long mspt, RecentEventBuffer buffer, boolean isDedicatedServer) {
         if (!SAConfig.INSTANCE.enableServerTickDetection.get()) return;
         if (mspt < SAConfig.INSTANCE.warningMspt.get()) return;
-        if (System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
+        boolean isSevereOrExtreme = mspt >= SAConfig.INSTANCE.severeFrameMs.get();
+        if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
 
         SafeExecutor.run("FreezeDetector", () -> {
             List<RecentEventBuffer.GameEvent> recent = buffer.recentSeconds(30);

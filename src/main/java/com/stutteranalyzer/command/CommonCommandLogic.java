@@ -56,6 +56,7 @@ public class CommonCommandLogic {
         int mediumRaw  = StutterCounter.mediumCountInSeconds(60);
         long worstMinor   = StutterCounter.worstMinorInSeconds(60);
         long worstMedium  = StutterCounter.worstMediumInSeconds(60);
+        long worstSevere  = StutterCounter.worstSevereInSeconds(60);
         long worstExtreme = StutterCounter.worstExtremeInSeconds(60);
         String lastSeverity = AnalyzerRuntimeState.lastStutterSeverity();
         long lastDurationMs = AnalyzerRuntimeState.lastStutterDurationMs();
@@ -77,6 +78,7 @@ public class CommonCommandLogic {
             : "stutteranalyzer.cmd.status.side.dedicated";
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row("Status UI", "rich-v2"), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.state"), state), false);
         src.sendSuccess(() -> CommandFeedback.row("Side", Component.translatable(sideKey)), false);
         src.sendSuccess(() -> CommandFeedback.row(
@@ -107,28 +109,37 @@ public class CommonCommandLogic {
         if (showRaw && useEpisodes && mediumRaw != mediumDisplay) {
             src.sendSuccess(() -> CommandFeedback.row("Raw medium frames", mediumRaw + " in last 60s"), false);
         }
-        src.sendSuccess(() -> CommandFeedback.row(severeLabel, severeDisplay + " in last 60s"), false);
+        src.sendSuccess(() -> CommandFeedback.row(severeLabel,
+            severeDisplay + " in last 60s" + (worstSevere > 0 ? " | worst: " + worstSevere + "ms" : "")), false);
         src.sendSuccess(() -> CommandFeedback.row(extremeLabel,
             extremeDisplay + " in last 60s" + (worstExtreme > 0 ? " | worst: " + worstExtreme + "ms" : "")), false);
 
         // Reports
         int savedReports = ReportWriter.savedReports();
+        boolean saveSevere  = SAConfig.INSTANCE.saveSevereStutterReports.get();
+        boolean saveExtreme = SAConfig.INSTANCE.saveExtremeReports.get();
+        boolean saveMedium  = SAConfig.INSTANCE.saveMediumStutterReports.get();
+        boolean saveMinor   = SAConfig.INSTANCE.saveMinorStutterReports.get();
+        boolean allSavingDisabled = !saveSevere && !saveExtreme && !saveMedium && !saveMinor;
+        String reportsVal = allSavingDisabled ? "disabled by config" : String.valueOf(savedReports);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.reports_saved"),
-            String.valueOf(savedReports)), false);
+            reportsVal), false);
 
-        // Silent tracking note
-        int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
-        if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
-            src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Note: minor/medium stutters are tracked silently; reports start at " + severeMs + "ms by default."), false);
-        } else if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
+        // Status notes about report saving
+        if (!allSavingDisabled) {
+            if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
+                src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
+            } else if (savedReports == 0 && (severeDisplay > 0 || extremeDisplay > 0)) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Severe/extreme detected but no reports saved - check game log for errors."), false);
+            } else if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
+                int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Minor/medium tracked silently; reports start at " + severeMs + "ms."), false);
+            }
         }
 
         // Last saved report
-        boolean hasSavedReport = savedReports > 0 && last != null && last.durationMs() >= severeMs;
-        if (hasSavedReport) {
+        if (savedReports > 0 && last != null) {
             Component reportVal = Component.literal(last.category().name() + " " + last.durationMs() + "ms");
             src.sendSuccess(() -> CommandFeedback.row("Last saved report", reportVal), false);
         } else {
@@ -460,6 +471,7 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
         src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge 49.x"), false);
         src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
+        src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerMod.BUILD_FEATURES), false);
 
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
             src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
@@ -785,9 +797,53 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.confirm_disabled")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.confirm_use_files", preparedId)), false);
-        return 1;
+        return SubmissionManager.submitConfirm(src, preparedId);
+    }
+
+    public static int submitPrepareLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitPrepareLast(src);
+    }
+
+    public static int submitLocalLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitLocalLast(src);
+    }
+
+    public static int submitStatus(CommandSourceStack src) {
+        return SubmissionManager.submitStatus(src);
+    }
+
+    public static int submitModeCloudflare(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.submitModeCloudflare(src);
+    }
+
+    public static int submitModeLocal(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission()); return 0;
+        }
+        return SubmissionManager.submitModeLocal(src);
+    }
+
+    public static int submitModeStatus(CommandSourceStack src) {
+        return SubmissionManager.submitModeStatus(src);
+    }
+
+    public static int submitDebugRouting(CommandSourceStack src) {
+        return SubmissionManager.submitDebugRouting(src);
+    }
+
+    public static int submitHealth(CommandSourceStack src) {
+        return SubmissionManager.submitHealth(src);
     }
 
     public static int generateTestReport(CommandSourceStack src) {
@@ -812,19 +868,25 @@ public class CommonCommandLogic {
 
     public static int debugCommandRouting(CommandSourceStack src) {
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Command Routing"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa status", "CommonCommandLogic.showStatus"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa version", "CommonCommandLogic.showVersion"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa update check/status/link", "CommonCommandLogic.update*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa verbose on/off/status", "CommonCommandLogic.verbose*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa quiet on/off/status", "CommonCommandLogic.quiet*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa health", "CommonCommandLogic.showHealth"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa selfcheck", "CommonCommandLogic.selfCheck"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa debug test minor/medium/severe/extreme", "CommonCommandLogic.debugTest*"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Server registrar", "ServerCommandRegistrar"), false);
+        boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Command routing"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa status", "RichStatusCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/stutteranalyzer status", "RichStatusCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit last", cfEnabled ? "CloudflareSubmitCommand" : "ManualGitHubIssueFlow (WRONG)"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit local last", "ManualGitHubIssueFlow (explicit)"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit debug-routing", "SubmitDebugRoutingCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa version", "VersionCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa update", "UpdateCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa verbose on/off/status", "VerboseCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa quiet on/off/status", "QuietCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa health", "HealthCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa selfcheck", "SelfCheckCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa debug test *", "DebugTestCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("All routes", "CommonCommandLogic (server-safe)"), false);
         if (isClient) {
             src.sendSuccess(() -> CommandFeedback.row("Client registrar", "ClientCommandRegistrar"), false);
         }
+        src.sendSuccess(() -> CommandFeedback.row("Server registrar", "ServerCommandRegistrar"), false);
         return 1;
     }
 
