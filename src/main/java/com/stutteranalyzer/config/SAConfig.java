@@ -158,6 +158,7 @@ public class SAConfig {
     public final StringValue  f3LinePosition          = new StringValue("BELOW_DEBUG_TEXT");
     public final IntValue     f3LineOffsetX           = new IntValue(4, 0, 200);
     public final IntValue     f3LineExtraGap          = new IntValue(2, 0, 20);
+    public final IntValue     f3LineManualYOffset     = new IntValue(0, -50, 200);
     public final IntValue     f3LineCustomX           = new IntValue(4, 0, 500);
     public final IntValue     f3LineCustomY           = new IntValue(240, 2, 1000);
 
@@ -272,9 +273,18 @@ public class SAConfig {
             List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
             Map<String, String> flat = parseToml(lines);
             INSTANCE.applyMap(flat);
+            INSTANCE.migrateIfNeeded();
             LOGGER.info("[StutterAnalyzer] Config loaded from {}", file);
         } catch (Exception e) {
             LOGGER.warn("[StutterAnalyzer] Config load failed ({}), using defaults: {}", file, e.getMessage());
+        }
+    }
+
+    private void migrateIfNeeded() {
+        // BOTTOM_LEFT was the wrong old default; migrate to BELOW_DEBUG_TEXT automatically
+        if ("BOTTOM_LEFT".equalsIgnoreCase(f3LinePosition.get())) {
+            f3LinePosition.set("BELOW_DEBUG_TEXT");
+            LOGGER.info("[StutterAnalyzer] Migrated f3_line_position: BOTTOM_LEFT -> BELOW_DEBUG_TEXT");
         }
     }
 
@@ -405,6 +415,7 @@ public class SAConfig {
         s(m, "compatibility_guard.debug_hud.f3_line_position", f3LinePosition);
         i(m, "compatibility_guard.debug_hud.f3_line_offset_x", f3LineOffsetX);
         i(m, "compatibility_guard.debug_hud.f3_line_extra_gap", f3LineExtraGap);
+        i(m, "compatibility_guard.debug_hud.f3_line_manual_y_offset", f3LineManualYOffset);
         i(m, "compatibility_guard.debug_hud.f3_line_custom_x", f3LineCustomX);
         i(m, "compatibility_guard.debug_hud.f3_line_custom_y", f3LineCustomY);
         b(m, "compatibility_guard.startup_message.show_startup_message", showStartupMessage);
@@ -564,7 +575,7 @@ public class SAConfig {
         kv(sb, "show_last_freeze_on_f3", debugHudShowLastFreeze.v); kv(sb, "show_emergency_mode_on_f3", debugHudShowEmergencyMode.v);
         kv(sb, "show_report_count_on_f3", debugHudShowReportCount.v); kv(sb, "show_subsystem_warnings_on_f3", debugHudShowSubsystemWarnings.v);
         kv(sb, "compact_mode", debugHudCompactMode.v); kv(sb, "f3_counter_mode", f3CounterMode.v); kv(sb, "show_raw_spike_count_on_f3", showRawSpikeCountOnF3.v);
-        kv(sb, "f3_line_position", f3LinePosition.v); kv(sb, "f3_line_offset_x", f3LineOffsetX.v); kv(sb, "f3_line_extra_gap", f3LineExtraGap.v); kv(sb, "f3_line_custom_x", f3LineCustomX.v); kv(sb, "f3_line_custom_y", f3LineCustomY.v);
+        kv(sb, "f3_line_position", f3LinePosition.v); kv(sb, "f3_line_offset_x", f3LineOffsetX.v); kv(sb, "f3_line_extra_gap", f3LineExtraGap.v); kv(sb, "f3_line_manual_y_offset", f3LineManualYOffset.v); kv(sb, "f3_line_custom_x", f3LineCustomX.v); kv(sb, "f3_line_custom_y", f3LineCustomY.v);
         sec(sb, "compatibility_guard.startup_message");
         kv(sb, "show_startup_message", showStartupMessage.v); kv(sb, "show_only_once_per_session", showStartupMessageOncePerSession.v);
         kv(sb, "mention_silent_minor_tracking", mentionSilentMinorTracking.v);

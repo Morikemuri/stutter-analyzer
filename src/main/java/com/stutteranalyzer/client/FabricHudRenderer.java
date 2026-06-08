@@ -57,6 +57,7 @@ public class FabricHudRenderer {
         // Each F3 line is (font.lineHeight + 1) pixels tall; left panel starts at y=2
         int lineHeight = client.font.lineHeight + 1;
         int y = 2 + ESTIMATED_DEBUG_LEFT_LINES * lineHeight + SAConfig.INSTANCE.f3LineExtraGap.get();
-        return Math.min(y, screenHeight - 80);
+        y += SAConfig.INSTANCE.f3LineManualYOffset.get();
+        return Math.min(Math.max(2, y), screenHeight - 80);
     }
 }
