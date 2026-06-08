@@ -725,8 +725,8 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.submit_id_hint", crashId)), false);
-        return 1;
+        src.sendSuccess(() -> CommandFeedback.info("Submitting latest report (crash-ID lookup not yet supported, submitting last report instead)."), false);
+        return SubmissionManager.submitLast(src);
     }
 
     public static int submitGuardLast(CommandSourceStack src) {
@@ -742,8 +742,8 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.noPermission());
             return 0;
         }
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.guard.submit_id_hint")), false);
-        return 1;
+        src.sendSuccess(() -> CommandFeedback.info("Submitting latest report (guard-ID lookup not yet supported, submitting last report instead)."), false);
+        return SubmissionManager.submitLast(src);
     }
 
     // ── Crash commands ─────────────────────────────────────────────────────

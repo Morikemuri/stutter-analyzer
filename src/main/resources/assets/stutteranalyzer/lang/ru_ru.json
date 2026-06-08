@@ -112,9 +112,6 @@
   "stutteranalyzer.cmd.overlay.status_off": "Оверлей: отключён",
 
   "stutteranalyzer.cmd.client.no_data": "Клиентских зависаний ещё не зафиксировано.",
-  "stutteranalyzer.cmd.client.report_not_impl": "Генерация клиентских отчётов ещё не реализована.",
-  "stutteranalyzer.cmd.client.export_not_impl": "Экспорт клиентских данных ещё не реализован.",
-  "stutteranalyzer.cmd.client.submit_not_impl": "Отправка клиентских данных ещё не реализована.",
 
   "stutteranalyzer.submit.disabled": "Ручная отправка отчётов отключена в конфиге.",
   "stutteranalyzer.submit.no_report": "Нет доступных отчётов о зависаниях для отправки.",
@@ -245,8 +242,5 @@
   "stutteranalyzer.health.status.unavailable": "недоступно",
 
   "stutteranalyzer.guard.list.enabled": "включена",
-  "stutteranalyzer.guard.list.disabled": "отключена",
-
-  "stutteranalyzer.cmd.crash.submit_id_hint": "Отправка по ID краша пока недоступна. Используйте /sa crash show %s для просмотра отчёта.",
-  "stutteranalyzer.cmd.guard.submit_id_hint": "Отправка по ID защиты пока недоступна. Используйте /sa guard report last."
+  "stutteranalyzer.guard.list.disabled": "отключена"
 }

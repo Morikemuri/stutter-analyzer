@@ -112,9 +112,6 @@
   "stutteranalyzer.cmd.overlay.status_off": "Overlay: disabled",
 
   "stutteranalyzer.cmd.client.no_data": "No client-side freeze events recorded yet.",
-  "stutteranalyzer.cmd.client.report_not_impl": "Client report generation not yet implemented.",
-  "stutteranalyzer.cmd.client.export_not_impl": "Client export not yet implemented.",
-  "stutteranalyzer.cmd.client.submit_not_impl": "Client submit not yet implemented.",
 
   "stutteranalyzer.submit.disabled": "Manual submission is disabled in config.",
   "stutteranalyzer.submit.no_report": "No freeze report available to submit.",
@@ -245,8 +242,5 @@
   "stutteranalyzer.health.status.unavailable": "unavailable",
 
   "stutteranalyzer.guard.list.enabled": "enabled",
-  "stutteranalyzer.guard.list.disabled": "disabled",
-
-  "stutteranalyzer.cmd.crash.submit_id_hint": "Submit by crash ID is not yet available. Use /sa crash show %s to view the report.",
-  "stutteranalyzer.cmd.guard.submit_id_hint": "Submit by guard ID is not yet available. Use /sa guard report last."
+  "stutteranalyzer.guard.list.disabled": "disabled"
 }

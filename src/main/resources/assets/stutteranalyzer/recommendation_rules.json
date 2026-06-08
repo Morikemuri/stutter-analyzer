@@ -94,6 +94,22 @@
       "Export report and compare with a run without recently added mods.",
       "Submit the report via /sa submit last.",
       "Attach Markdown and JSON files to GitHub."
+    ],
+    "PERIODIC_MINOR_MICRO_HITCH": [
+      "Usually harmless. No action required unless it becomes frequent or noticeable.",
+      "Check for background polling tasks, mod overlays, and skin/cape checks.",
+      "Check for scheduled mod timers firing at regular intervals.",
+      "Do not adjust GPU, render distance, or server settings for this category."
+    ],
+    "UNCLASSIFIED_MICRO_HITCH": [
+      "Usually harmless for a one-off minor hitch.",
+      "Monitor for recurrence. If it becomes frequent, enable debug mode.",
+      "Do not adjust GPU or render settings for a single minor hitch."
+    ],
+    "UNCLASSIFIED_FRAME_HITCH": [
+      "Enable debug mode if this recurs frequently.",
+      "Check GPU usage and server MSPT around the time of the hitch.",
+      "Compare a report with and without recently added mods."
     ]
   }
 }

@@ -109,11 +109,44 @@
       "priority": 15
     },
     {
+      "id": "periodic_micro_hitch",
+      "category": "PERIODIC_MINOR_MICRO_HITCH",
+      "conditions": ["duration_50_to_99ms", "periodic_interval_detected", "min_3_occurrences_in_60s"],
+      "confidence": 0.70,
+      "priority": 16,
+      "severity": "minor",
+      "user_facing_name": "Periodic minor micro-hitch",
+      "description": "A repeated short 50-99ms hitch at a stable interval. Usually scheduler/timer/background-task related or a measurement artifact. Not a freeze."
+    },
+    {
+      "id": "unclassified_micro_hitch",
+      "category": "UNCLASSIFIED_MICRO_HITCH",
+      "conditions": ["duration_50_to_99ms", "no_match_above_minimum_confidence"],
+      "confidence": 0.50,
+      "priority": 17,
+      "severity": "minor",
+      "user_facing_name": "Unclassified micro-hitch",
+      "description": "A one-off 50-99ms frame or tick hitch with no identifiable cause. Not a freeze."
+    },
+    {
+      "id": "unclassified_frame_hitch",
+      "category": "UNCLASSIFIED_FRAME_HITCH",
+      "conditions": ["duration_100_to_249ms", "no_match_above_minimum_confidence"],
+      "confidence": 0.50,
+      "priority": 18,
+      "severity": "medium",
+      "user_facing_name": "Unclassified frame hitch",
+      "description": "A 100-249ms frame or tick hitch with no identifiable cause. May be noticeable but is not a severe freeze."
+    },
+    {
       "id": "unknown_fallback",
       "category": "UNKNOWN_FREEZE",
-      "conditions": ["no_match_above_minimum_confidence"],
+      "conditions": ["duration_250ms_or_more", "no_match_above_minimum_confidence"],
       "confidence": 0.0,
-      "priority": 999
+      "priority": 999,
+      "severity": "severe",
+      "user_facing_name": "Unknown freeze",
+      "description": "A freeze >= 250ms with no identifiable cause. Enable debug mode and submit a report."
     }
   ]
 }
