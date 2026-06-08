@@ -51,7 +51,11 @@ public class ClientCommandRegistrar {
                 .then(Commands.literal("reset")
                     .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitReset(ctx.getSource()))))
                 .then(Commands.literal("health")
-                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitHealth(ctx.getSource())))))
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitHealth(ctx.getSource()))))
+                .then(Commands.literal("check")
+                    .then(Commands.argument("report_id", com.mojang.brigadier.arguments.StringArgumentType.greedyString())
+                        .executes(ctx -> CommonCommandLogic.submitCheckStatus(
+                            ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "report_id"))))))
             .then(Commands.literal("yes")
                 .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitYes(ctx.getSource()))))
             .then(Commands.literal("cancel")

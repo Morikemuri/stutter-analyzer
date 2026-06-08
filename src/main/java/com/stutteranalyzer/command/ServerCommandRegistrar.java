@@ -185,6 +185,10 @@ public class ServerCommandRegistrar {
                     .executes(ctx -> CommonCommandLogic.submitReset(ctx.getSource())))
                 .then(Commands.literal("health")
                     .executes(ctx -> CommonCommandLogic.submitHealth(ctx.getSource())))
+                .then(Commands.literal("check")
+                    .then(Commands.argument("report_id", StringArgumentType.greedyString())
+                        .executes(ctx -> CommonCommandLogic.submitCheckStatus(
+                            ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
                 .then(Commands.literal("debug-routing")
                     .executes(ctx -> CommonCommandLogic.submitDebugRouting(ctx.getSource())))
                 .then(Commands.literal("mode")

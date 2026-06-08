@@ -627,6 +627,7 @@ public class SubmissionManager {
         }
         if (status == 200 && body.contains("\"ok\":true")) {
             String reportId        = extractJsonField(body, "report_id");
+            String githubFwd       = extractJsonField(body, "github_forwarding");
             String issueNum        = extractJsonField(body, "github_issue_number");
             String issueUrl        = extractJsonField(body, "github_issue_url");
             String warning         = extractJsonField(body, "warning");
@@ -647,10 +648,13 @@ public class SubmissionManager {
 
             lastSubmissionStatus = "success";
 
-            src.sendSuccess(() -> CommandFeedback.success("[SA] Report submitted successfully."), false);
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Report received by server."), false);
             src.sendSuccess(() -> CommandFeedback.info("[SA] Report ID: " + finalId), false);
 
-            if ("GITHUB_FORWARD_FAILED".equals(warning)) {
+            if ("queued".equals(githubFwd)) {
+                src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue creation queued."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Check status: /sa submit check " + finalId), false);
+            } else if ("GITHUB_FORWARD_FAILED".equals(warning)) {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] GitHub forwarding failed server-side, but no data was lost."), false);
             } else if (issueNum != null && !issueNum.equals("null") && !issueNum.isBlank()) {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue created: #" + issueNum), false);
@@ -1328,6 +1332,65 @@ public class SubmissionManager {
                 }
             } catch (Exception e) {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Minimal test error: " + e.getClass().getSimpleName() + ": " + e.getMessage()), false);
+            }
+        }, UPLOAD_EXECUTOR);
+        return 1;
+    }
+
+    public static int submitCheckStatus(CommandSourceStack src, String reportId) {
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        if (endpoint == null || endpoint.isBlank()) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No Cloudflare endpoint configured."), false);
+            return 1;
+        }
+        String base = endpoint.replaceFirst("/api/.*$", "");
+        String statusUrl = base + "/api/report-status/" + reportId;
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Checking report status for " + reportId + "..."), false);
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(statusUrl))
+                    .GET()
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
+                    .timeout(Duration.ofSeconds(15))
+                    .build();
+                HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                int statusCode = resp.statusCode();
+                String respBody = resp.body() != null ? resp.body() : "{}";
+                if (statusCode == 200 && respBody.contains("\"ok\":true")) {
+                    String fwd        = extractJsonField(respBody, "github_forwarding");
+                    String issueNum   = extractJsonField(respBody, "github_issue_number");
+                    String issueUrl   = extractJsonField(respBody, "github_issue_url");
+                    String errStatus  = extractJsonField(respBody, "github_error_status");
+                    String errSummary = extractJsonField(respBody, "github_error_summary");
+                    src.sendSuccess(() -> CommandFeedback.header("[SA] Report status"), false);
+                    src.sendSuccess(() -> CommandFeedback.row("Report ID", reportId), false);
+                    src.sendSuccess(() -> CommandFeedback.row("Stored", "yes"), false);
+                    src.sendSuccess(() -> CommandFeedback.row("GitHub forwarding", fwd != null ? fwd : "unknown"), false);
+                    if ("success".equals(fwd) && issueNum != null && !issueNum.equals("null")) {
+                        src.sendSuccess(() -> CommandFeedback.success("[SA] GitHub issue created: #" + issueNum), false);
+                        if (issueUrl != null && !issueUrl.isBlank() && !issueUrl.equals("null")) {
+                            src.sendSuccess(() -> CommandFeedback.info("[SA] " + issueUrl), false);
+                        }
+                    } else if ("failed".equals(fwd)) {
+                        src.sendSuccess(() -> CommandFeedback.warn("[SA] GitHub forwarding failed."), false);
+                        if (errStatus != null && !errStatus.equals("null") && !errStatus.isBlank()) {
+                            String safe = (errSummary != null && !errSummary.equals("null")) ? errSummary : "unknown";
+                            src.sendSuccess(() -> CommandFeedback.info("[SA] Error: HTTP " + errStatus + " - " + safe), false);
+                        }
+                    } else if ("pending".equals(fwd)) {
+                        src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub forwarding still in progress. Check again shortly."), false);
+                    } else if ("skipped".equals(fwd)) {
+                        src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub forwarding not enabled for this report."), false);
+                    }
+                } else if (statusCode == 404) {
+                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Report not found. May have expired or ID is incorrect."), false);
+                } else {
+                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Status check failed (HTTP " + statusCode + ")."), false);
+                }
+            } catch (Exception e) {
+                StutterAnalyzerMod.LOGGER.warn("[SA] Report status check failed: {}", e.getMessage());
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Could not reach report server: " + e.getClass().getSimpleName()), false);
             }
         }, UPLOAD_EXECUTOR);
         return 1;
