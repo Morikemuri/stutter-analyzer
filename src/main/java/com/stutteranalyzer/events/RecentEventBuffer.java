@@ -36,13 +36,22 @@ public class RecentEventBuffer {
     }
 
     public static final class GameEvent {
-        public final Instant timestamp = Instant.now();
+        public final Instant timestamp;
         public final EventType type;
         public final String detail;
+
         public GameEvent(EventType type, String detail) {
+            this.timestamp = Instant.now();
             this.type = type;
             this.detail = detail;
         }
+
+        GameEvent(EventType type, String detail, Instant timestamp) {
+            this.timestamp = timestamp;
+            this.type = type;
+            this.detail = detail;
+        }
+
         @Override public String toString() {
             return "[" + timestamp + "] " + type.name() + (detail != null && !detail.isEmpty() ? " - " + detail : "");
         }
@@ -67,6 +76,37 @@ public class RecentEventBuffer {
             if (e.timestamp.isAfter(cutoff)) out.add(e);
         }
         return out;
+    }
+
+    /**
+     * Retroactively reclassify STUTTER_DETECTED events whose detail starts with
+     * "UNCLASSIFIED_MICRO_HITCH" and whose duration (parsed from detail) is within
+     * jitterMs of targetDurationMs. Replaces the detail prefix with newCategoryName.
+     * Called when a periodic pattern is first confirmed.
+     */
+    public synchronized void reclassifyMicroHitches(long targetDurationMs, long jitterMs, String newCategoryName) {
+        List<GameEvent> updated = new ArrayList<>(buffer.size());
+        boolean changed = false;
+        for (GameEvent e : buffer) {
+            if (e.type == EventType.STUTTER_DETECTED
+                    && e.detail != null
+                    && e.detail.startsWith("UNCLASSIFIED_MICRO_HITCH ")) {
+                try {
+                    String durStr = e.detail.substring("UNCLASSIFIED_MICRO_HITCH ".length()).replace("ms", "").trim();
+                    long evDur = Long.parseLong(durStr);
+                    if (Math.abs(evDur - targetDurationMs) <= jitterMs) {
+                        updated.add(new GameEvent(e.type, newCategoryName + " " + evDur + "ms", e.timestamp));
+                        changed = true;
+                        continue;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+            updated.add(e);
+        }
+        if (changed) {
+            buffer.clear();
+            buffer.addAll(updated);
+        }
     }
 
     public synchronized void clear() { buffer.clear(); }

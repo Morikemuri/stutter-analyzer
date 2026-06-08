@@ -408,7 +408,7 @@ public class CommonCommandLogic {
             isClient ? "client" : "dedicated-server", 300L,
             MetricsCollector.eventBuffer().snapshot(),
             "This is a test. Use /sa submit last to test submission.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none()
+            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
         );
         FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
         AnalyzerRuntimeState.requestF3Refresh();
@@ -427,7 +427,7 @@ public class CommonCommandLogic {
             isClient ? "client" : "dedicated-server", 1200L,
             MetricsCollector.eventBuffer().snapshot(),
             "This is an extreme freeze test. Use /sa submit last to test submission.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none()
+            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
         );
         FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
         AnalyzerRuntimeState.requestF3Refresh();
@@ -450,7 +450,7 @@ public class CommonCommandLogic {
             isClient ? "client" : "dedicated-server", 300L,
             MetricsCollector.eventBuffer().snapshot(),
             "Visibility test event.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none()
+            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
         );
         FreezeDetector.injectForTesting(severeEvent, MetricsCollector.eventBuffer());
         AnalyzerRuntimeState.requestF3Refresh();
@@ -1092,7 +1092,7 @@ public class CommonCommandLogic {
             side, 500L,
             MetricsCollector.eventBuffer().snapshot(),
             "This is a test report. Use /sa submit last to test the submission flow.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none()
+            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
         );
         FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
         src.sendSuccess(() -> CommandFeedback.debug("Test report generated. Use /sa last to view."), true);

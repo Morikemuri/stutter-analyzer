@@ -111,6 +111,7 @@ public class SAConfig {
     public final ForgeConfigSpec.IntValue alertCooldownSeconds;
     public final ForgeConfigSpec.IntValue alertSameCategoryCooldownSeconds;
     public final ForgeConfigSpec.IntValue alertMaxAlertsPerMinute;
+    public final ForgeConfigSpec.IntValue scheduledMicroHitchCooldownSeconds;
     public final ForgeConfigSpec.BooleanValue alertAggregateSmallStutters;
     public final ForgeConfigSpec.IntValue alertMinorAggregateCooldownSeconds;
     public final ForgeConfigSpec.BooleanValue alertShowReportHint;
@@ -317,6 +318,7 @@ public class SAConfig {
         alertCooldownSeconds = b.comment("Global cooldown in seconds between any two chat alerts.").defineInRange("alert_cooldown_seconds", 30, 5, 600);
         alertSameCategoryCooldownSeconds = b.comment("Cooldown in seconds between alerts of the same category.").defineInRange("same_category_cooldown_seconds", 60, 5, 600);
         alertMaxAlertsPerMinute = b.comment("Maximum number of chat alerts per minute.").defineInRange("max_alerts_per_minute", 5, 1, 60);
+        scheduledMicroHitchCooldownSeconds = b.comment("Minimum cooldown in seconds between alerts for repeated scheduled micro-hitch events. Prevents printing the same scheduled hitch every minute.").defineInRange("scheduled_micro_hitch_cooldown_seconds", 300, 30, 3600);
         alertAggregateSmallStutters = b.comment("In SEVERE/EXTREME mode, still show an aggregated minor/medium summary occasionally.").define("aggregate_small_stutters", true);
         alertMinorAggregateCooldownSeconds = b.comment("Cooldown in seconds for the aggregated small stutter message.").defineInRange("minor_aggregate_cooldown_seconds", 120, 30, 3600);
         alertShowReportHint = b.comment("Show 'Report saved. Use /sa submit' hint after severe/extreme alerts.").define("show_report_hint", true);

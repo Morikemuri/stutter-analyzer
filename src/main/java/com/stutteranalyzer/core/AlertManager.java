@@ -47,7 +47,9 @@ public class AlertManager {
         long globalCoolMs = SAConfig.INSTANCE.alertCooldownSeconds.get() * 1000L;
         if (now - lastGlobalAlertMs < globalCoolMs) return false;
 
-        long catCoolMs = SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get() * 1000L;
+        long catCoolMs = "PERIODIC_SCHEDULED_MICRO_HITCH".equals(category)
+            ? SAConfig.INSTANCE.scheduledMicroHitchCooldownSeconds.get() * 1000L
+            : SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get() * 1000L;
         long lastCat = lastCategoryAlertMs.getOrDefault(category, 0L);
         if (now - lastCat < catCoolMs) return false;
 

@@ -139,6 +139,7 @@ public class ClientSetup {
         int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
         boolean isUnknown = event.category() == FreezeCategory.UNKNOWN_FREEZE;
         boolean isPeriodic = event.category() == FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
+        boolean isScheduled = event.category() == FreezeCategory.PERIODIC_SCHEDULED_MICRO_HITCH;
         String catName = event.category().name();
 
         String msg;
@@ -152,6 +153,10 @@ public class ClientSetup {
             showHint = true;
         } else if (ms >= medium) {
             msg = "[SA] Medium stutter detected: " + catName + " " + ms + "ms";
+        } else if (isScheduled) {
+            FreezeEvent.PeriodicMeta meta = event.periodicMeta();
+            String periodStr = meta != null ? "~" + (meta.periodMsEstimate() / 1000L) + "s" : "unknown";
+            msg = "[SA] Scheduled minor micro-hitch: ~" + ms + "ms every " + periodStr + ". Usually harmless.";
         } else if (isPeriodic) {
             msg = "[SA] Minor micro-hitch detected: periodic " + ms + "ms hitch";
         } else {

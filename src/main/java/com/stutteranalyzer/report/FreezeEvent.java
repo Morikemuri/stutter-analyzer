@@ -9,6 +9,14 @@ import java.util.List;
 
 public class FreezeEvent {
 
+    public record PeriodicMeta(
+        long periodMsEstimate,
+        int occurrences,
+        boolean wasReclassified,
+        String originalCategory,
+        List<String> possibleContext
+    ) {}
+
     private final FreezeCategory category;
     private final double confidence;
     private final String reason;
@@ -18,11 +26,13 @@ public class FreezeEvent {
     private final List<RecentEventBuffer.GameEvent> recentTimeline;
     private final String recommendation;
     private final HighLevelClassifier.HighLevelResult highLevelResult;
+    private final PeriodicMeta periodicMeta;
     private final Instant timestamp = Instant.now();
 
     public FreezeEvent(FreezeCategory category, double confidence, String reason, String evidence,
                        String side, long durationMs, List<RecentEventBuffer.GameEvent> recentTimeline,
-                       String recommendation, HighLevelClassifier.HighLevelResult highLevelResult) {
+                       String recommendation, HighLevelClassifier.HighLevelResult highLevelResult,
+                       PeriodicMeta periodicMeta) {
         this.category         = category;
         this.confidence       = confidence;
         this.reason           = reason;
@@ -32,6 +42,7 @@ public class FreezeEvent {
         this.recentTimeline   = recentTimeline;
         this.recommendation   = recommendation;
         this.highLevelResult  = highLevelResult;
+        this.periodicMeta     = periodicMeta;
     }
 
     public FreezeCategory category() { return category; }
@@ -44,5 +55,6 @@ public class FreezeEvent {
     public List<RecentEventBuffer.GameEvent> recentTimeline() { return recentTimeline; }
     public String recommendation() { return recommendation; }
     public HighLevelClassifier.HighLevelResult highLevelResult() { return highLevelResult; }
+    public PeriodicMeta periodicMeta() { return periodicMeta; }
     public Instant timestamp() { return timestamp; }
 }

@@ -165,6 +165,11 @@ public class FreezeDetector {
             : RecentEventBuffer.EventType.STUTTER_DETECTED;
         buffer.push(evType, event.category().name() + " " + event.durationMs() + "ms");
 
+        // When a periodic pattern is first confirmed, backfill earlier UNCLASSIFIED_MICRO_HITCH events
+        if (event.periodicMeta() != null && event.periodicMeta().wasReclassified()) {
+            buffer.reclassifyMicroHitches(event.durationMs(), 10L, event.category().name());
+        }
+
         if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
             StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Event classified: {} {}ms", event.category().name(), event.durationMs());
         }

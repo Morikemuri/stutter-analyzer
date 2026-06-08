@@ -6,9 +6,17 @@ import com.stutteranalyzer.metrics.FrameTimeTracker;
 import com.stutteranalyzer.metrics.MemoryGcTracker;
 import com.stutteranalyzer.metrics.ServerTickTracker;
 import com.stutteranalyzer.report.FreezeEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLPaths;
 
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class FreezeClassifier {
 
@@ -28,6 +36,7 @@ public class FreezeClassifier {
         String reason = "No pattern matched.";
         String evidence = "";
         String recommendation = "Reproduce with debug mode enabled and export a report.";
+        FreezeEvent.PeriodicMeta periodicMeta = null;
 
         double minConf = SAConfig.INSTANCE.minimumConfidence.get();
 
@@ -128,22 +137,31 @@ public class FreezeClassifier {
             }
         }
 
-        // Periodic minor micro-hitch detection: 50-99ms events with regular interval
+        // Micro-hitch detection: 50-99ms events
         if (confidence < minConf && durationMs >= 50 && durationMs < 100) {
             periodicityTracker.record(durationMs);
             PeriodicityTracker.PeriodicResult periodic = periodicityTracker.detect(durationMs);
-            if (periodic != null) {
-                double periodicConfidence = periodic.periodMsEstimate() > 0 ? 0.70 : 0.60;
+            if (periodic != null && periodic.isScheduled()) {
+                // Matches a known scheduler interval (5s/10s/30s/60s/120s/300s)
+                category = FreezeCategory.PERIODIC_SCHEDULED_MICRO_HITCH;
+                confidence = 0.70;
+                reason = "Repeated minor hitch at a stable ~" + formatIntervalS(periodic.periodMsEstimate()) + " interval matching a common scheduler period.";
+                evidence = periodic.occurrences() + " hitches of ~" + durationMs + "ms each, repeating every ~" + formatIntervalS(periodic.periodMsEstimate()) + ".";
+                recommendation = "Usually harmless. A small hitch repeats at a scheduled interval. If noticeable, try disabling overlays, skin/cape polling mods, or launcher cosmetic features one by one.";
+                periodicMeta = new FreezeEvent.PeriodicMeta(periodic.periodMsEstimate(), periodic.occurrences(), true, "UNCLASSIFIED_MICRO_HITCH", detectPossibleContext());
+            } else if (periodic != null) {
+                // Regular interval but not a known scheduler period
                 category = FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
-                confidence = periodicConfidence;
-                reason = "Repeated minor hitch detected at a stable ~" + (periodic.periodMsEstimate() / 1000) + "s interval.";
+                confidence = 0.65;
+                reason = "Repeated minor hitch detected at a stable interval.";
                 evidence = periodic.occurrences() + " ~" + durationMs + "ms hitches at near-regular " + periodic.periodMsEstimate() + "ms intervals.";
                 recommendation = "Usually harmless. Check background polling tasks only if it becomes frequent or noticeable.";
+                periodicMeta = new FreezeEvent.PeriodicMeta(periodic.periodMsEstimate(), periodic.occurrences(), true, "UNCLASSIFIED_MICRO_HITCH", java.util.List.of("UNKNOWN_SCHEDULED_TASK"));
             } else {
-                // One-off minor hitch - do not call it UNKNOWN_FREEZE or blame GPU/server
+                // Not enough history yet
                 category = FreezeCategory.UNCLASSIFIED_MICRO_HITCH;
                 confidence = 0.50;
-                reason = "Minor hitch with no matching pattern.";
+                reason = "Minor frame-time spike detected, but no reliable pattern matched yet.";
                 evidence = (isClient ? "Frame hitch" : "Tick spike") + ": " + durationMs + " ms.";
                 recommendation = "Usually harmless. Monitor for recurrence.";
             }
@@ -194,7 +212,56 @@ public class FreezeClassifier {
             : (isDedicatedServer ? "dedicated server" : "integrated server");
 
         HighLevelClassifier.HighLevelResult hlResult = HighLevelClassifier.classify(category, recentEvents);
-        return new FreezeEvent(category, confidence, reason, evidence, side, durationMs, recentEvents, recommendation, hlResult);
+        return new FreezeEvent(category, confidence, reason, evidence, side, durationMs, recentEvents, recommendation, hlResult, periodicMeta);
+    }
+
+    private static String formatIntervalS(long ms) {
+        long s = ms / 1000L;
+        return s + "s";
+    }
+
+    private static List<String> detectPossibleContext() {
+        List<String> ctx = new ArrayList<>();
+        try {
+            Path logFile = resolveLogFileForContext();
+            if (logFile != null && Files.exists(logFile)) {
+                long fileSize = Files.size(logFile);
+                long offset = Math.max(0, fileSize - 32768L);
+                byte[] buf;
+                try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
+                    raf.seek(offset);
+                    int len = (int) (fileSize - offset);
+                    buf = new byte[len];
+                    raf.readFully(buf);
+                }
+                String tail = new String(buf, StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+                if (matchesContext(tail, new String[]{"skin", "cape", "tlskins", "sessionserver.mojang", "skins.minecraft"}))
+                    ctx.add("SKIN_OR_CAPE_POLLING");
+                if (matchesContext(tail, new String[]{"stutteranalyzer", "stutter analyzer", "update check", "checking update"}))
+                    ctx.add("ANALYZER_UPDATE_CHECK");
+                if (matchesContext(tail, new String[]{"saving chunks", "autosave", "world save", "auto-save", "chunk save"}))
+                    ctx.add("WORLD_SAVE_OR_CHUNK_IO");
+            }
+        } catch (Exception ignored) {}
+        ctx.add(0, "UNKNOWN_SCHEDULED_TASK");
+        return ctx;
+    }
+
+    private static boolean matchesContext(String text, String[] patterns) {
+        for (String p : patterns) { if (text.contains(p)) return true; }
+        return false;
+    }
+
+    private static Path resolveLogFileForContext() {
+        try {
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                try {
+                    return net.minecraft.client.Minecraft.getInstance()
+                        .gameDirectory.toPath().resolve("logs/latest.log");
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
     }
 
     private String buildContextRecommendation(LogContextClassifier.ContextResult ctx) {

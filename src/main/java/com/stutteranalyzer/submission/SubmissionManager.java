@@ -1046,6 +1046,24 @@ public class SubmissionManager {
             jr.addProperty("root_cause_certainty", hlResult.rootCauseCertainty());
         }
 
+        FreezeEvent.PeriodicMeta periodicMeta = report.event.periodicMeta();
+        if (periodicMeta != null) {
+            jr.addProperty("periodic", true);
+            jr.addProperty("period_ms_estimate", periodicMeta.periodMsEstimate());
+            jr.addProperty("periodic_occurrences_10m", periodicMeta.occurrences());
+            jr.addProperty("root_cause_certainty", "low");
+            if (periodicMeta.wasReclassified() && periodicMeta.originalCategory() != null) {
+                jr.addProperty("was_reclassified", true);
+                jr.addProperty("original_category", periodicMeta.originalCategory());
+                jr.addProperty("reclassified_category", report.event.category().name());
+            }
+            if (periodicMeta.possibleContext() != null && !periodicMeta.possibleContext().isEmpty()) {
+                JsonArray ctxArr = new JsonArray();
+                for (String c : periodicMeta.possibleContext()) ctxArr.add(c);
+                jr.add("possible_context", ctxArr);
+            }
+        }
+
         JsonObject metrics = new JsonObject();
         var st = MetricsCollector.serverTick();
         JsonObject serverTickObj = new JsonObject();
