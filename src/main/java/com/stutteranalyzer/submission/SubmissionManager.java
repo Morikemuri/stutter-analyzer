@@ -993,6 +993,7 @@ public class SubmissionManager {
         String runtimeSnapshot = buildRuntimeSnapshot();
         return "{\n" +
             "  \"schema_version\": 1,\n" +
+            "  \"source\": \"real_mod_submit\",\n" +
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerMod.MOD_VERSION) + ",\n" +
             "  \"minecraft_version\": \"1.20.4\",\n" +
@@ -1288,8 +1289,9 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] No Cloudflare endpoint configured."), false);
             return 1;
         }
-        String minimalHash = "minimal-" + Long.toHexString(System.currentTimeMillis());
-        String payload = "{\"schema_version\":1,\"project\":\"stutter-analyzer\","
+        String minimalHash = "devtest-" + Long.toHexString(System.currentTimeMillis());
+        String payload = "{\"schema_version\":1,\"source\":\"dev_test_submit\","
+            + "\"project\":\"stutter-analyzer\","
             + "\"report_type\":\"UNKNOWN_FREEZE\",\"category\":\"UNKNOWN_FREEZE\","
             + "\"duration_ms\":300,\"confidence\":0.5,"
             + "\"report_hash\":" + esc(minimalHash) + ","
