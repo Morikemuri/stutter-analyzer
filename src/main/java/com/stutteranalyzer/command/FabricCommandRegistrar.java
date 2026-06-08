@@ -59,7 +59,9 @@ public class FabricCommandRegistrar {
                         .executes(c -> CommonCommandLogic.submitStatus(c.getSource())))))
 
             .then(Commands.literal("version")
-                .executes(c -> CommonCommandLogic.showVersion(c.getSource())))
+                .executes(c -> CommonCommandLogic.showVersion(c.getSource()))
+                .then(Commands.literal("debug")
+                    .executes(c -> CommonCommandLogic.showVersionDebug(c.getSource()))))
 
             .then(Commands.literal("update")
                 .executes(c -> CommonCommandLogic.updateStatus(c.getSource()))

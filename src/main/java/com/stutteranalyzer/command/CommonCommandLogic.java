@@ -116,22 +116,26 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.row.reports_saved"),
             reportsVal), false);
 
-        if (!allSavingDisabled) {
-            if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
-            } else if (savedReports == 0 && (severeDisplay > 0 || extremeDisplay > 0)) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Severe/extreme detected but no reports saved - check game log for errors."), false);
-            } else if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
-                int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Minor/medium tracked silently; reports start at " + severeMs + "ms."), false);
-            }
-        }
-
-        if (savedReports > 0 && last != null) {
-            Component reportVal = Component.literal(last.category().name() + " " + last.durationMs() + "ms");
-            src.sendSuccess(() -> CommandFeedback.row("Last saved report", reportVal), false);
+        FreezeReport lastSaved = ReportWriter.lastReport();
+        if (lastSaved != null) {
+            FreezeEvent savedEvt = lastSaved.event;
+            src.sendSuccess(() -> CommandFeedback.row("Last saved report",
+                savedEvt.category().name() + " " + savedEvt.durationMs() + "ms"), false);
         } else {
             src.sendSuccess(() -> CommandFeedback.row("Last saved report", "none"), false);
+        }
+
+        if (!allSavingDisabled) {
+            boolean nothingTracked = last == null && lastDurationMs == 0
+                && minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0;
+            if (nothingTracked) {
+                src.sendSuccess(() -> CommandFeedback.info("No stutters recorded yet. Use /sa debug test minor to verify."), false);
+            } else if (savedReports == 0 && (severeDisplay > 0 || extremeDisplay > 0)) {
+                src.sendSuccess(() -> CommandFeedback.warn("Severe/extreme detected but no reports saved - check game log for errors."), false);
+            } else if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
+                int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
+                src.sendSuccess(() -> CommandFeedback.info("Minor/medium tracked silently; reports start at " + severeMs + "ms."), false);
+            }
         }
 
         int crashCount = PreviousCrashImporter.allImported().size();
@@ -446,7 +450,8 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
         src.sendSuccess(() -> CommandFeedback.row("Loader", "Fabric"), false);
         src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
-        src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerFabric.BUILD_FEATURES), false);
+        src.sendSuccess(() -> CommandFeedback.row("Status", "Beta / RC"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Features", "F3 status, alerts, reports, submit"), false);
 
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
             src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
@@ -466,6 +471,15 @@ public class CommonCommandLogic {
                 src.sendSuccess(() -> CommandFeedback.row("Update check", "up to date"), false);
             }
         }
+        return 1;
+    }
+
+    public static int showVersionDebug(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Version Debug Info"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerFabric.MOD_VERSION), false);
+        src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerFabric.BUILD_DATE), false);
+        src.sendSuccess(() -> CommandFeedback.row("Build ID", StutterAnalyzerFabric.BUILD_ID), false);
+        src.sendSuccess(() -> CommandFeedback.row("Raw features", StutterAnalyzerFabric.BUILD_FEATURES), false);
         return 1;
     }
 
@@ -757,6 +771,12 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.row("Small stutter aggregate", SAConfig.INSTANCE.alertAggregateSmallStutters.get() ? "ON" : "OFF"), false);
             src.sendSuccess(() -> CommandFeedback.row("Quiet mode", QuietMode.isEnabled() ? "ON" : "OFF"), false);
         }
+        src.sendSuccess(() -> CommandFeedback.info("Available modes:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor   - show all stutters (noisy)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium  - show medium and higher"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe  - show severe and extreme"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme - show only extreme freezes"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off     - disable chat alerts"), false);
         return 1;
     }
 
@@ -835,14 +855,21 @@ public class CommonCommandLogic {
         String spike = last != null
             ? last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms"
             : "none";
+        FreezeReport lastSavedRep = ReportWriter.lastReport();
+        String lastSavedStr = lastSavedRep != null
+            ? lastSavedRep.event.category().name() + " " + lastSavedRep.event.durationMs() + "ms"
+            : "none";
         String uploadStr = cfEnabled ? "ready" : "local only";
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
         src.sendSuccess(() -> CommandFeedback.row("Status", degraded ? "DEGRADED" : "ACTIVE"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Last spike", spike), false);
+        src.sendSuccess(() -> CommandFeedback.row("Last tracked spike", spike), false);
+        src.sendSuccess(() -> CommandFeedback.row("Last saved report", lastSavedStr), false);
         src.sendSuccess(() -> CommandFeedback.row("Reports saved", String.valueOf(reports)), false);
         src.sendSuccess(() -> CommandFeedback.row("Upload", uploadStr), false);
         if (reports > 0) {
             src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit to send latest report."), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa status for details."), false);
         }
         if (degraded) {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Analyzer is degraded. Use /sa status for details."), false);
