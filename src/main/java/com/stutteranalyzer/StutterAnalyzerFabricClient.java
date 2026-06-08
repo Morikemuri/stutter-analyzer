@@ -1,7 +1,6 @@
 package com.stutteranalyzer;
 
 import com.stutteranalyzer.client.FabricClientSetup;
-import com.stutteranalyzer.client.FabricHudRenderer;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SubsystemHealth;
@@ -10,7 +9,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
 public class StutterAnalyzerFabricClient implements ClientModInitializer {
 
@@ -28,9 +26,6 @@ public class StutterAnalyzerFabricClient implements ClientModInitializer {
         // Track world loads for HighLevelClassifier
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
             MetricsCollector.eventBuffer().push(RecentEventBuffer.EventType.WORLD_LOAD, "client joined"));
-
-        // HUD overlay (shown on F3 screen)
-        HudRenderCallback.EVENT.register((drawContext, tickDelta) -> FabricHudRenderer.onHudRender(drawContext));
 
         // Client shutdown
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
