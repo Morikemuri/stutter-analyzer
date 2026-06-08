@@ -138,6 +138,7 @@ public class ClientSetup {
         int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
         int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
         boolean isUnknown = event.category() == FreezeCategory.UNKNOWN_FREEZE;
+        boolean isPeriodic = event.category() == FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
         String catName = event.category().name();
 
         String msg;
@@ -151,6 +152,8 @@ public class ClientSetup {
             showHint = true;
         } else if (ms >= medium) {
             msg = "[SA] Medium stutter detected: " + catName + " " + ms + "ms";
+        } else if (isPeriodic) {
+            msg = "[SA] Minor micro-hitch detected: periodic " + ms + "ms hitch";
         } else {
             msg = "[SA] Minor stutter detected: " + catName + " " + ms + "ms";
         }

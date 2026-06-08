@@ -159,7 +159,11 @@ public class FreezeDetector {
     private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer, long durationMs) {
         lastFreezeEvent = event;
         lastReportTime  = System.currentTimeMillis();
-        buffer.push(RecentEventBuffer.EventType.FREEZE_DETECTED, event.category().name() + " " + event.durationMs() + "ms");
+        boolean isFreeze = durationMs >= SAConfig.INSTANCE.severeFrameMs.get();
+        RecentEventBuffer.EventType evType = isFreeze
+            ? RecentEventBuffer.EventType.FREEZE_DETECTED
+            : RecentEventBuffer.EventType.STUTTER_DETECTED;
+        buffer.push(evType, event.category().name() + " " + event.durationMs() + "ms");
 
         if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
             StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Event classified: {} {}ms", event.category().name(), event.durationMs());

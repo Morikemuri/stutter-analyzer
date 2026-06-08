@@ -31,7 +31,8 @@ public class RecentEventBuffer {
         GUARD_TRIGGERED,
         CRASH_IMPORTED,
         REPORT_SUBMISSION_PREPARED,
-        FREEZE_DETECTED
+        FREEZE_DETECTED,
+        STUTTER_DETECTED
     }
 
     public static final class GameEvent {

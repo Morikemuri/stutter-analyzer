@@ -12,6 +12,8 @@ import java.util.List;
 
 public class FreezeClassifier {
 
+    private final PeriodicityTracker periodicityTracker = new PeriodicityTracker();
+
     public FreezeEvent classify(
             long durationMs,
             boolean isClient,
@@ -126,7 +128,34 @@ public class FreezeClassifier {
             }
         }
 
-        if (confidence < minConf && SAConfig.INSTANCE.unknownFreezeEnabled.get()) {
+        // Periodic minor micro-hitch detection: 50-99ms events with regular interval
+        if (confidence < minConf && durationMs >= 50 && durationMs < 100) {
+            periodicityTracker.record(durationMs);
+            PeriodicityTracker.PeriodicResult periodic = periodicityTracker.detect(durationMs);
+            if (periodic != null) {
+                double periodicConfidence = periodic.periodMsEstimate() > 0 ? 0.70 : 0.60;
+                category = FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
+                confidence = periodicConfidence;
+                reason = "Repeated minor hitch detected at a stable ~" + (periodic.periodMsEstimate() / 1000) + "s interval.";
+                evidence = periodic.occurrences() + " ~" + durationMs + "ms hitches at near-regular " + periodic.periodMsEstimate() + "ms intervals.";
+                recommendation = "Usually harmless. Check background polling tasks only if it becomes frequent or noticeable.";
+            } else if (isClient) {
+                // Minor client frame hitch with no clear cause - do not call it UNKNOWN_FREEZE
+                category = FreezeCategory.CLIENT_RENDER_STUTTER;
+                confidence = 0.50;
+                reason = "Minor client frame hitch with no matching pattern.";
+                evidence = "Frame hitch: " + durationMs + " ms.";
+                recommendation = "Monitor for recurrence. If frequent, check GPU usage and installed mods.";
+            } else {
+                // Minor server-side hitch
+                category = FreezeCategory.SERVER_TICK_SPIKE;
+                confidence = 0.50;
+                reason = "Minor server-side hitch with no matching pattern.";
+                evidence = "Tick spike: " + durationMs + " ms.";
+                recommendation = "Monitor for recurrence. Use spark if it becomes frequent.";
+            }
+        } else if (confidence < minConf && SAConfig.INSTANCE.unknownFreezeEnabled.get()) {
+            // Only use UNKNOWN_FREEZE for events >= 250ms that truly have no pattern
             category = FreezeCategory.UNKNOWN_FREEZE;
             reason = "No pattern matched with sufficient confidence (score " + String.format("%.0f", confidence * 100) + "% < minimum " + String.format("%.0f", minConf * 100) + "%).";
             recommendation = "Enable debug mode, reproduce the freeze, then export and submit the report.";
