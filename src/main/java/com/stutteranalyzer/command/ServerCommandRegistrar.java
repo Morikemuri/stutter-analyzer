@@ -181,6 +181,8 @@ public class ServerCommandRegistrar {
                         .executes(ctx -> CommonCommandLogic.submitLocalLast(ctx.getSource()))))
                 .then(Commands.literal("status")
                     .executes(ctx -> CommonCommandLogic.submitStatus(ctx.getSource())))
+                .then(Commands.literal("reset")
+                    .executes(ctx -> CommonCommandLogic.submitReset(ctx.getSource())))
                 .then(Commands.literal("health")
                     .executes(ctx -> CommonCommandLogic.submitHealth(ctx.getSource())))
                 .then(Commands.literal("debug-routing")

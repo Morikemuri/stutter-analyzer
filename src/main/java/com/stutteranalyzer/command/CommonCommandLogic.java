@@ -862,6 +862,10 @@ public class CommonCommandLogic {
         return SubmissionManager.submitStatus(src);
     }
 
+    public static int submitReset(CommandSourceStack src) {
+        return SubmissionManager.submitReset(src);
+    }
+
     public static int submitModeCloudflare(CommandSourceStack src) {
         if (!CommandPermissionHelper.canSubmitReports(src)) {
             src.sendFailure(CommandFeedback.noPermission()); return 0;

@@ -25,6 +25,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -56,6 +59,9 @@ public class SubmissionManager {
     private static volatile boolean pendingMigrationNotice = false;
     private static volatile boolean submissionInProgress = false;
     private static volatile long lastSubmissionEpochMs = 0L;
+    private static volatile String currentUploadId = null;
+    private static volatile long uploadStartMs = 0L;
+    private static volatile String lastSubmissionError = "";
 
     public static void setPendingMigrationNotice() {
         pendingMigrationNotice = true;
@@ -189,21 +195,49 @@ public class SubmissionManager {
     public static int submitStatus(CommandSourceStack src) {
         checkMigrationNotice(src);
         boolean cfEnabled = isCloudflareEnabled();
-        boolean browserOpen = SAConfig.INSTANCE.openIssueUrlOnClient.get();
-        boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
         boolean fallback = SAConfig.INSTANCE.fallbackToLocal.get();
         String target = SAConfig.INSTANCE.submissionTarget.get();
 
         src.sendSuccess(() -> CommandFeedback.header("[SA] Submission status"), false);
         src.sendSuccess(() -> CommandFeedback.row("Mode", cfEnabled ? "Cloudflare" : target), false);
         src.sendSuccess(() -> CommandFeedback.row("Endpoint", cfEnabled ? "configured" : "not set"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Worker health", "unknown - use /sa submit health"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Remote submission", cfEnabled ? "enabled" : "disabled"), false);
-        src.sendSuccess(() -> CommandFeedback.row("GitHub forwarding", cfEnabled ? "server-side" : "disabled"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Browser opening", browserOpen ? "enabled" : "disabled"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Clipboard issue body", clipboard ? "enabled" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("Fallback", fallback ? "local" : "none"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Last submission", lastSubmissionStatus), false);
+
+        boolean inProgress = submissionInProgress;
+        src.sendSuccess(() -> CommandFeedback.row("Upload in progress", inProgress ? "true" : "false"), false);
+
+        if (inProgress) {
+            String uid = currentUploadId;
+            if (uid != null) {
+                src.sendSuccess(() -> CommandFeedback.row("Current upload ID", uid), false);
+            }
+            long elapsed = (System.currentTimeMillis() - uploadStartMs) / 1000L;
+            src.sendSuccess(() -> CommandFeedback.row("Started", elapsed + "s ago"), false);
+            int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
+            if (elapsed > timeoutSec + 5) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload appears stuck. Use /sa submit reset or wait for timeout cleanup."), false);
+            }
+        } else {
+            String uid = currentUploadId;
+            if (uid != null) {
+                src.sendSuccess(() -> CommandFeedback.row("Last upload ID", uid), false);
+            }
+        }
+
+        src.sendSuccess(() -> CommandFeedback.row("Last result", lastSubmissionStatus), false);
+        if (!lastSubmissionError.isEmpty() && !"none".equals(lastSubmissionStatus) && !"success".equals(lastSubmissionStatus)) {
+            src.sendSuccess(() -> CommandFeedback.row("Last error", lastSubmissionError), false);
+        }
+        return 1;
+    }
+
+    public static int submitReset(CommandSourceStack src) {
+        submissionInProgress = false;
+        currentUploadId = null;
+        uploadStartMs = 0L;
+        lastSubmissionStatus = "none";
+        lastSubmissionError = "";
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Submission lock reset."), false);
         return 1;
     }
 
@@ -471,42 +505,62 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.info("- full_latest_log: " + (flChars > 0 ? flChars + " chars" : "disabled/unavailable")), false);
         }
 
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
-
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         String payload = buildCloudflarePayload(report, sanitizedMarkdown, reportHash,
             logExcerpt, fullLog, stutterLogEvts, freezeContext, suspiciousSignals);
 
+        int payloadKb = Math.max(1, payload.length() / 1024);
+        String uploadId = generateUploadId();
+        currentUploadId = uploadId;
+        uploadStartMs = System.currentTimeMillis();
+
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Upload payload size: " + payloadKb + " KB"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Upload started: upload_id=" + uploadId), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
+
         CompletableFuture.runAsync(() -> {
             try {
+                int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
                     .header("Content-Type", "application/json")
                     .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
+                    .timeout(Duration.ofSeconds(timeoutSec))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
 
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-                int status = resp.statusCode();
-                String body = resp.body();
-
-                handleCloudflareResponse(src, report, markdown, status, body);
-            } catch (Exception e) {
-                StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit error: {}", e.getMessage());
-                lastSubmissionStatus = "failure";
-                submissionInProgress = false;
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server unavailable."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
+                handleCloudflareResponse(src, report, markdown, resp.statusCode(), resp.body());
+            } catch (java.net.http.HttpTimeoutException e) {
+                int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
+                lastSubmissionStatus = "timeout";
+                lastSubmissionError = "timed out after " + timeoutSec + "s";
+                StutterAnalyzerMod.LOGGER.warn("[SA] Upload timed out after {}s (upload_id={})", timeoutSec, uploadId);
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload timed out after " + timeoutSec + "s."), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                     saveLocalFallback(src, report, markdown);
+                } else {
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
                 }
+            } catch (Exception e) {
+                String errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                lastSubmissionStatus = "failure";
+                lastSubmissionError = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
+                StutterAnalyzerMod.LOGGER.warn("[SA] Upload error (upload_id={}): {}", uploadId, errMsg);
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: " + lastSubmissionError), false);
+                if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                    saveLocalFallback(src, report, markdown);
+                } else {
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
+                }
+            } finally {
+                submissionInProgress = false;
             }
         }, UPLOAD_EXECUTOR);
     }
 
     private static void handleCloudflareResponse(CommandSourceStack src, FreezeReport report,
                                                   String markdown, int status, String body) {
-        submissionInProgress = false;
         if (status == 409) {
             lastSubmissionStatus = "duplicate";
             src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
@@ -583,20 +637,26 @@ public class SubmissionManager {
         } else {
             StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit failed: {} {}", status, body);
             lastSubmissionStatus = "failure";
-            submissionInProgress = false;
-
             String errorCode = extractJsonField(body, "error_code");
-            if ("RATE_LIMITED".equals(errorCode)) {
+            if ("RATE_LIMITED".equals(errorCode) || status == 429) {
+                lastSubmissionStatus = "rate-limited";
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached."), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
-            } else if ("DUPLICATE_REPORT".equals(errorCode)) {
+            } else if ("DUPLICATE_REPORT".equals(errorCode) || status == 409) {
                 lastSubmissionStatus = "duplicate";
                 src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
+            } else if ("PAYLOAD_TOO_LARGE".equals(errorCode) || status == 413) {
+                lastSubmissionStatus = "too-large";
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report was too large for upload."), false);
+                if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             } else {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server unavailable."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
+                String desc = errorCode != null ? errorCode : ("HTTP " + status);
+                lastSubmissionError = desc;
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: " + desc), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                     saveLocalFallback(src, report, markdown);
+                } else {
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
                 }
             }
         }
@@ -1136,6 +1196,13 @@ public class SubmissionManager {
         } catch (Exception e) {
             return Long.toHexString(input.hashCode() & 0xFFFFFFFFL);
         }
+    }
+
+    private static String generateUploadId() {
+        LocalDateTime now = LocalDateTime.now();
+        String ts = now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        String rand = Long.toHexString(System.nanoTime() & 0xFFFFL);
+        return "UP-" + ts + "-" + String.format("%04s", rand).replace(' ', '0');
     }
 
     private static String extractJsonField(String json, String field) {
