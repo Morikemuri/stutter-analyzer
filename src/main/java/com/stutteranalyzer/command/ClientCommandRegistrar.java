@@ -7,6 +7,7 @@ import com.stutteranalyzer.client.DebugHudStatusProvider;
 import com.stutteranalyzer.client.F3StatusFormatter;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.MetricsCollector;
+import com.stutteranalyzer.submission.SubmissionManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -24,6 +25,15 @@ public class ClientCommandRegistrar {
         }
     }
 
+    private static int safe(CommandSourceStack src, java.util.concurrent.Callable<Integer> action) {
+        try {
+            return action.call();
+        } catch (Throwable t) {
+            SubmissionManager.handleTopLevelSubmitCrash(src, t);
+            return 0;
+        }
+    }
+
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher, String root) {
         dispatcher.register(Commands.literal(root)
             // ── bare /sa - quick dashboard ────────────────────────────────────
@@ -31,15 +41,21 @@ public class ClientCommandRegistrar {
 
             // ── top-level simple commands ─────────────────────────────────────
             .then(Commands.literal("submit")
-                .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource()))
+                .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitLast(ctx.getSource())))
                 .then(Commands.literal("preview")
-                    .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource()))
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitPreview(ctx.getSource())))
                     .then(Commands.literal("last")
-                        .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource())))))
+                        .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitPreview(ctx.getSource())))))
+                .then(Commands.literal("status")
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitStatus(ctx.getSource()))))
+                .then(Commands.literal("reset")
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitReset(ctx.getSource()))))
+                .then(Commands.literal("health")
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitHealth(ctx.getSource())))))
             .then(Commands.literal("yes")
-                .executes(ctx -> CommonCommandLogic.submitYes(ctx.getSource())))
+                .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitYes(ctx.getSource()))))
             .then(Commands.literal("cancel")
-                .executes(ctx -> CommonCommandLogic.cancelLatestPending(ctx.getSource())))
+                .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.cancelLatestPending(ctx.getSource()))))
             .then(Commands.literal("reports")
                 .executes(ctx -> CommonCommandLogic.listReports(ctx.getSource())))
             .then(Commands.literal("privacy")
@@ -66,6 +82,8 @@ public class ClientCommandRegistrar {
                     .executes(ctx -> CommonCommandLogic.generateTestReport(ctx.getSource())))
                 .then(Commands.literal("submit-routing")
                     .executes(ctx -> CommonCommandLogic.submitDebugRouting(ctx.getSource())))
+                .then(Commands.literal("submit-minimal")
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitMinimal(ctx.getSource()))))
                 .then(Commands.literal("command-routing")
                     .executes(ctx -> CommonCommandLogic.debugCommandRouting(ctx.getSource())))
                 .then(Commands.literal("help")

@@ -1254,8 +1254,81 @@ public class SubmissionManager {
     private static String generateUploadId() {
         LocalDateTime now = LocalDateTime.now();
         String ts = now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-        String rand = Long.toHexString(System.nanoTime() & 0xFFFFL);
-        return "UP-" + ts + "-" + String.format("%04s", rand).replace(' ', '0');
+        String rand = String.format("%04x", System.nanoTime() & 0xFFFFL);
+        return "UP-" + ts + "-" + rand;
+    }
+
+    public static void handleTopLevelSubmitCrash(CommandSourceStack src, Throwable t) {
+        try {
+            submissionInProgress = false;
+            currentUploadId = null;
+            lastSubmissionStatus = "failure";
+            String errClass = t.getClass().getSimpleName();
+            String rawMsg = t.getMessage() != null ? t.getMessage() : "no message";
+            String shortMsg = rawMsg.length() > 60 ? rawMsg.substring(0, 60) : rawMsg;
+            lastSubmissionError = errClass + ": " + shortMsg;
+            StutterAnalyzerMod.LOGGER.error("[SA] Submit command crash ({}): {}", errClass, rawMsg, t);
+            try {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Submit failed before upload could complete."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + errClass + ": " + shortMsg), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Upload lock cleared."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Full stacktrace was written to latest.log."), false);
+            } catch (Throwable chatErr) {
+                StutterAnalyzerMod.LOGGER.error("[SA] Submit crash handler: failed to send chat message", chatErr);
+            }
+        } catch (Throwable handlerErr) {
+            StutterAnalyzerMod.LOGGER.error("[SA] Submit crash handler itself failed", handlerErr);
+        }
+    }
+
+    public static int submitMinimal(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Sending minimal test payload to Worker..."), false);
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        if (endpoint == null || endpoint.isBlank()) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No Cloudflare endpoint configured."), false);
+            return 1;
+        }
+        String minimalHash = "minimal-" + Long.toHexString(System.currentTimeMillis());
+        String payload = "{\"schema_version\":1,\"project\":\"stutter-analyzer\","
+            + "\"report_type\":\"UNKNOWN_FREEZE\",\"category\":\"UNKNOWN_FREEZE\","
+            + "\"duration_ms\":300,\"confidence\":0.5,"
+            + "\"report_hash\":" + esc(minimalHash) + ","
+            + "\"summary\":\"Minimal submit test\","
+            + "\"markdown_report\":\"Minimal report\","
+            + "\"json_report\":{},"
+            + "\"runtime_status_snapshot\":{},"
+            + "\"stutter_log_events\":\"Minimal test event\","
+            + "\"unknown_freeze_context\":\"Minimal test context\","
+            + "\"suspicious_log_signals\":\"Minimal test signal\","
+            + "\"latest_log_excerpt\":\"Minimal test excerpt\","
+            + "\"privacy\":{\"sanitized\":true}}";
+        int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/json")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4 (minimal-test)")
+                    .timeout(Duration.ofSeconds(timeoutSec))
+                    .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+                    .build();
+                HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+                int status = resp.statusCode();
+                String body = resp.body() != null ? resp.body() : "(empty)";
+                String preview = body.length() > 200 ? body.substring(0, 200) + "..." : body;
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Minimal test HTTP " + status + ": " + preview), false);
+                if (status == 200) {
+                    src.sendSuccess(() -> CommandFeedback.success("[SA] Worker accepted minimal payload."), false);
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] If /sa submit still fails, the bug is in payload/log building."), false);
+                } else {
+                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Worker rejected minimal payload (HTTP " + status + ")."), false);
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] Bug is in command routing, Worker, or network."), false);
+                }
+            } catch (Exception e) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Minimal test error: " + e.getClass().getSimpleName() + ": " + e.getMessage()), false);
+            }
+        }, UPLOAD_EXECUTOR);
+        return 1;
     }
 
     private static String extractJsonField(String json, String field) {
