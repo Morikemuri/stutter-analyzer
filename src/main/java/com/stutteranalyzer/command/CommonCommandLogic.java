@@ -877,20 +877,18 @@ public class CommonCommandLogic {
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa              - quick status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa status       - detailed analyzer status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit       - send latest report and logs"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa last         - show latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa reports      - list reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa version      - version and update info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa privacy      - what gets submitted"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts severe  - notify only important freezes"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts medium  - notify medium and higher stutters"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts minor   - notify all detected stutters, noisy"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts extreme - notify only extreme freezes"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off     - disable chat alerts"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts status  - show alert mode"), false);
+        src.sendSuccess(() -> CommandFeedback.header("Stutter Analyzer"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa                        - quick status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa status                 - detailed analyzer status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit                 - upload latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit preview         - preview what will be uploaded"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit check <id>      - check GitHub forwarding status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts severe          - show important freeze alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off             - disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa reports                - list saved reports"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa last                   - show latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa privacy                - explain what reports contain"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa version                - version and update info"), false);
         return 1;
     }
 

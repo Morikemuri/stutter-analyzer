@@ -1,6 +1,7 @@
 package com.stutteranalyzer.submission;
 
 import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.command.CommandFeedback;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.MetricsCollector;
@@ -10,6 +11,7 @@ import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.guard.EmergencyGuardManager;
 import com.stutteranalyzer.guard.EmergencyGuardReport;
 import com.stutteranalyzer.knowledge.ModInventory;
+import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.FreezeReport;
 import com.stutteranalyzer.report.ReportWriter;
 import net.minecraft.ChatFormatting;
@@ -997,6 +999,10 @@ public class SubmissionManager {
         String lastSaved = last != null
             ? last.event.category().name() + " " + last.event.durationMs() + "ms"
             : "none";
+        FreezeEvent lastTracked = FreezeDetector.lastFreezeEvent();
+        String lastTrackedStr = lastTracked != null
+            ? lastTracked.category().name() + " " + lastTracked.durationMs() + "ms"
+            : "none";
         JsonObject obj = new JsonObject();
         obj.addProperty("side", isClient ? "Client + Integrated Server" : "Dedicated Server");
         obj.addProperty("client_frame_tracker", clientTracker ? "ON" : "unavailable");
@@ -1010,6 +1016,7 @@ public class SubmissionManager {
         obj.addProperty("extreme_episodes_60s", StutterCounter.extremeEpisodeCountInSeconds(60));
         obj.addProperty("extreme_worst_ms", StutterCounter.worstExtremeInSeconds(60));
         obj.addProperty("reports_saved", ReportWriter.savedReports());
+        obj.addProperty("last_tracked_spike", lastTrackedStr);
         obj.addProperty("last_saved_report", lastSaved);
         obj.addProperty("quiet_mode", SAConfig.INSTANCE.quietMode.get());
         obj.addProperty("verbose_mode", SAConfig.INSTANCE.verboseMode.get());
@@ -1043,7 +1050,7 @@ public class SubmissionManager {
         memGc.addProperty("heap_used_mb", mem.heapUsedMb());
         memGc.addProperty("heap_max_mb", mem.heapMaxMb());
         memGc.addProperty("heap_percent", mem.heapPercent());
-        memGc.addProperty("recent_gc_count", mem.recentGc());
+        memGc.addProperty("recent_gc_count", mem.recentGcCount());
         memGc.addProperty("last_gc_pause_ms", mem.lastGcPauseMs());
         metrics.add("memory_gc", memGc);
 
@@ -1288,7 +1295,7 @@ public class SubmissionManager {
 
         src.sendSuccess(() -> CommandFeedback.info("- Sensitive data scan: " + (mdResult.hadSensitiveData() ? "BLOCKED - sensitive data found" : "passed")), false);
         src.sendSuccess(() -> CommandFeedback.info("- Report hash: " + hash.substring(0, 16) + "..."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit to upload this report."), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Nothing was uploaded. Run /sa submit to upload."), false);
         return 1;
     }
 

@@ -368,7 +368,7 @@ public class SAConfig {
         maxSuspiciousLogLines = b.comment("Maximum suspicious log signal lines to extract.").defineInRange("max_suspicious_log_lines", 300, 10, 2000);
         b.pop();
         b.comment("Submit diagnostic settings").push("debug");
-        showPayloadSummary = b.comment("Print payload field sizes in chat when submitting. Useful for verifying log collection works end-to-end.").define("show_payload_summary", true);
+        showPayloadSummary = b.comment("Print payload field sizes in chat when submitting. Useful for verifying log collection works end-to-end.").define("show_payload_summary", false);
         b.pop();
         b.pop();
 

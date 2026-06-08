@@ -19,6 +19,7 @@ public class MemoryGcTracker {
     private long heapMaxBytes = 0;
     private long lastGcPauseMs = 0;
     private boolean recentGc = false;
+    private int recentGcDelta = 0;
 
     public void sample() {
         heapUsedBytes = memBean.getHeapMemoryUsage().getUsed();
@@ -31,9 +32,11 @@ public class MemoryGcTracker {
         }
 
         if (totalCount > lastGcCount) {
+            recentGcDelta = (int)(totalCount - lastGcCount);
             lastGcPauseMs = totalTime - lastGcTimeMs;
             recentGc = true;
         } else {
+            recentGcDelta = 0;
             recentGc = false;
         }
         lastGcCount  = totalCount;
@@ -44,5 +47,6 @@ public class MemoryGcTracker {
     public long heapMaxMb()  { return heapMaxBytes  / (1024 * 1024); }
     public double heapPercent() { return heapMaxBytes > 0 ? 100.0 * heapUsedBytes / heapMaxBytes : 0; }
     public boolean recentGc() { return recentGc; }
+    public int recentGcCount() { return recentGcDelta; }
     public long lastGcPauseMs() { return lastGcPauseMs; }
 }

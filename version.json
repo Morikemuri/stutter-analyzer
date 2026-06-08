@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "mod_id": "stutteranalyzer",
-  "latest_version": "1.0.0",
-  "latest_version_type": "release",
+  "latest_version": "0.1.0-rc1",
+  "latest_version_type": "release_candidate",
   "minecraft_versions": ["1.20.4"],
   "loader": "forge",
-  "release_date": "2026-06-07",
+  "release_date": "2026-06-08",
   "github_page": "https://github.com/Morikemuri/stutter-analyzer",
   "curseforge_url": "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer",
   "modrinth_url": "",
   "changelog_url": "https://github.com/Morikemuri/stutter-analyzer/releases/latest",
-  "message": "Stutter Analyzer 1.0.0 is available.",
+  "message": "Stutter Analyzer 0.1.0-rc1 is available.",
   "critical": false
 }
