@@ -2,6 +2,8 @@ package com.stutteranalyzer.submission;
 
 import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeDetector;
+import com.stutteranalyzer.classifier.HighLevelCategory;
+import com.stutteranalyzer.classifier.HighLevelClassifier;
 import com.stutteranalyzer.command.CommandFeedback;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.MetricsCollector;
@@ -1036,6 +1038,14 @@ public class SubmissionManager {
         jr.addProperty("evidence", report.event.evidence());
         jr.addProperty("recommendation", report.event.recommendation());
 
+        HighLevelClassifier.HighLevelResult hlResult = report.event.highLevelResult();
+        if (hlResult != null && hlResult.category() != HighLevelCategory.NONE) {
+            jr.addProperty("high_level_category", hlResult.category().name());
+            jr.addProperty("user_facing_name", hlResult.userFacingName());
+            jr.addProperty("classification_reason", hlResult.classificationReason());
+            jr.addProperty("root_cause_certainty", hlResult.rootCauseCertainty());
+        }
+
         JsonObject metrics = new JsonObject();
         var st = MetricsCollector.serverTick();
         JsonObject serverTickObj = new JsonObject();
@@ -1151,6 +1161,13 @@ public class SubmissionManager {
         root.addProperty("loader_version", "49.x");
         root.addProperty("report_type", category);
         root.addProperty("category", category);
+        HighLevelClassifier.HighLevelResult hlRoot = report.event.highLevelResult();
+        if (hlRoot != null && hlRoot.category() != HighLevelCategory.NONE) {
+            root.addProperty("high_level_category", hlRoot.category().name());
+            root.addProperty("user_facing_name", hlRoot.userFacingName());
+            root.addProperty("classification_reason", hlRoot.classificationReason());
+            root.addProperty("root_cause_certainty", hlRoot.rootCauseCertainty());
+        }
         root.addProperty("duration_ms", durationMs);
         root.addProperty("confidence", confidence);
         root.addProperty("report_hash", reportHash);

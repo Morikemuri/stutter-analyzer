@@ -193,7 +193,8 @@ public class FreezeClassifier {
             ? (isDedicatedServer ? "dedicated server" : "client-side")
             : (isDedicatedServer ? "dedicated server" : "integrated server");
 
-        return new FreezeEvent(category, confidence, reason, evidence, side, durationMs, recentEvents, recommendation);
+        HighLevelClassifier.HighLevelResult hlResult = HighLevelClassifier.classify(category, recentEvents);
+        return new FreezeEvent(category, confidence, reason, evidence, side, durationMs, recentEvents, recommendation, hlResult);
     }
 
     private String buildContextRecommendation(LogContextClassifier.ContextResult ctx) {
