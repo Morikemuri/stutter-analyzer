@@ -2,6 +2,8 @@ package com.stutteranalyzer.command;
 
 import com.stutteranalyzer.StutterAnalyzerFabric;
 import com.stutteranalyzer.classifier.FreezeCategory;
+import com.stutteranalyzer.core.AlertManager;
+import com.stutteranalyzer.core.AlertMode;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
@@ -736,15 +738,92 @@ public class CommonCommandLogic {
         return 1;
     }
 
+    public static int alertsStatus(CommandSourceStack src) {
+        AlertMode mode = AlertManager.currentMode();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Alert Status"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Mode", mode.name()), false);
+        if (mode == AlertMode.OFF) {
+            src.sendSuccess(() -> CommandFeedback.row("Chat alerts", "disabled"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status/report saving: still active"), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.row("Direct chat alerts", mode.alertsOnDescription(medium, severe, extreme)), false);
+            src.sendSuccess(() -> CommandFeedback.row("Cooldown", SAConfig.INSTANCE.alertCooldownSeconds.get() + "s"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Same-category cooldown", SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get() + "s"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Max alerts/minute", String.valueOf(SAConfig.INSTANCE.alertMaxAlertsPerMinute.get())), false);
+            src.sendSuccess(() -> CommandFeedback.row("Scheduled micro-hitch cooldown", SAConfig.INSTANCE.scheduledMicroHitchCooldownSeconds.get() + "s"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Small stutter aggregate", SAConfig.INSTANCE.alertAggregateSmallStutters.get() ? "ON" : "OFF"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Quiet mode", QuietMode.isEnabled() ? "ON" : "OFF"), false);
+        }
+        return 1;
+    }
+
+    public static int alertsSetMode(CommandSourceStack src, AlertMode mode) {
+        SAConfig.INSTANCE.alertMode.set(mode.name());
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: " + mode.name()), false);
+        switch (mode) {
+            case MINOR   -> src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
+            case MEDIUM  -> src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
+            case SEVERE  -> src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
+            case EXTREME -> src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
+            case OFF     -> src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
+        }
+        return 1;
+    }
+
+    public static int alertsCooldown(CommandSourceStack src, int seconds) {
+        if (seconds < 5 || seconds > 600) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cooldown must be between 5 and 600 seconds."), false);
+            return 0;
+        }
+        SAConfig.INSTANCE.alertCooldownSeconds.set(seconds);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Alert cooldown set to " + seconds + " seconds."), false);
+        return 1;
+    }
+
+    public static int alertsTest(CommandSourceStack src) {
+        AlertMode mode = AlertManager.currentMode();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+
+        record TestCase(String label, long ms) {}
+        var cases = java.util.List.of(
+            new TestCase("SERVER_TICK_SPIKE", 485L),
+            new TestCase("CLIENT_RENDER_STUTTER", 3867L),
+            new TestCase("medium", (long) (medium + 10))
+        );
+
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Alert Test (mode: " + mode.name() + ")"), false);
+        for (var tc : cases) {
+            boolean shown = mode.shouldAlertDirect(tc.ms(), medium, severe, extreme);
+            if (shown) {
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Test: " + tc.label() + " " + tc.ms() + "ms would be shown."), false);
+            } else {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Test: " + tc.label() + " " + tc.ms() + "ms would be hidden in this mode."), false);
+            }
+        }
+        return 1;
+    }
+
     public static int showHelp(CommandSourceStack src) {
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa              - quick status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa status       - detailed analyzer status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit       - send latest report and logs"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa last         - show latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa reports      - list reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa version      - version and update info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa privacy      - what gets submitted"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa                         - quick status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa status                  - detailed analyzer status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa version                 - version and update info"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa privacy                 - what gets submitted"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts status           - show alert mode and cooldowns"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts minor/medium/severe/extreme - set alert mode"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off              - disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts cooldown <sec>   - set cooldown (5-600s)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts test             - preview what would be shown"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit                  - send latest report and logs"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit preview          - preview report before sending"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit check <id>       - check submission status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa reports                 - list reports"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa last                    - show latest report"), false);
         return 1;
     }
 

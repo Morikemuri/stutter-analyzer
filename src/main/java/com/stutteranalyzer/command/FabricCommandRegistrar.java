@@ -336,6 +336,27 @@ public class FabricCommandRegistrar {
                 .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })
                 .then(Commands.literal("last").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
                 .then(Commands.literal("report").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
+
+            .then(Commands.literal("alerts")
+                .executes(c -> CommonCommandLogic.alertsStatus(c.getSource()))
+                .then(Commands.literal("status")
+                    .executes(c -> CommonCommandLogic.alertsStatus(c.getSource())))
+                .then(Commands.literal("minor")
+                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.MINOR)))
+                .then(Commands.literal("medium")
+                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.MEDIUM)))
+                .then(Commands.literal("severe")
+                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.SEVERE)))
+                .then(Commands.literal("extreme")
+                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.EXTREME)))
+                .then(Commands.literal("off")
+                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.OFF)))
+                .then(Commands.literal("cooldown")
+                    .then(Commands.argument("seconds", IntegerArgumentType.integer(5, 600))
+                        .executes(c -> CommonCommandLogic.alertsCooldown(
+                            c.getSource(), IntegerArgumentType.getInteger(c, "seconds")))))
+                .then(Commands.literal("test")
+                    .executes(c -> CommonCommandLogic.alertsTest(c.getSource()))))
         );
     }
 }
