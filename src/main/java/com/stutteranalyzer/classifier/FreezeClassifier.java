@@ -7,6 +7,7 @@ import com.stutteranalyzer.metrics.MemoryGcTracker;
 import com.stutteranalyzer.metrics.ServerTickTracker;
 import com.stutteranalyzer.report.FreezeEvent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FreezeClassifier {
@@ -131,10 +132,54 @@ public class FreezeClassifier {
             recommendation = "Enable debug mode, reproduce the freeze, then export and submit the report.";
         }
 
+        // Secondary log-context pass: for UNKNOWN_FREEZE >= 250ms, scan latest.log for
+        // watchdog/C2ME/GC patterns and promote to SERVER_TICK_SPIKE when evidence is strong.
+        if (category == FreezeCategory.UNKNOWN_FREEZE && durationMs >= 250) {
+            LogContextClassifier.ContextResult ctx = LogContextClassifier.detectContext();
+            if (ctx.hasStrongServerTickEvidence()) {
+                category   = FreezeCategory.SERVER_TICK_SPIKE;
+                confidence = 0.70;
+                reason     = "Server tick spike inferred from log evidence (log-context classifier).";
+                List<String> evParts = new ArrayList<>();
+                if (ctx.watchdogEvidence() || ctx.serverTickSpikeEvidence())
+                    evParts.add("Watchdog/server overload warnings detected");
+                if (ctx.c2meWorldgenEvidence())
+                    evParts.add("Possible contributing context: C2ME/worldgen thread pressure");
+                if (ctx.gcPauseEvidence())
+                    evParts.add("GC pause near freeze detected");
+                evidence       = String.join(". ", evParts) + ".";
+                recommendation = buildContextRecommendation(ctx);
+            } else if (ctx.evidenceScore() >= 2) {
+                // Keep UNKNOWN_FREEZE but enrich with observed contributing factors
+                List<String> evParts = new ArrayList<>();
+                if (ctx.serverTickSpikeEvidence()) evParts.add("server tick spike signals");
+                if (ctx.c2meWorldgenEvidence())    evParts.add("C2ME/worldgen chunk pressure");
+                if (ctx.gcPauseEvidence())         evParts.add("GC pause near freeze");
+                evidence       = "Contributing factors detected: " + String.join("; ", evParts) + ".";
+                recommendation = buildContextRecommendation(ctx);
+            }
+        }
+
         String side = isClient
             ? (isDedicatedServer ? "dedicated server" : "client-side")
             : (isDedicatedServer ? "dedicated server" : "integrated server");
 
         return new FreezeEvent(category, confidence, reason, evidence, side, durationMs, recentEvents, recommendation);
+    }
+
+    private String buildContextRecommendation(LogContextClassifier.ContextResult ctx) {
+        List<String> recs = new ArrayList<>();
+        if (ctx.watchdogEvidence() || ctx.serverTickSpikeEvidence())
+            recs.add("Use spark profiler to find the server tick hotspot");
+        if (ctx.c2meWorldgenEvidence()) {
+            recs.add("Check C2ME thread count settings; reduce worldgen threads if unstable");
+            recs.add("If Distant Horizons is installed, check LOD generation settings");
+            recs.add("Investigate mods generating or loading chunks aggressively");
+        }
+        if (ctx.gcPauseEvidence())
+            recs.add("Increase JVM heap size (-Xmx8G or more) and review GC settings");
+        if (recs.isEmpty())
+            return "Enable debug mode, reproduce the freeze, then export and submit the report.";
+        return String.join(". ", recs) + ".";
     }
 }
