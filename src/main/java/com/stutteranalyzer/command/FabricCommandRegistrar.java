@@ -321,9 +321,11 @@ public class FabricCommandRegistrar {
             .then(Commands.literal("f3")
                 .executes(c -> CommonCommandLogic.f3Status(c.getSource()))
                 .then(Commands.literal("on")
-                    .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
+                    .executes(c -> CommonCommandLogic.f3On(c.getSource())))
                 .then(Commands.literal("off")
-                    .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
+                    .executes(c -> CommonCommandLogic.f3Off(c.getSource())))
+                .then(Commands.literal("toggle")
+                    .executes(c -> CommonCommandLogic.f3Toggle(c.getSource())))
                 .then(Commands.literal("status")
                     .executes(c -> CommonCommandLogic.f3Status(c.getSource()))))
 

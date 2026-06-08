@@ -1161,8 +1161,8 @@ public class SubmissionManager {
         root.addProperty("source", "real_mod_submit");
         root.addProperty("mod_version", StutterAnalyzerFabric.MOD_VERSION);
         root.addProperty("minecraft_version", "1.20.4");
-        root.addProperty("loader", "forge");
-        root.addProperty("loader_version", "49.x");
+        root.addProperty("loader", com.stutteranalyzer.SAEnvironment.getLoaderName());
+        root.addProperty("loader_version", com.stutteranalyzer.SAEnvironment.getLoaderVersion());
         root.addProperty("report_type", category);
         root.addProperty("category", category);
         HighLevelClassifier.HighLevelResult hlRoot = report.event.highLevelResult();
@@ -1888,8 +1888,8 @@ public class SubmissionManager {
             "  \"source\": \"minecraft_net_test\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerFabric.MOD_VERSION) + ",\n" +
             "  \"minecraft_version\": \"1.20.4\",\n" +
-            "  \"loader\": \"forge\",\n" +
-            "  \"loader_version\": \"49.x\",\n" +
+            "  \"loader\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderName()) + ",\n" +
+            "  \"loader_version\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderVersion()) + ",\n" +
             "  \"report_type\": \"TEST\",\n" +
             "  \"category\": \"SERVER_TICK_SPIKE\",\n" +
             "  \"duration_ms\": 392,\n" +
@@ -2045,8 +2045,8 @@ public class SubmissionManager {
             "  \"source\": \"minecraft_net_test\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerFabric.MOD_VERSION) + ",\n" +
             "  \"minecraft_version\": \"1.20.4\",\n" +
-            "  \"loader\": \"forge\",\n" +
-            "  \"loader_version\": \"49.x\",\n" +
+            "  \"loader\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderName()) + ",\n" +
+            "  \"loader_version\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderVersion()) + ",\n" +
             "  \"report_type\": \"TEST\",\n" +
             "  \"category\": \"SERVER_TICK_SPIKE\",\n" +
             "  \"duration_ms\": 392,\n" +
