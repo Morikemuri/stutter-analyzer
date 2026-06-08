@@ -454,16 +454,60 @@ public class SubmissionManager {
         return 1;
     }
 
+    // Worker enforces 512 KB; stop before sending to avoid a useless round-trip
+    private static final int MAX_PAYLOAD_CHARS = 480 * 1024;
+
     private static void submitToCloudflare(CommandSourceStack src, FreezeReport report, String markdown, String reportHash) {
+        // ── Command thread: lock + first message only ─────────────────────────
         submissionInProgress = true;
         lastSubmissionEpochMs = System.currentTimeMillis();
+        lastSubmissionError = "";
+        lastSubmissionStatus = "in-progress";
+
+        String uploadId = generateUploadId();
+        currentUploadId = uploadId;
+        uploadStartMs = System.currentTimeMillis();
 
         src.sendSuccess(() -> CommandFeedback.info("[SA] Preparing latest report..."), false);
 
-        // Sanitize markdown before sending
+        // All heavy work is async - command thread returns immediately after this
+        try {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    asyncSubmitWork(src, report, markdown, reportHash, uploadId);
+                } catch (Throwable t) {
+                    String errClass = t.getClass().getSimpleName();
+                    String errMsg = t.getMessage() != null ? t.getMessage() : errClass;
+                    String shortErr = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
+                    lastSubmissionStatus = "failure";
+                    lastSubmissionError = "internal: " + shortErr;
+                    StutterAnalyzerMod.LOGGER.error("[SA] Unexpected submit error (upload_id={}): {}", uploadId, errMsg, t);
+                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: internal submit error."), false);
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + errClass + " - " + shortErr), false);
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] Upload lock cleared."), false);
+                    if (SAConfig.INSTANCE.fallbackToLocal.get()) {
+                        saveLocalFallback(src, report, markdown);
+                    }
+                } finally {
+                    submissionInProgress = false;
+                }
+            }, UPLOAD_EXECUTOR);
+        } catch (Throwable t) {
+            // runAsync itself failed (e.g. executor shut down)
+            submissionInProgress = false;
+            lastSubmissionStatus = "failure";
+            lastSubmissionError = "executor: " + t.getClass().getSimpleName();
+            StutterAnalyzerMod.LOGGER.error("[SA] Failed to queue upload task: {}", t.getMessage(), t);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Failed to start upload: " + t.getClass().getSimpleName()), false);
+        }
+    }
+
+    private static void asyncSubmitWork(CommandSourceStack src, FreezeReport report, String markdown,
+                                        String reportHash, String uploadId) throws Exception {
+        // Sanitize markdown
         ReportSanitizer.SanitizeResult mdResult = ReportSanitizer.sanitize(markdown);
         if (mdResult.hadSensitiveData()) {
-            submissionInProgress = false;
+            lastSubmissionStatus = "blocked-privacy";
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Submission blocked for privacy: sensitive data detected."), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                 saveLocalFallback(src, report, markdown);
@@ -475,25 +519,26 @@ public class SubmissionManager {
 
         src.sendSuccess(() -> CommandFeedback.info("[SA] Collecting diagnostics and sanitized logs..."), false);
 
-        String logExcerpt      = LogExcerpter.extractExcerpt(report.event.timestamp());
-        String fullLog         = LogExcerpter.readFullLog();
-        String stutterLogEvts  = LogExcerpter.extractStutterLogEvents();
-        String freezeContext   = LogExcerpter.extractUnknownFreezeContext();
-        String suspiciousSignals = LogExcerpter.extractSuspiciousSignals();
+        // Read log sections with null-safe fallbacks
+        String logExcerpt       = safeGet(() -> LogExcerpter.extractExcerpt(report.event.timestamp()),       "latest.log excerpt unavailable.");
+        String fullLog          = safeGet(() -> LogExcerpter.readFullLog(),                                    null);
+        String stutterLogEvts   = safeGet(() -> LogExcerpter.extractStutterLogEvents(),                       "No Stutter Analyzer log events were found in latest.log.");
+        String freezeContext    = safeGet(() -> LogExcerpter.extractUnknownFreezeContext(),                    "No Unknown Freeze context was found in latest.log.");
+        String suspiciousSignals = safeGet(() -> LogExcerpter.extractSuspiciousSignals(),                      "No suspicious log signals were found.");
 
         // Payload debug summary
         if (SAConfig.INSTANCE.showPayloadSummary.get()) {
-            int mdChars    = sanitizedMarkdown.length();
-            int sChars     = stutterLogEvts   != null ? stutterLogEvts.length()   : 0;
-            int fChars     = freezeContext    != null ? freezeContext.length()     : 0;
-            int spChars    = suspiciousSignals != null ? suspiciousSignals.length() : 0;
-            int lChars     = logExcerpt       != null ? logExcerpt.length()        : 0;
-            int flChars    = fullLog          != null ? fullLog.length()            : 0;
-            int sLines     = isMeaningfulLogContent(stutterLogEvts)   ? countLogLines(stutterLogEvts)   : 0;
-            int fEvts      = isMeaningfulLogContent(freezeContext)    ? countFreezeEventsInStr(freezeContext) : 0;
-            int spLines    = isMeaningfulLogContent(suspiciousSignals)? countLogLines(suspiciousSignals) : 0;
-            int lLines     = (logExcerpt != null && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked"))
-                             ? countLogLines(logExcerpt) : 0;
+            int mdChars  = sanitizedMarkdown.length();
+            int sChars   = stutterLogEvts   != null ? stutterLogEvts.length()    : 0;
+            int fChars   = freezeContext    != null ? freezeContext.length()      : 0;
+            int spChars  = suspiciousSignals != null ? suspiciousSignals.length() : 0;
+            int lChars   = logExcerpt       != null ? logExcerpt.length()         : 0;
+            int flChars  = fullLog          != null ? fullLog.length()            : 0;
+            int sLines   = isMeaningfulLogContent(stutterLogEvts)    ? countLogLines(stutterLogEvts)    : 0;
+            int fEvts    = isMeaningfulLogContent(freezeContext)     ? countFreezeEventsInStr(freezeContext) : 0;
+            int spLines  = isMeaningfulLogContent(suspiciousSignals) ? countLogLines(suspiciousSignals)  : 0;
+            int lLines   = (logExcerpt != null && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked"))
+                           ? countLogLines(logExcerpt) : 0;
             src.sendSuccess(() -> CommandFeedback.header("[SA] Upload payload"), false);
             src.sendSuccess(() -> CommandFeedback.info("- markdown_report: " + mdChars + " chars"), false);
             src.sendSuccess(() -> CommandFeedback.info("- json_report: included"), false);
@@ -505,58 +550,66 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.info("- full_latest_log: " + (flChars > 0 ? flChars + " chars" : "disabled/unavailable")), false);
         }
 
-        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        // Build payload (can throw - caught by caller)
         String payload = buildCloudflarePayload(report, sanitizedMarkdown, reportHash,
             logExcerpt, fullLog, stutterLogEvts, freezeContext, suspiciousSignals);
 
         int payloadKb = Math.max(1, payload.length() / 1024);
-        String uploadId = generateUploadId();
-        currentUploadId = uploadId;
-        uploadStartMs = System.currentTimeMillis();
-
         src.sendSuccess(() -> CommandFeedback.info("[SA] Upload payload size: " + payloadKb + " KB"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Upload started: upload_id=" + uploadId), false);
+
+        // Guard against oversized payload before sending
+        if (payload.length() > MAX_PAYLOAD_CHARS) {
+            lastSubmissionStatus = "too-large";
+            lastSubmissionError = "payload " + payloadKb + " KB exceeds limit";
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report payload is too large for upload."), false);
+            if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+            return;
+        }
+
         src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-                HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint))
-                    .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
-                    .timeout(Duration.ofSeconds(timeoutSec))
-                    .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-                    .build();
+        String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
+        int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
 
-                HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-                handleCloudflareResponse(src, report, markdown, resp.statusCode(), resp.body());
-            } catch (java.net.http.HttpTimeoutException e) {
-                int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-                lastSubmissionStatus = "timeout";
-                lastSubmissionError = "timed out after " + timeoutSec + "s";
-                StutterAnalyzerMod.LOGGER.warn("[SA] Upload timed out after {}s (upload_id={})", timeoutSec, uploadId);
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload timed out after " + timeoutSec + "s."), false);
-                if (SAConfig.INSTANCE.fallbackToLocal.get()) {
-                    saveLocalFallback(src, report, markdown);
-                } else {
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
-                }
-            } catch (Exception e) {
-                String errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                lastSubmissionStatus = "failure";
-                lastSubmissionError = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
-                StutterAnalyzerMod.LOGGER.warn("[SA] Upload error (upload_id={}): {}", uploadId, errMsg);
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: " + lastSubmissionError), false);
-                if (SAConfig.INSTANCE.fallbackToLocal.get()) {
-                    saveLocalFallback(src, report, markdown);
-                } else {
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
-                }
-            } finally {
-                submissionInProgress = false;
-            }
-        }, UPLOAD_EXECUTOR);
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/json")
+                .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
+                .timeout(Duration.ofSeconds(timeoutSec))
+                .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+                .build();
+
+            HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            handleCloudflareResponse(src, report, markdown, resp.statusCode(), resp.body());
+        } catch (java.net.http.HttpTimeoutException e) {
+            lastSubmissionStatus = "timeout";
+            lastSubmissionError = "timed out after " + timeoutSec + "s";
+            StutterAnalyzerMod.LOGGER.warn("[SA] Upload timed out after {}s (upload_id={})", timeoutSec, uploadId);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload timed out after " + timeoutSec + "s."), false);
+            if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+        } catch (Exception e) {
+            String errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            String shortErr = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
+            lastSubmissionStatus = "failure";
+            lastSubmissionError = shortErr;
+            StutterAnalyzerMod.LOGGER.warn("[SA] Upload network error (upload_id={}): {}", uploadId, errMsg);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: could not reach report server."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + shortErr), false);
+            if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
+        }
+    }
+
+    @FunctionalInterface
+    private interface StringSupplier { String get() throws Exception; }
+
+    private static String safeGet(StringSupplier supplier, String fallback) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            StutterAnalyzerMod.LOGGER.warn("[SA] Log section read failed: {}", e.getMessage());
+            return fallback;
+        }
     }
 
     private static void handleCloudflareResponse(CommandSourceStack src, FreezeReport report,
