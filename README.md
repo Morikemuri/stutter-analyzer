@@ -268,7 +268,7 @@ Debug commands are disabled by default and require both operator level 4 and `de
 
 Open an issue at: https://github.com/Morikemuri/stutter-analyzer/issues
 
-When reporting a problem with a freeze, run `/sa submit last` to get the local report file path, then paste the report contents into your issue.
+When reporting a problem with a freeze, run `/sa submit` to get the local report file path, then paste the report contents into your issue.
 
 ---
 
