@@ -30,10 +30,11 @@ import org.apache.logging.log4j.Logger;
 @Mod("stutteranalyzer")
 public class StutterAnalyzerMod {
 
-    public static final String MOD_ID      = "stutteranalyzer";
-    public static final String MOD_VERSION = "1.0.0";
-    public static final String BUILD_DATE  = "2026-06-08-b13";
-    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,config-migration,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response,submit-check";
+    public static final String MOD_ID        = "stutteranalyzer";
+    public static final String MOD_VERSION   = "0.1.0-rc1";
+    public static final String BUILD_ID      = "b10-submit-network-diagnostics";
+    public static final String BUILD_DATE    = "2026-06-08-b17";
+    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,config-migration,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response,submit-check,net-diagnostics,client-upload-id";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public StutterAnalyzerMod() {
@@ -65,8 +66,23 @@ public class StutterAnalyzerMod {
             MinecraftForge.EVENT_BUS.addListener(ClientCommandRegistrar::onRegisterClientCommands);
         }
 
-        LOGGER.info("[StutterAnalyzer] Loaded StutterAnalyzer {} build {} features=[{}]",
-            MOD_VERSION, BUILD_DATE, BUILD_FEATURES);
+        LOGGER.info("[StutterAnalyzer] Loaded StutterAnalyzer {} build={} id=[{}]",
+            MOD_VERSION, BUILD_DATE, BUILD_ID);
+    }
+
+    public static String getLoadedJarName() {
+        try {
+            return Files.list(FMLPaths.GAMEDIR.get().resolve("mods"))
+                .filter(p -> {
+                    String n = p.getFileName().toString().toLowerCase();
+                    return n.startsWith("stutteranalyzer") && n.endsWith(".jar");
+                })
+                .map(p -> p.getFileName().toString())
+                .findFirst()
+                .orElse("unknown");
+        } catch (Throwable t) {
+            return "unknown";
+        }
     }
 
     private static volatile long serverTickStart = 0;
@@ -134,13 +150,17 @@ public class StutterAnalyzerMod {
             }
 
             try {
-                long stutterJarCount = Files.list(FMLPaths.GAMEDIR.get().resolve("mods"))
+                java.util.List<String> stutterJars = Files.list(FMLPaths.GAMEDIR.get().resolve("mods"))
                     .filter(p -> p.getFileName().toString().toLowerCase().startsWith("stutteranalyzer") &&
                                  p.getFileName().toString().endsWith(".jar"))
-                    .count();
-                if (stutterJarCount > 1) {
-                    LOGGER.warn("[StutterAnalyzer] WARNING: Multiple Stutter Analyzer jars detected in mods folder. Remove old versions.");
+                    .map(p -> p.getFileName().toString())
+                    .collect(java.util.stream.Collectors.toList());
+                if (stutterJars.size() > 1) {
+                    LOGGER.warn("[SA] WARNING: Multiple Stutter Analyzer jars detected in mods folder. Remove old versions.");
                 }
+                String jarName = stutterJars.isEmpty() ? "unknown" : stutterJars.get(0);
+                LOGGER.info("[SA] Loaded jar: {}", jarName);
+                LOGGER.info("[SA] Build ID: {}", BUILD_ID);
             } catch (Throwable t) {
                 LOGGER.debug("[StutterAnalyzer] Jar duplicate check skipped: {}", t.getMessage());
             }

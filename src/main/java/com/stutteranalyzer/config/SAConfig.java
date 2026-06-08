@@ -133,6 +133,7 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue askBeforeEveryUpload;
     public final ForgeConfigSpec.IntValue submitCommandCooldownSeconds;
     public final ForgeConfigSpec.IntValue uploadTimeoutSeconds;
+    public final ForgeConfigSpec.ConfigValue<String> httpTransport;
     public final ForgeConfigSpec.BooleanValue includeLogExcerpt;
     public final ForgeConfigSpec.IntValue logExcerptMaxLines;
     public final ForgeConfigSpec.IntValue logExcerptContextSeconds;
@@ -326,6 +327,7 @@ public class SAConfig {
         askBeforeEveryUpload = b.comment("Ask for confirmation before every upload").define("ask_before_every_upload", true);
         submitCommandCooldownSeconds = b.comment("Cooldown in seconds between /sa submit invocations. Prevents spam and duplicate uploads.").defineInRange("submit_command_cooldown_seconds", 10, 0, 300);
         uploadTimeoutSeconds = b.comment("HTTP upload timeout in seconds. If the upload takes longer, it is cancelled and treated as a failure.").defineInRange("upload_timeout_seconds", 30, 5, 120);
+        httpTransport = b.comment("HTTP transport to use for uploads: auto, java_http_client, http_url_connection. Default is http_url_connection (most reliable in Forge/Minecraft JVM).").define("http_transport", "http_url_connection");
         b.comment("Log and report inclusion settings").push("logs");
         includeLogExcerpt = b.comment("Include a sanitized latest.log excerpt around the event. Paths and IPs are redacted.").define("include_log_excerpt", true);
         logExcerptMaxLines = b.comment("Maximum number of log lines to include in the excerpt.").defineInRange("log_excerpt_max_lines", 200, 10, 1000);

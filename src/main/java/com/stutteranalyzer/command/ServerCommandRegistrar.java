@@ -189,6 +189,12 @@ public class ServerCommandRegistrar {
                     .then(Commands.argument("report_id", StringArgumentType.greedyString())
                         .executes(ctx -> CommonCommandLogic.submitCheckStatus(
                             ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
+                .then(Commands.literal("config-reset")
+                    .executes(ctx -> CommonCommandLogic.submitConfigReset(ctx.getSource())))
+                .then(Commands.literal("export-payload")
+                    .executes(ctx -> CommonCommandLogic.submitExportPayload(ctx.getSource())))
+                .then(Commands.literal("validate-payload")
+                    .executes(ctx -> CommonCommandLogic.submitValidatePayload(ctx.getSource())))
                 .then(Commands.literal("debug-routing")
                     .executes(ctx -> CommonCommandLogic.submitDebugRouting(ctx.getSource())))
                 .then(Commands.literal("mode")
@@ -217,6 +223,26 @@ public class ServerCommandRegistrar {
                 .then(Commands.argument("report_id", StringArgumentType.word())
                     .executes(ctx -> CommonCommandLogic.submitReport(
                         ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
+
+            // ── net diagnostics ───────────────────────────────────────────────
+            .then(Commands.literal("net")
+                .executes(ctx -> CommonCommandLogic.netStatus(ctx.getSource()))
+                .then(Commands.literal("health")
+                    .executes(ctx -> CommonCommandLogic.netHealth(ctx.getSource())))
+                .then(Commands.literal("echo")
+                    .executes(ctx -> CommonCommandLogic.netEcho(ctx.getSource()))
+                    .then(Commands.literal("java")
+                        .executes(ctx -> CommonCommandLogic.netEchoJava(ctx.getSource())))
+                    .then(Commands.literal("urlconn")
+                        .executes(ctx -> CommonCommandLogic.netEchoUrlConn(ctx.getSource()))))
+                .then(Commands.literal("post-minimal")
+                    .executes(ctx -> CommonCommandLogic.netPostMinimal(ctx.getSource()))
+                    .then(Commands.literal("java")
+                        .executes(ctx -> CommonCommandLogic.netPostMinimalJava(ctx.getSource())))
+                    .then(Commands.literal("urlconn")
+                        .executes(ctx -> CommonCommandLogic.netPostMinimalUrlConn(ctx.getSource()))))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.netStatus(ctx.getSource()))))
 
             // ── config (level 3) ─────────────────────────────────────────────
             .then(Commands.literal("config")

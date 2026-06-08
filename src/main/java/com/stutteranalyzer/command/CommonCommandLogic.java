@@ -467,11 +467,23 @@ public class CommonCommandLogic {
     public static int showVersion(CommandSourceStack src) {
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Version Info"), false);
         src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerMod.MOD_VERSION), false);
+        src.sendSuccess(() -> CommandFeedback.row("Build ID", StutterAnalyzerMod.BUILD_ID), false);
         src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerMod.BUILD_DATE), false);
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
         src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge 49.x"), false);
         src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
-        src.sendSuccess(() -> CommandFeedback.row("Features", StutterAnalyzerMod.BUILD_FEATURES), false);
+
+        // Jar file loaded
+        String jarName = StutterAnalyzerMod.getLoadedJarName();
+        src.sendSuccess(() -> CommandFeedback.row("Jar file", jarName), false);
+
+        // Submission config
+        String endpoint = com.stutteranalyzer.config.SAConfig.INSTANCE.cloudflareEndpoint.get();
+        int timeoutSec = com.stutteranalyzer.config.SAConfig.INSTANCE.uploadTimeoutSeconds.get();
+        src.sendSuccess(() -> CommandFeedback.row("Submit endpoint", endpoint.isBlank() ? "(not set)" : endpoint), false);
+        src.sendSuccess(() -> CommandFeedback.row("Submit timeout", timeoutSec + "s"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Submit impl", "AsyncQueuedSubmitClient v2"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Worker response mode", "stored/queued supported"), false);
 
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
             src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
@@ -873,6 +885,49 @@ public class CommonCommandLogic {
     public static int submitCheckStatus(CommandSourceStack src, String reportId) {
         return SubmissionManager.submitCheckStatus(src, reportId);
     }
+
+    public static int submitConfigReset(CommandSourceStack src) {
+        return SubmissionManager.submitConfigReset(src);
+    }
+
+    public static int submitExportPayload(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitExportPayload(src);
+    }
+
+    public static int submitValidatePayload(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitValidatePayload(src);
+    }
+
+    // ── Network diagnostic commands ───────────────────────────────────────
+
+    public static int netHealth(CommandSourceStack src) {
+        return SubmissionManager.netHealth(src);
+    }
+
+    public static int netEcho(CommandSourceStack src) {
+        return SubmissionManager.netEcho(src);
+    }
+
+    public static int netPostMinimal(CommandSourceStack src) {
+        return SubmissionManager.netPostMinimal(src);
+    }
+
+    public static int netStatus(CommandSourceStack src) {
+        return SubmissionManager.netStatus(src);
+    }
+
+    public static int netEchoJava(CommandSourceStack src) { return SubmissionManager.netEchoJava(src); }
+    public static int netEchoUrlConn(CommandSourceStack src) { return SubmissionManager.netEchoUrlConn(src); }
+    public static int netPostMinimalJava(CommandSourceStack src) { return SubmissionManager.netPostMinimalJava(src); }
+    public static int netPostMinimalUrlConn(CommandSourceStack src) { return SubmissionManager.netPostMinimalUrlConn(src); }
 
     public static int submitModeCloudflare(CommandSourceStack src) {
         if (!CommandPermissionHelper.canSubmitReports(src)) {
