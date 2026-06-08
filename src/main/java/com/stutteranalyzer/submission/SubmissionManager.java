@@ -447,6 +447,30 @@ public class SubmissionManager {
         String freezeContext   = LogExcerpter.extractUnknownFreezeContext();
         String suspiciousSignals = LogExcerpter.extractSuspiciousSignals();
 
+        // Payload debug summary
+        if (SAConfig.INSTANCE.showPayloadSummary.get()) {
+            int mdChars    = sanitizedMarkdown.length();
+            int sChars     = stutterLogEvts   != null ? stutterLogEvts.length()   : 0;
+            int fChars     = freezeContext    != null ? freezeContext.length()     : 0;
+            int spChars    = suspiciousSignals != null ? suspiciousSignals.length() : 0;
+            int lChars     = logExcerpt       != null ? logExcerpt.length()        : 0;
+            int flChars    = fullLog          != null ? fullLog.length()            : 0;
+            int sLines     = isMeaningfulLogContent(stutterLogEvts)   ? countLogLines(stutterLogEvts)   : 0;
+            int fEvts      = isMeaningfulLogContent(freezeContext)    ? countFreezeEventsInStr(freezeContext) : 0;
+            int spLines    = isMeaningfulLogContent(suspiciousSignals)? countLogLines(suspiciousSignals) : 0;
+            int lLines     = (logExcerpt != null && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked"))
+                             ? countLogLines(logExcerpt) : 0;
+            src.sendSuccess(() -> CommandFeedback.header("[SA] Upload payload"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- markdown_report: " + mdChars + " chars"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- json_report: included"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- runtime_status_snapshot: included"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- stutter_log_events: " + sLines + " lines (" + sChars + " chars)"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- unknown_freeze_context: " + fEvts + " events (" + fChars + " chars)"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- suspicious_log_signals: " + spLines + " lines (" + spChars + " chars)"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- latest_log_excerpt: " + lLines + " lines (" + lChars + " chars)"), false);
+            src.sendSuccess(() -> CommandFeedback.info("- full_latest_log: " + (flChars > 0 ? flChars + " chars" : "disabled/unavailable")), false);
+        }
+
         src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
 
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
@@ -497,6 +521,7 @@ public class SubmissionManager {
         if (status == 200 && body.contains("\"ok\":true")) {
             String reportId        = extractJsonField(body, "report_id");
             String issueNum        = extractJsonField(body, "github_issue_number");
+            String issueUrl        = extractJsonField(body, "github_issue_url");
             String warning         = extractJsonField(body, "warning");
             String incMd           = extractJsonField(body, "included_markdown_report");
             String incJson         = extractJsonField(body, "included_json_report");
@@ -506,7 +531,12 @@ public class SubmissionManager {
             String incSuspicious   = extractJsonField(body, "included_suspicious_log_signals");
             String incLogExcerpt   = extractJsonField(body, "included_latest_log_excerpt");
             String storedFullLog   = extractJsonField(body, "stored_full_latest_log");
-            String finalId         = reportId != null ? reportId : report.reportId;
+            // received_* fields show exact char counts the Worker saw
+            int recStutterChars   = parseIntOrZero(extractJsonField(body, "received_stutter_log_events_chars"));
+            int recFreezeChars    = parseIntOrZero(extractJsonField(body, "received_unknown_freeze_context_chars"));
+            int recSuspChars      = parseIntOrZero(extractJsonField(body, "received_suspicious_log_signals_chars"));
+            int recLogExcChars    = parseIntOrZero(extractJsonField(body, "received_latest_log_excerpt_chars"));
+            String finalId        = reportId != null ? reportId : report.reportId;
 
             lastSubmissionStatus = "success";
 
@@ -517,23 +547,37 @@ public class SubmissionManager {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] GitHub forwarding failed server-side, but no data was lost."), false);
             } else if (issueNum != null && !issueNum.equals("null") && !issueNum.isBlank()) {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue created: #" + issueNum), false);
+                if (issueUrl != null && !issueUrl.isBlank()) {
+                    src.sendSuccess(() -> CommandFeedback.info("[SA] " + issueUrl), false);
+                }
             } else {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Stored for developer review."), false);
             }
 
             StringBuilder included = new StringBuilder();
-            if ("true".equals(incMd))          included.append("report, ");
-            if ("true".equals(incJson))         included.append("JSON, ");
             if ("true".equals(incRuntime))      included.append("runtime status, ");
             if ("true".equals(incStutterLog))   included.append("log events, ");
             if ("true".equals(incFreezeCtx))    included.append("Unknown Freeze context, ");
             if ("true".equals(incSuspicious))   included.append("suspicious signals, ");
-            if ("true".equals(incLogExcerpt))   included.append("log excerpt, ");
-            if ("true".equals(storedFullLog))   included.append("full log stored, ");
+            if ("true".equals(incLogExcerpt))   included.append("latest.log excerpt, ");
             if (included.length() > 2) {
                 String inclStr = included.substring(0, included.length() - 2);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Included: " + inclStr + "."), false);
             }
+            if ("true".equals(storedFullLog)) {
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Full latest.log stored server-side."), false);
+            }
+
+            // Warn if Worker received 0 log content despite log sections being configured
+            int totalReceivedLogChars = recStutterChars + recFreezeChars + recSuspChars + recLogExcChars;
+            boolean logConfigEnabled = SAConfig.INSTANCE.includeStutterAnalyzerLogEvents.get()
+                || SAConfig.INSTANCE.includeUnknownFreezeContext.get()
+                || SAConfig.INSTANCE.includeSuspiciousLogSignals.get()
+                || SAConfig.INSTANCE.includeLogExcerpt.get();
+            if (totalReceivedLogChars == 0 && logConfigEnabled) {
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: Worker received 0 log chars. Use /sa submit preview to diagnose."), false);
+            }
+
             src.sendSuccess(() -> CommandFeedback.info("[SA] Thank you. This helps improve future versions."), false);
             markConsentGiven();
         } else {
@@ -881,57 +925,134 @@ public class SubmissionManager {
 
         String markdown = report.toMarkdown();
         ReportSanitizer.SanitizeResult mdResult = ReportSanitizer.sanitize(markdown);
-        String logExcerpt = LogExcerpter.extractExcerpt(report.event.timestamp());
-        boolean inclLog = logExcerpt != null && !logExcerpt.isBlank()
-            && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked");
 
-        int stutterLogLines    = LogExcerpter.countStutterLogEventLines();
-        int freezeCtxEvents    = LogExcerpter.countUnknownFreezeContextEvents();
-        int suspiciousLines    = LogExcerpter.countSuspiciousSignalLines();
-        boolean fullLogEnabled = SAConfig.INSTANCE.includeFullLatestLog.get();
+        // Extract all log sections to get real sizes and line counts
+        String stutterLogStr   = LogExcerpter.extractStutterLogEvents();
+        String freezeCtxStr    = LogExcerpter.extractUnknownFreezeContext();
+        String suspiciousStr   = LogExcerpter.extractSuspiciousSignals();
+        String logExcerptStr   = LogExcerpter.extractExcerpt(report.event.timestamp());
+        String fullLogStr      = LogExcerpter.readFullLog();
 
-        String hash = sha256Hex(markdown);
-        String category = report.event.category().name();
-        long durationMs = report.event.durationMs();
-        int mdKb = markdown.length() / 1024;
-        int logLines = inclLog ? logExcerpt.split("\n", -1).length : 0;
+        boolean stutterDisabled = !SAConfig.INSTANCE.includeStutterAnalyzerLogEvents.get();
+        boolean freezeDisabled  = !SAConfig.INSTANCE.includeUnknownFreezeContext.get();
+        boolean suspDisabled    = !SAConfig.INSTANCE.includeSuspiciousLogSignals.get();
+        boolean fullLogEnabled  = SAConfig.INSTANCE.includeFullLatestLog.get();
+
+        boolean stutterMeaningful = isMeaningfulLogContent(stutterLogStr);
+        boolean freezeMeaningful  = isMeaningfulLogContent(freezeCtxStr);
+        boolean suspMeaningful    = isMeaningfulLogContent(suspiciousStr);
+        boolean logMeaningful     = logExcerptStr != null && !logExcerptStr.startsWith("No relevant") && !logExcerptStr.startsWith("Log excerpt was blocked");
+
+        int stutterLines = stutterMeaningful ? countLogLines(stutterLogStr) : 0;
+        int stutterKb    = logKb(stutterLogStr);
+        int freezeEvts   = freezeMeaningful  ? countFreezeEventsInStr(freezeCtxStr) : 0;
+        int freezeKb     = logKb(freezeCtxStr);
+        int suspLines    = suspMeaningful    ? countLogLines(suspiciousStr) : 0;
+        int suspKb       = logKb(suspiciousStr);
+        int logLines     = logMeaningful     ? countLogLines(logExcerptStr) : 0;
+        int logKb        = logKb(logExcerptStr);
+        int fullLogKb    = logKb(fullLogStr);
+        int mdKb         = logKb(markdown);
+
+        String category  = report.event.category().name();
+        long durationMs  = report.event.durationMs();
+        String hash      = sha256Hex(markdown);
 
         src.sendSuccess(() -> CommandFeedback.header("[SA] Submit preview"), false);
         src.sendSuccess(() -> CommandFeedback.info("- Report ID: " + report.reportId), false);
         src.sendSuccess(() -> CommandFeedback.info("- Category: " + category), false);
         src.sendSuccess(() -> CommandFeedback.info("- Duration: " + durationMs + " ms"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Report: included, ~" + mdKb + " KB"), false);
+        src.sendSuccess(() -> CommandFeedback.info("- Report: included, " + mdKb + " KB"), false);
         src.sendSuccess(() -> CommandFeedback.info("- JSON: included (metrics, mods, timeline)"), false);
         src.sendSuccess(() -> CommandFeedback.info("- Runtime status: included"), false);
-        if (stutterLogLines > 0) {
-            int sll = stutterLogLines;
-            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: " + sll + " lines"), false);
+
+        // Stutter log events
+        if (stutterDisabled) {
+            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: disabled in config"), false);
+        } else if (stutterMeaningful) {
+            int sl = stutterLines; int sk = stutterKb;
+            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: " + sl + " lines, " + sk + " KB"), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: none found"), false);
+            String reason = stutterLogStr != null ? stutterLogStr : "latest.log could not be read";
+            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: 0 lines, " + reason), false);
         }
-        if (freezeCtxEvents > 0) {
-            int fce = freezeCtxEvents;
-            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze contexts: " + fce + " events"), false);
+
+        // Unknown Freeze context
+        if (freezeDisabled) {
+            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze context: disabled in config"), false);
+        } else if (freezeMeaningful) {
+            int fe = freezeEvts; int fk = freezeKb;
+            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze context: " + fe + " events, " + fk + " KB"), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze contexts: none found"), false);
+            String reason = freezeCtxStr != null ? freezeCtxStr : "latest.log could not be read";
+            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze context: 0 events, " + reason), false);
         }
-        if (suspiciousLines > 0) {
-            int sl = suspiciousLines;
-            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: " + sl + " lines"), false);
+
+        // Suspicious signals
+        if (suspDisabled) {
+            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: disabled in config"), false);
+        } else if (suspMeaningful) {
+            int ss = suspLines; int sk = suspKb;
+            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: " + ss + " lines, " + sk + " KB"), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: none found"), false);
+            String reason = suspiciousStr != null ? suspiciousStr : "latest.log could not be read";
+            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: 0 lines, " + reason), false);
         }
-        if (inclLog) {
-            int ll = logLines;
-            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: included, " + ll + " lines"), false);
+
+        // Log excerpt
+        if (!SAConfig.INSTANCE.includeLogExcerpt.get()) {
+            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: disabled in config"), false);
+        } else if (logMeaningful) {
+            int ll = logLines; int lk = logKb;
+            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: " + ll + " lines, " + lk + " KB"), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: not included"), false);
+            String reason = logExcerptStr != null ? logExcerptStr : "latest.log could not be read";
+            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: unavailable, " + reason), false);
         }
-        src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: " + (fullLogEnabled ? "included / stored" : "disabled")), false);
+
+        // Full log
+        if (!fullLogEnabled) {
+            src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: disabled in config"), false);
+        } else if (fullLogStr != null) {
+            int fk = fullLogKb;
+            src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: included, " + fk + " KB / stored server-side"), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: unavailable or sanitizer blocked it"), false);
+        }
+
         src.sendSuccess(() -> CommandFeedback.info("- Sensitive data scan: " + (mdResult.hadSensitiveData() ? "BLOCKED - sensitive data found" : "passed")), false);
         src.sendSuccess(() -> CommandFeedback.info("- Report hash: " + hash.substring(0, 16) + "..."), false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit to upload this report."), false);
         return 1;
+    }
+
+    private static boolean isMeaningfulLogContent(String s) {
+        if (s == null || s.isBlank()) return false;
+        return !s.startsWith("No Stutter") && !s.startsWith("No Unknown") && !s.startsWith("No suspicious")
+            && !s.startsWith("Could not") && !s.startsWith("latest.log") && !s.startsWith("Log events blocked")
+            && !s.startsWith("Context blocked") && !s.startsWith("Signals blocked");
+    }
+
+    private static int countLogLines(String s) {
+        if (s == null || s.isBlank()) return 0;
+        return s.split("\n", -1).length;
+    }
+
+    private static int logKb(String s) {
+        if (s == null) return 0;
+        return Math.max(1, s.length() / 1024);
+    }
+
+    private static int countFreezeEventsInStr(String s) {
+        if (s == null || s.isBlank()) return 0;
+        int count = 0;
+        for (String line : s.split("\n", -1)) { if (line.startsWith("### Event ")) count++; }
+        return Math.max(count, 1);
+    }
+
+    private static int parseIntOrZero(String s) {
+        if (s == null) return 0;
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
     }
 
     // ── Issue body builders ───────────────────────────────────────────────────

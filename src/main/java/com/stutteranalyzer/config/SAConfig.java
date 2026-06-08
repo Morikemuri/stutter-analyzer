@@ -150,6 +150,9 @@ public class SAConfig {
     public final ForgeConfigSpec.IntValue logContextLinesAfter;
     public final ForgeConfigSpec.IntValue maxSuspiciousLogLines;
 
+    // ── [submission.debug] ────────────────────────────────────────────────
+    public final ForgeConfigSpec.BooleanValue showPayloadSummary;
+
     // ── [compatibility_guard] ─────────────────────────────────────────────
     public final ForgeConfigSpec.BooleanValue guardEnabled;
     public final ForgeConfigSpec.BooleanValue guardEmergencyMode;
@@ -339,6 +342,9 @@ public class SAConfig {
         logContextLinesBefore = b.comment("Lines before each freeze line to include as context.").defineInRange("log_context_lines_before", 20, 1, 200);
         logContextLinesAfter = b.comment("Lines after each freeze line to include as context.").defineInRange("log_context_lines_after", 40, 1, 200);
         maxSuspiciousLogLines = b.comment("Maximum suspicious log signal lines to extract.").defineInRange("max_suspicious_log_lines", 300, 10, 2000);
+        b.pop();
+        b.comment("Submit diagnostic settings").push("debug");
+        showPayloadSummary = b.comment("Print payload field sizes in chat when submitting. Useful for verifying log collection works end-to-end.").define("show_payload_summary", true);
         b.pop();
         b.pop();
 
