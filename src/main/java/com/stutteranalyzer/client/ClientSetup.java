@@ -1,8 +1,11 @@
 package com.stutteranalyzer.client;
 
 import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AlertManager;
+import com.stutteranalyzer.core.AlertMode;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.QuietMode;
@@ -25,7 +28,6 @@ public class ClientSetup {
 
     private static boolean startupMessageShown = false;
     private static int tickCounter = 0;
-    private static long lastChatNotifyTime = 0;
     // Aggregate chat suppression state
     private static long lastAggregateChatShownTime = 0;
     private static long lastAggregateShownCount = 0;
@@ -57,14 +59,10 @@ public class ClientSetup {
             safeRefreshF3();
         }
 
-        // Severe/extreme freeze chat notification with cooldown
-        if (FreezeDetector.consumeUnknownFreezeNotification()) {
-            long cooldownMs = SAConfig.INSTANCE.chatNotificationCooldownSeconds.get() * 1000L;
-            long now = System.currentTimeMillis();
-            if (now - lastChatNotifyTime >= cooldownMs) {
-                showUnknownFreezeNotification();
-                lastChatNotifyTime = now;
-            }
+        // AlertManager: preset-based chat alerts for all categories
+        AlertManager.PendingAlert alert = AlertManager.consumePendingAlert();
+        if (alert != null) {
+            showAlertMessage(alert);
         }
 
         // Verbose mode: show minor/medium stutters in chat (suppressed by quiet mode)
@@ -82,10 +80,12 @@ public class ClientSetup {
             }
         }
 
-        // Aggregate minor stutter notification - smart suppression
+        // Aggregate minor stutter notification - smart suppression (gated on alert mode)
         long[] aggregate = FreezeDetector.consumeAggregateNotification();
         if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()
                 && SAConfig.INSTANCE.minorAggregateChatEnabled.get()
+                && AlertManager.currentMode() != AlertMode.OFF
+                && SAConfig.INSTANCE.alertAggregateSmallStutters.get()
                 && !QuietMode.isEnabled()) {
             long now = System.currentTimeMillis();
             long cooldownMs = SAConfig.INSTANCE.minorAggregateChatCooldownSeconds.get() * 1000L;
@@ -129,14 +129,41 @@ public class ClientSetup {
         showUpdateNotificationIfNeeded();
     }
 
-    private static void showUnknownFreezeNotification() {
+    private static void showAlertMessage(AlertManager.PendingAlert info) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        FreezeEvent last = FreezeDetector.lastFreezeEvent();
-        if (last != null) {
-            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify_duration", last.durationMs()).withStyle(ChatFormatting.GREEN));
+        FreezeEvent event = info.event();
+        long ms = info.durationMs();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        boolean isUnknown = event.category() == FreezeCategory.UNKNOWN_FREEZE;
+        String catName = event.category().name();
+
+        String msg;
+        boolean showHint = false;
+        if (ms >= extreme) {
+            msg = "[SA] Extreme freeze detected: " + catName + " " + ms + "ms";
+            showHint = true;
+        } else if (ms >= severe) {
+            msg = isUnknown ? "[SA] Unknown freeze detected: " + ms + "ms"
+                            : "[SA] Freeze detected: " + catName + " " + ms + "ms";
+            showHint = true;
+        } else if (ms >= medium) {
+            msg = "[SA] Medium stutter detected: " + catName + " " + ms + "ms";
         } else {
-            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.unknown_freeze.notify").withStyle(ChatFormatting.GREEN));
+            msg = "[SA] Minor stutter detected: " + catName + " " + ms + "ms";
+        }
+
+        mc.player.sendSystemMessage(Component.literal(msg).withStyle(ChatFormatting.GREEN));
+
+        if (showHint && info.reportSaved() && SAConfig.INSTANCE.alertShowReportHint.get()) {
+            String hint = isUnknown
+                ? "[SA] Report saved. Use /sa submit to help improve detection."
+                : (ms >= extreme
+                    ? "[SA] Report saved. Use /sa submit to send logs."
+                    : "[SA] Report saved. Use /sa submit to send diagnostics.");
+            mc.player.sendSystemMessage(Component.literal(hint).withStyle(ChatFormatting.YELLOW));
         }
     }
 

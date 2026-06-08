@@ -2,6 +2,7 @@ package com.stutteranalyzer.classifier;
 
 import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AlertManager;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.SafeExecutor;
@@ -164,12 +165,12 @@ public class FreezeDetector {
             StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Event classified: {} {}ms", event.category().name(), event.durationMs());
         }
 
-        if (event.category() == FreezeCategory.UNKNOWN_FREEZE && shouldNotifyChat(durationMs)) {
-            unknownFreezePendingNotification = true;
+        if (event.category() == FreezeCategory.UNKNOWN_FREEZE) {
             unknownFreezeCount++;
         }
 
-        if (shouldSaveReport(durationMs)) {
+        boolean reportSaved = shouldSaveReport(durationMs);
+        if (reportSaved) {
             FreezeReport report = FreezeReport.from(event);
             ReportWriter.writeAsync(report);
             if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
@@ -178,6 +179,9 @@ public class FreezeDetector {
         } else if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
             StutterAnalyzerMod.LOGGER.info("[SA DEBUG] Report skipped: below threshold for {}ms", durationMs);
         }
+
+        // Queue chat alert via AlertManager (handles all categories, cooldowns, and mode check)
+        AlertManager.checkAndQueue(event, durationMs, reportSaved);
     }
 
     private static void handleEvent(FreezeEvent event, RecentEventBuffer buffer) {

@@ -10,27 +10,32 @@ public class CommandFeedback {
 
     // String overloads - for dynamic content that doesn't need translation
     public static Component info(String text) {
-        return styled(Component.literal(text), ChatFormatting.AQUA);
+        return styled(Component.literal(strip(text)), ChatFormatting.AQUA);
     }
 
     public static Component success(String text) {
-        return styled(Component.literal(text), ChatFormatting.GREEN);
+        return styled(Component.literal(strip(text)), ChatFormatting.GREEN);
     }
 
     public static Component warn(String text) {
-        return styled(Component.literal(text), ChatFormatting.YELLOW);
+        return styled(Component.literal(strip(text)), ChatFormatting.YELLOW);
     }
 
     public static Component error(String text) {
-        return styled(Component.literal(text), ChatFormatting.RED);
+        return styled(Component.literal(strip(text)), ChatFormatting.RED);
     }
 
     public static Component debug(String text) {
-        return styled(Component.literal("[DEBUG] " + text), ChatFormatting.LIGHT_PURPLE);
+        return styled(Component.literal("[DEBUG] " + strip(text)), ChatFormatting.LIGHT_PURPLE);
     }
 
     public static Component header(String text) {
-        return Component.literal(PREFIX + text).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        return Component.literal(PREFIX + strip(text)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+    }
+
+    /** Strip leading "[SA] " prefix that callers sometimes include to avoid double prefix. */
+    private static String strip(String text) {
+        return text.startsWith("[SA] ") ? text.substring(5) : text;
     }
 
     public static Component row(String label, String value) {

@@ -4,6 +4,8 @@ import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AlertManager;
+import com.stutteranalyzer.core.AlertMode;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
@@ -597,6 +599,95 @@ public class CommonCommandLogic {
         return 1;
     }
 
+    // ── Alerts ────────────────────────────────────────────────────────────
+
+    public static int alertsSetMode(CommandSourceStack src, String modeName) {
+        AlertMode mode = AlertMode.fromString(modeName);
+        SAConfig.INSTANCE.alertMode.set(mode.name());
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        switch (mode) {
+            case OFF -> {
+                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: OFF"), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
+            }
+            case MINOR -> {
+                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: MINOR"), false);
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
+            }
+            case MEDIUM -> {
+                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: MEDIUM"), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
+            }
+            case SEVERE -> {
+                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: SEVERE"), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
+            }
+            case EXTREME -> {
+                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: EXTREME"), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
+            }
+        }
+        return 1;
+    }
+
+    public static int alertsCooldown(CommandSourceStack src, int seconds) {
+        int clamped = Math.max(5, Math.min(600, seconds));
+        if (clamped != seconds) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cooldown must be between 5 and 600 seconds."), false);
+            return 0;
+        }
+        SAConfig.INSTANCE.alertCooldownSeconds.set(clamped);
+        src.sendSuccess(() -> CommandFeedback.success("[SA] Alert cooldown set to " + clamped + " seconds."), false);
+        return 1;
+    }
+
+    public static int alertsStatus(CommandSourceStack src) {
+        AlertMode mode = AlertManager.currentMode();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        int cooldown = SAConfig.INSTANCE.alertCooldownSeconds.get();
+        int catCooldown = SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get();
+        int maxPerMin = SAConfig.INSTANCE.alertMaxAlertsPerMinute.get();
+        boolean agg = SAConfig.INSTANCE.alertAggregateSmallStutters.get();
+        boolean quiet = QuietMode.isEnabled();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Alert Status"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Mode", mode.name()), false);
+        if (mode == AlertMode.OFF) {
+            src.sendSuccess(() -> CommandFeedback.row("Chat alerts", "disabled"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status/report saving: still active"), false);
+        } else {
+            String alertsOn = mode.alertsOnDescription(medium, severe, extreme);
+            src.sendSuccess(() -> CommandFeedback.row("Direct chat alerts", alertsOn), false);
+            src.sendSuccess(() -> CommandFeedback.row("Cooldown", cooldown + "s"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Same-category cooldown", catCooldown + "s"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Max alerts/minute", String.valueOf(maxPerMin)), false);
+            src.sendSuccess(() -> CommandFeedback.row("Small stutter aggregate", agg ? "ON" : "OFF"), false);
+            src.sendSuccess(() -> CommandFeedback.row("Quiet mode", quiet ? "ON" : "OFF"), false);
+        }
+        return 1;
+    }
+
+    public static int alertsTest(CommandSourceStack src) {
+        AlertMode mode = AlertManager.currentMode();
+        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
+        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
+        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Alert Test"), false);
+        long[] testMs   = {76L, 184L, 485L, 3867L};
+        String[] cats   = {"CLIENT_RENDER_STUTTER", "CLIENT_RENDER_STUTTER", "SERVER_TICK_SPIKE", "CLIENT_RENDER_STUTTER"};
+        for (int i = 0; i < testMs.length; i++) {
+            final long ms = testMs[i];
+            final String cat = cats[i];
+            boolean shown = mode.shouldAlertDirect(ms, medium, severe, extreme);
+            String label = shown ? "would be shown" : "would be hidden in this mode";
+            src.sendSuccess(() -> CommandFeedback.info("Test: " + cat + " " + ms + "ms " + label), false);
+        }
+        return 1;
+    }
+
     public static int submitLast(CommandSourceStack src) {
         if (!CommandPermissionHelper.canSubmitReports(src)) {
             src.sendFailure(CommandFeedback.noPermission());
@@ -794,6 +885,12 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("/sa reports      - list reports"), false);
         src.sendSuccess(() -> CommandFeedback.info("/sa version      - version and update info"), false);
         src.sendSuccess(() -> CommandFeedback.info("/sa privacy      - what gets submitted"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts severe  - notify only important freezes"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts medium  - notify medium and higher stutters"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts minor   - notify all detected stutters, noisy"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts extreme - notify only extreme freezes"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off     - disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts status  - show alert mode"), false);
         return 1;
     }
 

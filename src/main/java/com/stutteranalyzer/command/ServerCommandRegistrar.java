@@ -87,6 +87,28 @@ public class ServerCommandRegistrar {
                 .then(Commands.literal("link")
                     .executes(ctx -> CommonCommandLogic.updateLink(ctx.getSource()))))
 
+            // ── alerts ────────────────────────────────────────────────────────────
+            .then(Commands.literal("alerts")
+                .executes(ctx -> CommonCommandLogic.alertsStatus(ctx.getSource()))
+                .then(Commands.literal("minor")
+                    .executes(ctx -> CommonCommandLogic.alertsSetMode(ctx.getSource(), "MINOR")))
+                .then(Commands.literal("medium")
+                    .executes(ctx -> CommonCommandLogic.alertsSetMode(ctx.getSource(), "MEDIUM")))
+                .then(Commands.literal("severe")
+                    .executes(ctx -> CommonCommandLogic.alertsSetMode(ctx.getSource(), "SEVERE")))
+                .then(Commands.literal("extreme")
+                    .executes(ctx -> CommonCommandLogic.alertsSetMode(ctx.getSource(), "EXTREME")))
+                .then(Commands.literal("off")
+                    .executes(ctx -> CommonCommandLogic.alertsSetMode(ctx.getSource(), "OFF")))
+                .then(Commands.literal("status")
+                    .executes(ctx -> CommonCommandLogic.alertsStatus(ctx.getSource())))
+                .then(Commands.literal("test")
+                    .executes(ctx -> CommonCommandLogic.alertsTest(ctx.getSource())))
+                .then(Commands.literal("cooldown")
+                    .then(Commands.argument("seconds", IntegerArgumentType.integer(5, 600))
+                        .executes(ctx -> CommonCommandLogic.alertsCooldown(
+                            ctx.getSource(), IntegerArgumentType.getInteger(ctx, "seconds"))))))
+
             // ── quiet mode ────────────────────────────────────────────────────
             .then(Commands.literal("quiet")
                 .executes(ctx -> CommonCommandLogic.quietStatus(ctx.getSource()))

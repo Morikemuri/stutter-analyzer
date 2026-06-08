@@ -106,6 +106,16 @@ public class SAConfig {
     public final ForgeConfigSpec.BooleanValue mediumChatInVerbose;
     public final ForgeConfigSpec.IntValue verboseChatCooldownSeconds;
 
+    // ── [notifications.alerts] ────────────────────────────────────────────
+    public final ForgeConfigSpec.ConfigValue<String> alertMode;
+    public final ForgeConfigSpec.IntValue alertCooldownSeconds;
+    public final ForgeConfigSpec.IntValue alertSameCategoryCooldownSeconds;
+    public final ForgeConfigSpec.IntValue alertMaxAlertsPerMinute;
+    public final ForgeConfigSpec.BooleanValue alertAggregateSmallStutters;
+    public final ForgeConfigSpec.IntValue alertMinorAggregateCooldownSeconds;
+    public final ForgeConfigSpec.BooleanValue alertShowReportHint;
+    public final ForgeConfigSpec.BooleanValue alertShowSubmitHint;
+
     // ── [debug_hud] extra ─────────────────────────────────────────────────
     public final ForgeConfigSpec.ConfigValue<String> f3CounterMode;
     public final ForgeConfigSpec.BooleanValue showRawSpikeCountOnF3;
@@ -302,7 +312,17 @@ public class SAConfig {
         minorChatInVerbose = b.comment("Show minor (50-99ms) stutters in chat when verbose mode is on.").define("minor_chat_in_verbose", true);
         mediumChatInVerbose = b.comment("Show medium (100-249ms) stutters in chat when verbose mode is on.").define("medium_chat_in_verbose", true);
         verboseChatCooldownSeconds = b.comment("Seconds between verbose chat messages. Prevents spam even in verbose mode.").defineInRange("verbose_chat_cooldown_seconds", 5, 1, 60);
-        b.pop();
+        b.comment("Preset-based chat alert system").push("alerts");
+        alertMode = b.comment("Alert mode: OFF, MINOR, MEDIUM, SEVERE, EXTREME. SEVERE = notify only for severe/extreme freezes.").define("alert_mode", "SEVERE");
+        alertCooldownSeconds = b.comment("Global cooldown in seconds between any two chat alerts.").defineInRange("alert_cooldown_seconds", 30, 5, 600);
+        alertSameCategoryCooldownSeconds = b.comment("Cooldown in seconds between alerts of the same category.").defineInRange("same_category_cooldown_seconds", 60, 5, 600);
+        alertMaxAlertsPerMinute = b.comment("Maximum number of chat alerts per minute.").defineInRange("max_alerts_per_minute", 5, 1, 60);
+        alertAggregateSmallStutters = b.comment("In SEVERE/EXTREME mode, still show an aggregated minor/medium summary occasionally.").define("aggregate_small_stutters", true);
+        alertMinorAggregateCooldownSeconds = b.comment("Cooldown in seconds for the aggregated small stutter message.").defineInRange("minor_aggregate_cooldown_seconds", 120, 30, 3600);
+        alertShowReportHint = b.comment("Show 'Report saved. Use /sa submit' hint after severe/extreme alerts.").define("show_report_hint", true);
+        alertShowSubmitHint = b.comment("Show /sa submit hint in severe/extreme alerts.").define("show_submit_hint", true);
+        b.pop(); // end alerts
+        b.pop(); // end notifications
 
         b.comment("Report submission").push("submission");
         enableManualSubmission = b.comment("Allow manual report submission through commands").define("enable_manual_submission", true);
