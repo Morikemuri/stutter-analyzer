@@ -90,10 +90,6 @@ public class ClientCommandRegistrar {
                 .executes(ctx -> CommonCommandLogic.listReports(ctx.getSource())))
             .then(Commands.literal("last")
                 .executes(ctx -> CommonCommandLogic.showLast(ctx.getSource())))
-            .then(Commands.literal("delete")
-                .then(Commands.argument("report_id", StringArgumentType.word())
-                    .executes(ctx -> CommonCommandLogic.deleteReport(
-                        ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
 
             // ── f3 (client-side, actual implementation) ───────────────────────
             .then(Commands.literal("f3")
