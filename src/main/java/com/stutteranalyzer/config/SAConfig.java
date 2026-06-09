@@ -308,7 +308,7 @@ public class SAConfig {
         minorAggregateShowOnlyIfWorse = b.comment("Only show another aggregate message if things got significantly worse since the last one.").define("minor_aggregate_show_only_if_worse", true);
         minorAggregateMinCountIncrease = b.comment("Minimum stutter count increase since last message to trigger another.").defineInRange("minor_aggregate_min_count_increase", 25, 1, 500);
         minorAggregateMinWorstIncreaseMs = b.comment("Minimum worst spike increase (ms) since last message to trigger another.").defineInRange("minor_aggregate_min_worst_increase_ms", 15, 1, 1000);
-        verboseMode = b.comment("Temporarily show minor/medium stutters in chat. Off by default - use /sa verbose on to enable.").define("verbose_mode", false);
+        verboseMode = b.comment("Temporarily show minor/medium stutters in chat. Off by default. Use /sa alerts minor to control chat notifications.").define("verbose_mode", false);
         verboseModeSessionOnly = b.comment("Verbose mode resets when the game exits. Prevents accidental permanent spam.").define("verbose_mode_session_only", true);
         minorChatInVerbose = b.comment("Show minor (50-99ms) stutters in chat when verbose mode is on.").define("minor_chat_in_verbose", true);
         mediumChatInVerbose = b.comment("Show medium (100-249ms) stutters in chat when verbose mode is on.").define("medium_chat_in_verbose", true);

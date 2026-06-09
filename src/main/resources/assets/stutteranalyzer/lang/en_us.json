@@ -71,11 +71,6 @@
   "stutteranalyzer.cmd.help.status": "/sa status            - Analyzer status and current freeze count",
 
   "stutteranalyzer.cmd.help.last": "/sa last              - Last detected freeze, if Minecraft recently had a dramatic pause",
-  "stutteranalyzer.cmd.help.report": "/sa report            - Generate report from current data",
-  "stutteranalyzer.cmd.help.export": "/sa export            - Export latest report for GitHub, Discord, or your nearest support channel",
-  "stutteranalyzer.cmd.help.list": "/sa list              - List saved reports",
-  "stutteranalyzer.cmd.help.list_unknown": "/sa list unknown      - List unclassified freezes",
-  "stutteranalyzer.cmd.help.show": "/sa show <id>         - Show report details",
   "stutteranalyzer.cmd.help.delete": "/sa delete <id>       - Delete report",
   "stutteranalyzer.cmd.help.overlay": "/sa overlay ...       - Overlay (client only)",
 
@@ -143,7 +138,7 @@
   "stutteranalyzer.verbose.off": "OFF",
   "stutteranalyzer.verbose.stutter_detected": "[SA] Stutter: %s ms (verbose mode)",
   "stutteranalyzer.verbose.aggregate": "[SA] Repeated small stutters: %s in %ss, worst %sms. Tracking silently. Use /sa status.",
-  "stutteranalyzer.verbose.test_minor_hint": "Use /sa verbose on to see minor stutters in chat.",
+  "stutteranalyzer.verbose.test_minor_hint": "Use /sa alerts minor to show minor stutters in chat.",
 
   "stutteranalyzer.cmd.status.last_stutter": "Last stutter",
   "stutteranalyzer.cmd.status.last_minor": "Last minor stutter",
@@ -155,7 +150,7 @@
   "stutteranalyzer.cmd.status.chat_medium": "Medium chat",
   "stutteranalyzer.cmd.status.chat_severe": "Severe chat",
   "stutteranalyzer.cmd.status.verbose_mode": "Verbose mode",
-  "stutteranalyzer.cmd.status.minor_silent_hint": "[SA] Minor stutters are being tracked silently. Use /sa verbose on to show them in chat temporarily.",
+  "stutteranalyzer.cmd.status.minor_silent_hint": "[SA] Minor stutters are being tracked silently. Use /sa alerts minor to show them in chat.",
 
   "stutteranalyzer.f3.active": "SA: ACTIVE",
   "stutteranalyzer.f3.status_warn": "SA: WARNING | %s | /sa status",
