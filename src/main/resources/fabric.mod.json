@@ -6,6 +6,7 @@
   "description": "Detect stutters, freezes, and tick spikes with clear diagnostics and shareable performance reports.",
   "authors": ["Morikemuri"],
   "contact": {
+    "homepage": "https://github.com/Morikemuri/stutter-analyzer",
     "sources": "https://github.com/Morikemuri/stutter-analyzer",
     "issues": "https://github.com/Morikemuri/stutter-analyzer/issues"
   },
