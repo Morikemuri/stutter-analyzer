@@ -92,7 +92,7 @@
     "UNKNOWN_FREEZE": [
       "Enable debug mode and reproduce the freeze.",
       "Export report and compare with a run without recently added mods.",
-      "Submit the report via /sa submit last.",
+      "Submit the report via /sa submit.",
       "Attach Markdown and JSON files to GitHub."
     ],
     "PERIODIC_MINOR_MICRO_HITCH": [
@@ -147,7 +147,7 @@
       "An extreme freeze >= 1000ms with no identifiable cause.",
       "Enable debug mode and reproduce the freeze.",
       "Export report and compare with a run without recently added mods.",
-      "Submit the report via /sa submit last.",
+      "Submit the report via /sa submit.",
       "Attach Markdown and JSON files to GitHub."
     ]
   }

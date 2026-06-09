@@ -73,7 +73,7 @@ public class CrashHintInjector {
                 "- Attach crash report and latest.log.";
             default ->
                 "- Enable debug mode and reproduce.\n" +
-                "- Export report and submit via /sa submit last.";
+                "- Export report and submit via /sa submit.";
         };
     }
 }
