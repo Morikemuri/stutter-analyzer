@@ -233,7 +233,7 @@ public class SAConfig {
         serverReportPermissionLevel = b.comment("Permission level for /sa server report/list/show").defineInRange("server_report_permission_level", 2, 0, 4);
         configReloadPermissionLevel = b.comment("Permission level for /sa config reload").defineInRange("config_reload_permission_level", 3, 0, 4);
         deleteReportPermissionLevel = b.comment("Permission level for /sa delete").defineInRange("delete_report_permission_level", 3, 0, 4);
-        debugPermissionLevel = b.comment("Permission level for /sa debug commands").defineInRange("debug_permission_level", 4, 0, 4);
+        debugPermissionLevel = b.comment("Permission level for restricted diagnostic actions").defineInRange("debug_permission_level", 4, 0, 4);
         submitReportPermissionLevel = b.comment("Permission level to submit reports").defineInRange("submit_report_permission_level", 3, 0, 4);
         guardPermissionLevel = b.comment("Permission level for /sa guard enable/disable").defineInRange("guard_permission_level", 4, 0, 4);
         b.pop();
