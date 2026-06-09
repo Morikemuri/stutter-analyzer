@@ -96,7 +96,7 @@
   "stutteranalyzer.cmd.selfcheck.header": "Самопроверка StutterAnalyzer",
   "stutteranalyzer.cmd.selfcheck.overall_ok": "Результат: %s",
   "stutteranalyzer.cmd.selfcheck.overall_warn": "Результат: %s. Используйте /sa health для подробностей.",
-  "stutteranalyzer.cmd.selfcheck.unknown_freeze_hint": "В последнем отчёте найден Unknown Freeze! Используйте /sa submit last для отправки.",
+  "stutteranalyzer.cmd.selfcheck.unknown_freeze_hint": "В последнем отчёте найдено неклассифицированное зависание! Используйте /sa submit last для отправки.",
 
   "stutteranalyzer.cmd.f3.enabled": "включена",
   "stutteranalyzer.cmd.f3.disabled": "отключена",

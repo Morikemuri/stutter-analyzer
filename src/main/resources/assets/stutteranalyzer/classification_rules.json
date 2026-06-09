@@ -139,6 +139,18 @@
       "description": "A 100-249ms frame or tick hitch with no identifiable cause. May be noticeable but is not a severe freeze."
     },
     {
+      "id": "periodic_scheduled_micro_hitch",
+      "category": "PERIODIC_SCHEDULED_MICRO_HITCH",
+      "severity": "minor",
+      "conditions": [
+        "minor_hitch",
+        "periodic_interval_detected",
+        "scheduler_like_interval"
+      ],
+      "confidence": 0.70,
+      "priority": 20
+    },
+    {
       "id": "unknown_fallback",
       "category": "UNKNOWN_FREEZE",
       "conditions": ["duration_250ms_or_more", "no_match_above_minimum_confidence"],

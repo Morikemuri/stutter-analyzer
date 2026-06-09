@@ -110,6 +110,11 @@
       "Enable debug mode if this recurs frequently.",
       "Check GPU usage and server MSPT around the time of the hitch.",
       "Compare a report with and without recently added mods."
+    ],
+    "PERIODIC_SCHEDULED_MICRO_HITCH": [
+      "Usually harmless. A small hitch repeats at a scheduled interval.",
+      "If you can feel it in gameplay, try disabling overlays, skin/cape polling mods, launcher cosmetic features, or scheduled diagnostic features one by one.",
+      "This is a pattern hint, not a proven root cause."
     ]
   }
 }
