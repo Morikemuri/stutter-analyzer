@@ -218,7 +218,6 @@ public class CommonCommandLogic {
         FreezeReport rep = ReportWriter.lastReport();
         if (rep != null) {
             src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.report_id"), rep.reportId), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.last.use_show", rep.reportId)), false);
         }
         return 1;
     }
@@ -840,12 +839,11 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("Reports:"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa last                - Show latest tracked event/report"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa reports             - List saved reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa show <id>           - Show a saved report"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa delete <id>         - Delete a saved report"), false);
         src.sendSuccess(() -> CommandFeedback.info("Submit:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit preview      - Preview what would be sent"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa preview             - Preview what would be sent"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit preview      - Same as /sa preview"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit              - Send latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit check <id>   - Check report status"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit status       - Show submit status"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit health       - Check submit endpoint health"), false);
         src.sendSuccess(() -> CommandFeedback.info("HUD:"), false);

@@ -31,8 +31,6 @@
 
   "stutteranalyzer.cmd.last.header": "Last Freeze",
   "stutteranalyzer.cmd.last.none": "No freeze events recorded yet.",
-  "stutteranalyzer.cmd.last.use_show": "Use /sa show %s for details.",
-
   "stutteranalyzer.cmd.report.generating": "Generating report from current data...",
   "stutteranalyzer.cmd.report.saved": "Last report: %s",
   "stutteranalyzer.cmd.report.no_data": "No freeze data collected yet. Trigger a freeze or wait for a spike.",

@@ -31,8 +31,6 @@
 
   "stutteranalyzer.cmd.last.header": "Последнее зависание",
   "stutteranalyzer.cmd.last.none": "Зависаний ещё не зафиксировано.",
-  "stutteranalyzer.cmd.last.use_show": "Используйте /sa show %s для подробностей.",
-
   "stutteranalyzer.cmd.report.generating": "Генерация отчёта из текущих данных...",
   "stutteranalyzer.cmd.report.saved": "Последний отчёт: %s",
   "stutteranalyzer.cmd.report.no_data": "Данных о зависаниях ещё нет. Вызовите лаг или дождитесь спайка.",
