@@ -132,6 +132,13 @@ public class ServerCommandRegistrar {
                 .executes(ctx -> CommonCommandLogic.selfCheck(ctx.getSource())))
             .then(Commands.literal("test")
                 .executes(ctx -> CommonCommandLogic.selfCheck(ctx.getSource())))
+            .then(Commands.literal("explain")
+                .then(Commands.argument("category", StringArgumentType.word())
+                    .executes(ctx -> CommonCommandLogic.explainCategory(
+                        ctx.getSource(), StringArgumentType.getString(ctx, "category")))))
+            .then(Commands.literal("optimize")
+                .then(Commands.literal("suggest")
+                    .executes(ctx -> CommonCommandLogic.optimizeSuggest(ctx.getSource()))))
 
             // ── report / export (level 0) ────────────────────────────────────
             .then(Commands.literal("report")

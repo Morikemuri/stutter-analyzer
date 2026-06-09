@@ -128,24 +128,28 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.row.reports_saved"),
             reportsVal), false);
 
+        // Last saved report
+        FreezeReport lastSaved = ReportWriter.lastReport();
+        if (lastSaved != null) {
+            FreezeEvent savedEvt = lastSaved.event;
+            src.sendSuccess(() -> CommandFeedback.row("Last saved report",
+                savedEvt.category().name() + " " + savedEvt.durationMs() + "ms"), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.row("Last saved report", "none"), false);
+        }
+
         // Status notes about report saving
         if (!allSavingDisabled) {
-            if (minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0) {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] No stutters recorded yet. Use /sa debug test minor to verify."), false);
+            boolean nothingTracked = last == null && lastDurationMs == 0
+                && minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0;
+            if (nothingTracked) {
+                src.sendSuccess(() -> CommandFeedback.info("No stutters recorded yet. Use /sa debug test minor to verify."), false);
             } else if (savedReports == 0 && (severeDisplay > 0 || extremeDisplay > 0)) {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Severe/extreme detected but no reports saved - check game log for errors."), false);
             } else if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
                 int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Minor/medium tracked silently; reports start at " + severeMs + "ms."), false);
             }
-        }
-
-        // Last saved report
-        if (savedReports > 0 && last != null) {
-            Component reportVal = Component.literal(last.category().name() + " " + last.durationMs() + "ms");
-            src.sendSuccess(() -> CommandFeedback.row("Last saved report", reportVal), false);
-        } else {
-            src.sendSuccess(() -> CommandFeedback.row("Last saved report", "none"), false);
         }
 
         // Crashes imported
@@ -470,25 +474,19 @@ public class CommonCommandLogic {
     }
 
     public static int showVersion(CommandSourceStack src) {
+        boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
+        String submitDisplay = cfEnabled ? "Cloudflare" : "local";
+        String uploadDisplay = cfEnabled ? "ready" : "local only";
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Version Info"), false);
         src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerMod.MOD_VERSION), false);
-        src.sendSuccess(() -> CommandFeedback.row("Build ID", StutterAnalyzerMod.BUILD_ID), false);
         src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerMod.BUILD_DATE), false);
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge 49.x"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge"), false);
         src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
-
-        // Jar file loaded
-        String jarName = StutterAnalyzerMod.getLoadedJarName();
-        src.sendSuccess(() -> CommandFeedback.row("Jar file", jarName), false);
-
-        // Submission config
-        String endpoint = com.stutteranalyzer.config.SAConfig.INSTANCE.cloudflareEndpoint.get();
-        int timeoutSec = com.stutteranalyzer.config.SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-        src.sendSuccess(() -> CommandFeedback.row("Submit endpoint", endpoint.isBlank() ? "(not set)" : endpoint), false);
-        src.sendSuccess(() -> CommandFeedback.row("Submit timeout", timeoutSec + "s"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Submit impl", "AsyncQueuedSubmitClient v2"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Worker response mode", "stored/queued supported"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Status", "Beta / RC"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Features", "F3 status, alerts, reports, submit"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Submit", submitDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.row("Upload", uploadDisplay), false);
 
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
             src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
@@ -667,9 +665,16 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.row("Cooldown", cooldown + "s"), false);
             src.sendSuccess(() -> CommandFeedback.row("Same-category cooldown", catCooldown + "s"), false);
             src.sendSuccess(() -> CommandFeedback.row("Max alerts/minute", String.valueOf(maxPerMin)), false);
+            src.sendSuccess(() -> CommandFeedback.row("Scheduled micro-hitch cooldown", SAConfig.INSTANCE.scheduledMicroHitchCooldownSeconds.get() + "s"), false);
             src.sendSuccess(() -> CommandFeedback.row("Small stutter aggregate", agg ? "ON" : "OFF"), false);
             src.sendSuccess(() -> CommandFeedback.row("Quiet mode", quiet ? "ON" : "OFF"), false);
         }
+        src.sendSuccess(() -> CommandFeedback.info("Available modes:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor   - show all stutters (noisy)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium  - show medium and higher"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe  - show severe and extreme"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme - show only extreme freezes"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off     - disable chat alerts"), false);
         return 1;
     }
 
@@ -880,18 +885,23 @@ public class CommonCommandLogic {
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("Stutter Analyzer"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa                        - quick status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa status                 - detailed analyzer status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit                 - upload latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit preview         - preview what will be uploaded"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit check <id>      - check GitHub forwarding status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts severe          - show important freeze alerts"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off             - disable chat alerts"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa reports                - list saved reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa last                   - show latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa privacy                - explain what reports contain"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa version                - version and update info"), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa                         - quick status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa status                  - detailed analyzer status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa version                 - version and update info"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa privacy                 - what gets submitted"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts status           - show alert mode and cooldowns"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts minor/medium/severe/extreme - set alert mode"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off              - disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts cooldown <sec>   - set cooldown (5-600s)"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa alerts test             - preview what would be shown"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit                  - send latest report and logs"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit preview          - preview report before sending"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa submit check <id>       - check submission status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa reports                 - list reports"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa last                    - show latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa health                  - subsystem health overview"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa selfcheck               - full self-diagnostic"), false);
         return 1;
     }
 
@@ -903,14 +913,21 @@ public class CommonCommandLogic {
         String spike = last != null
             ? last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms"
             : "none";
+        FreezeReport lastSavedRep = ReportWriter.lastReport();
+        String lastSavedStr = lastSavedRep != null
+            ? lastSavedRep.event.category().name() + " " + lastSavedRep.event.durationMs() + "ms"
+            : "none";
         String uploadStr = cfEnabled ? "ready" : "local only";
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
         src.sendSuccess(() -> CommandFeedback.row("Status", degraded ? "DEGRADED" : "ACTIVE"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Last spike", spike), false);
+        src.sendSuccess(() -> CommandFeedback.row("Last tracked spike", spike), false);
+        src.sendSuccess(() -> CommandFeedback.row("Last saved report", lastSavedStr), false);
         src.sendSuccess(() -> CommandFeedback.row("Reports saved", String.valueOf(reports)), false);
         src.sendSuccess(() -> CommandFeedback.row("Upload", uploadStr), false);
         if (reports > 0) {
             src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit to send latest report."), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa status for details."), false);
         }
         if (degraded) {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Analyzer is degraded. Use /sa status for details."), false);
@@ -1214,6 +1231,22 @@ public class CommonCommandLogic {
             String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("§.", "");
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
         }
+        return 1;
+    }
+
+    public static int explainCategory(CommandSourceStack src, String category) {
+        String key = "explain.stutteranalyzer." + category.toLowerCase();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Category: " + category), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable(key)), false);
+        src.sendSuccess(() -> CommandFeedback.info("Use /sa last to see the full report."), false);
+        return 1;
+    }
+
+    public static int optimizeSuggest(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Optimization Suggestions"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization suggestions are planned but not enabled in this beta."), false);
+        src.sendSuccess(() -> CommandFeedback.info("Future builds may use CurseForge/Modrinth APIs to suggest compatible performance mods."), false);
+        src.sendSuccess(() -> CommandFeedback.info("For now, check the knowledge base report section after /sa submit."), false);
         return 1;
     }
 

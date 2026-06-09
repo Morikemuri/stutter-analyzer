@@ -139,6 +139,68 @@
       "description": "A 100-249ms frame or tick hitch with no identifiable cause. May be noticeable but is not a severe freeze."
     },
     {
+      "id": "periodic_scheduled_micro_hitch",
+      "category": "PERIODIC_SCHEDULED_MICRO_HITCH",
+      "severity": "minor",
+      "conditions": [
+        "minor_hitch",
+        "periodic_interval_detected",
+        "scheduler_like_interval"
+      ],
+      "confidence": 0.70,
+      "priority": 20
+    },
+    {
+      "id": "world_join_load_spike",
+      "category": "WORLD_JOIN_LOAD_SPIKE",
+      "severity": "medium",
+      "conditions": ["recent_event_world_join", "duration_100_to_249ms"],
+      "confidence": 0.72,
+      "priority": 21
+    },
+    {
+      "id": "world_join_render_stall",
+      "category": "WORLD_JOIN_RENDER_STALL",
+      "severity": "severe",
+      "conditions": ["recent_event_world_join", "duration_250ms_or_more", "client_side"],
+      "confidence": 0.75,
+      "priority": 22
+    },
+    {
+      "id": "resource_reload_stall",
+      "category": "RESOURCE_RELOAD_STALL",
+      "severity": "severe",
+      "conditions": ["recent_event_resource_reload", "duration_250ms_or_more"],
+      "confidence": 0.78,
+      "priority": 23
+    },
+    {
+      "id": "chunk_loading_hitch",
+      "category": "CHUNK_LOADING_HITCH",
+      "severity": "medium",
+      "conditions": ["recent_event_chunk_load", "duration_100_to_249ms"],
+      "confidence": 0.65,
+      "priority": 24
+    },
+    {
+      "id": "modpack_startup_stall",
+      "category": "MODPACK_STARTUP_STALL",
+      "severity": "severe",
+      "conditions": ["recent_event_mod_init", "duration_250ms_or_more"],
+      "confidence": 0.68,
+      "priority": 25
+    },
+    {
+      "id": "unknown_extreme_freeze",
+      "category": "UNKNOWN_EXTREME_FREEZE",
+      "severity": "extreme",
+      "conditions": ["duration_1000ms_or_more", "no_match_above_minimum_confidence"],
+      "confidence": 0.0,
+      "priority": 998,
+      "user_facing_name": "Unclassified extreme freeze",
+      "description": "A freeze >= 1000ms with no identifiable cause. Enable debug mode and submit a report."
+    },
+    {
       "id": "unknown_fallback",
       "category": "UNKNOWN_FREEZE",
       "conditions": ["duration_250ms_or_more", "no_match_above_minimum_confidence"],
