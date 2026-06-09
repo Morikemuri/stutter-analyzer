@@ -889,6 +889,8 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit preview      - Preview what would be sent"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit              - Send latest report"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit check <id>   - Check report status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit status       - Show submit status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit health       - Check submit endpoint health"), false);
         src.sendSuccess(() -> CommandFeedback.info("HUD:"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
