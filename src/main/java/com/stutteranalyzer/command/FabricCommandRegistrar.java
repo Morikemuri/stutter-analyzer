@@ -97,6 +97,12 @@ public class FabricCommandRegistrar {
                 .then(Commands.literal("off")   .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
                 .then(Commands.literal("status").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
 
+            // ── show <time> ───────────────────────────────────────────────────
+            .then(Commands.literal("show")
+                .then(Commands.argument("time", StringArgumentType.word())
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.showRecentEvents(
+                        c.getSource(), StringArgumentType.getString(c, "time"))))))
+
             // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
                 .then(Commands.literal("suggest")

@@ -47,6 +47,15 @@ public class FabricClientSetup {
             showAlertMessage(alert);
         }
 
+        // Async optimize scan result
+        java.util.List<net.minecraft.network.chat.Component> scanMsgs =
+            com.stutteranalyzer.optimize.OptimizeInstaller.consumePendingScanMessages();
+        if (scanMsgs != null && client.player != null) {
+            for (net.minecraft.network.chat.Component c : scanMsgs) {
+                client.player.sendSystemMessage(c);
+            }
+        }
+
         long verboseMs = FreezeDetector.consumeVerboseNotification();
         if (verboseMs > 0 && VerboseMode.isEnabled() && !QuietMode.isEnabled()) {
             int severe  = SAConfig.INSTANCE.severeFrameMs.get();
