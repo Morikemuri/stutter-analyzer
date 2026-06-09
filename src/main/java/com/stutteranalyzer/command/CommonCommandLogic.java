@@ -866,35 +866,35 @@ public class CommonCommandLogic {
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Help"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Main:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa status              - Show analyzer status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa version             - Show version and loader info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa privacy             - Show report privacy info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Reports:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa last                - Show latest tracked event/report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa show <time>         - Show recent non-minor events, e.g. /sa show 5m"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa reports             - List saved reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa delete <id>         - Delete a saved report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Submit:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa preview             - Preview what would be sent"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit preview      - Same as /sa preview"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit              - Send latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit status       - Show submit status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit health       - Check report server"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Alerts:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts status       - Show alert settings"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor        - Show all stutters"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium       - Show medium and higher"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe       - Show severe and extreme"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme      - Show only extreme freezes"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off          - Disable chat alerts"), false);
-        src.sendSuccess(() -> CommandFeedback.info("HUD:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Other:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Scan optimization options in background"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize install    - Install latest plan after warning"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.help.header")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.main")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.status")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.version")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.privacy")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.reports")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.last")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.show")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.reports")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.delete")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.submit")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.preview")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.submit_preview")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.submit")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.submit_status")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.submit_health")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.alerts")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_status")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_minor")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_medium")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_severe")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_extreme")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_off")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.hud")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.f3")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.overlay")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.other")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.optimize_suggest")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.optimize_install")), false);
         return 1;
     }
 
@@ -1213,10 +1213,12 @@ public class CommonCommandLogic {
 
     public static int optimizeSuggest(CommandSourceStack src) {
         if (com.stutteranalyzer.optimize.OptimizeInstaller.isScanning()) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization scan already in progress..."), false);
+            src.sendSuccess(() -> CommandFeedback.info(
+                Component.translatable("stutteranalyzer.optimize.scan.in_progress")), false);
             return 1;
         }
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization scan started in background..."), false);
+        src.sendSuccess(() -> CommandFeedback.info(
+            Component.translatable("stutteranalyzer.optimize.scan.started")), false);
 
         // Fast synchronous state collection
         java.util.Set<String> installedIds = new java.util.HashSet<>();
@@ -1241,7 +1243,8 @@ public class CommonCommandLogic {
             } catch (Throwable t) {
                 StutterAnalyzerMod.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(
-                    java.util.List.of(CommandFeedback.info("[SA] Optimization scan failed: " + t.getMessage())));
+                    java.util.List.of(CommandFeedback.info(
+                        Component.translatable("stutteranalyzer.optimize.scan.failed", t.getMessage()))));
             } finally {
                 long elapsed = System.currentTimeMillis() - start;
                 if (elapsed > 2000) {
@@ -1260,7 +1263,8 @@ public class CommonCommandLogic {
             return 1;
         } catch (Throwable t) {
             StutterAnalyzerMod.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Install command failed: " + t.getMessage()), false);
+            src.sendSuccess(() -> CommandFeedback.info(
+            Component.translatable("stutteranalyzer.optimize.install_failed_cmd", t.getMessage())), false);
             return 0;
         }
     }
@@ -1277,30 +1281,43 @@ public class CommonCommandLogic {
         List<Component> out = new ArrayList<>();
         String loaderName = plan.loader.isEmpty() ? "unknown"
             : plan.loader.substring(0, 1).toUpperCase() + plan.loader.substring(1);
-        out.add(CommandFeedback.header("[SA] Optimization scan for MC " + plan.mcVersion + " / " + loaderName));
+
+        out.add(CommandFeedback.header(Component.translatable("stutteranalyzer.optimize.scan.title",
+            plan.mcVersion, loaderName)));
         if (isServer) {
-            out.add(CommandFeedback.info("[SA] Server-side optimization suggestions only."));
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.scan.server_mode")));
         }
-        String optLabel = plan.alreadyInstalled.isEmpty() ? "none" : String.join(", ", plan.alreadyInstalled);
-        out.add(CommandFeedback.info("Detected: " + plan.totalInstalledCount + " mods installed"));
-        out.add(CommandFeedback.info("Optimization mods: " + optLabel));
+        if (plan.alreadyInstalled.isEmpty()) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line_none",
+                plan.totalInstalledCount)));
+        } else {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line",
+                plan.totalInstalledCount, String.join(", ", plan.alreadyInstalled))));
+        }
         if (plan.isEmpty()) {
-            out.add(CommandFeedback.info(plan.alreadyInstalled.isEmpty()
-                ? "[SA] No safe compatible optimization suggestions found for this loader/version."
-                : "[SA] Your modpack already has the key optimization mods installed."));
+            out.add(CommandFeedback.info(Component.translatable(plan.alreadyInstalled.isEmpty()
+                ? "stutteranalyzer.optimize.no_suggestions"
+                : "stutteranalyzer.optimize.already_optimized")));
             return out;
         }
-        out.add(CommandFeedback.info("Recommended install plan (" + plan.recommended.size() + " mods):"));
-        for (int i = 0; i < plan.recommended.size(); i++) {
+        Component riskLabel = Component.translatable(
+            "stutteranalyzer.optimize.risk." + plan.risk.name().toLowerCase());
+        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.plan_risk",
+            plan.recommended.size(), riskLabel)));
+        int shown = Math.min(plan.recommended.size(), 5);
+        for (int i = 0; i < shown; i++) {
             com.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
             int num = i + 1;
-            out.add(CommandFeedback.info("  " + num + ". " + mod.displayName + " - " + mod.reason));
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mod_entry",
+                num, mod.displayName, mod.reason)));
         }
-        out.add(CommandFeedback.info("Risk: " + plan.risk.label()));
-        if (!plan.riskReason.isEmpty()) {
-            out.add(CommandFeedback.info("Reason: " + plan.riskReason));
+        int remaining = plan.recommended.size() - shown;
+        if (remaining > 0) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.more", remaining)));
         }
-        out.add(CommandFeedback.info("Run /sa optimize install to review warning and install."));
+        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.run_install")));
+        StutterAnalyzerMod.LOGGER.info("[SA] Full optimization plan: {}",
+            plan.recommended.stream().map(m -> m.displayName).collect(Collectors.joining(", ")));
         return out;
     }
 
@@ -1308,7 +1325,7 @@ public class CommonCommandLogic {
         int seconds = parseTimeString(timeStr);
         if (seconds <= 0) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Use /sa show 5m, /sa show 10m, or /sa show 1h."), false);
+                Component.translatable("stutteranalyzer.show.invalid_time")), false);
             return 0;
         }
         RecentEventBuffer buffer = MetricsCollector.eventBuffer();
@@ -1326,14 +1343,14 @@ public class CommonCommandLogic {
 
         if (relevant.isEmpty()) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] No medium/severe/extreme events in the last " + timeLabel + "."), false);
+                Component.translatable("stutteranalyzer.show.none", timeLabel)), false);
             return 1;
         }
 
         int total = relevant.size();
         int limit = 10;
         src.sendSuccess(() -> CommandFeedback.header(
-            "[SA] Events in last " + timeLabel + ", excluding minor:"), false);
+            Component.translatable("stutteranalyzer.show.header", timeLabel)), false);
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
         List<RecentEventBuffer.GameEvent> toShow = relevant.subList(Math.max(0, total - limit), total);
@@ -1344,15 +1361,16 @@ public class CommonCommandLogic {
             String line = num + ". " + e.detail + ", " + timeStr2;
             FreezeCategory cat = categoryFromDetail(e.detail);
             long ms = parseMsFromDetail(e.detail);
+            Component visibleMsg = Component.literal(line);
             Component msg = (cat != null)
-                ? com.stutteranalyzer.client.AlertHoverText.build(cat, ms, line)
-                : CommandFeedback.info(line);
+                ? com.stutteranalyzer.client.AlertHoverText.build(cat, ms, visibleMsg)
+                : CommandFeedback.info(visibleMsg);
             src.sendSuccess(() -> msg, false);
         }
 
         if (total > limit) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Showing " + limit + " of " + total + " events. Use /sa preview for full report."), false);
+                Component.translatable("stutteranalyzer.show.truncated", limit, total)), false);
         }
         return 1;
     }

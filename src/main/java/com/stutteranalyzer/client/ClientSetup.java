@@ -154,36 +154,35 @@ public class ClientSetup {
         boolean isScheduled = event.category() == FreezeCategory.PERIODIC_SCHEDULED_MICRO_HITCH;
         String catName = event.category().name();
 
-        String msg;
+        Component msgComp;
         boolean showHint = false;
         if (ms >= extreme) {
-            msg = "[SA] Extreme freeze detected: " + catName + " " + ms + "ms";
+            msgComp = Component.translatable("stutteranalyzer.alert.extreme", catName, ms);
             showHint = true;
         } else if (ms >= severe) {
-            msg = isUnknown ? "[SA] Unknown freeze detected: " + ms + "ms"
-                            : "[SA] Freeze detected: " + catName + " " + ms + "ms";
+            msgComp = isUnknown
+                ? Component.translatable("stutteranalyzer.alert.severe_unknown", ms)
+                : Component.translatable("stutteranalyzer.alert.severe", catName, ms);
             showHint = true;
         } else if (ms >= medium) {
-            msg = "[SA] Medium stutter detected: " + catName + " " + ms + "ms";
+            msgComp = Component.translatable("stutteranalyzer.alert.medium", catName, ms);
         } else if (isScheduled) {
             FreezeEvent.PeriodicMeta meta = event.periodicMeta();
-            String periodStr = meta != null ? "~" + (meta.periodMsEstimate() / 1000L) + "s" : "unknown";
-            msg = "[SA] Scheduled minor micro-hitch: ~" + ms + "ms every " + periodStr + ". Usually harmless.";
+            String periodStr = meta != null ? "~" + (meta.periodMsEstimate() / 1000L) + "s" : "?";
+            msgComp = Component.translatable("stutteranalyzer.alert.periodic_scheduled", ms, periodStr);
         } else if (isPeriodic) {
-            msg = "[SA] Minor micro-hitch detected: periodic " + ms + "ms hitch";
+            msgComp = Component.translatable("stutteranalyzer.alert.periodic_minor", ms);
         } else {
-            msg = "[SA] Minor stutter detected: " + catName + " " + ms + "ms";
+            msgComp = Component.translatable("stutteranalyzer.alert.minor", catName, ms);
         }
 
-        mc.player.sendSystemMessage(AlertHoverText.build(event.category(), ms, msg));
+        mc.player.sendSystemMessage(AlertHoverText.build(event.category(), ms, msgComp));
 
         if (showHint && info.reportSaved() && SAConfig.INSTANCE.alertShowReportHint.get()) {
-            String hint = isUnknown
-                ? "[SA] Report saved. Use /sa submit to help improve detection."
-                : (ms >= extreme
-                    ? "[SA] Report saved. Use /sa submit to send logs."
-                    : "[SA] Report saved. Use /sa submit to send diagnostics.");
-            mc.player.sendSystemMessage(Component.literal(hint).withStyle(ChatFormatting.YELLOW));
+            String hintKey = isUnknown
+                ? "stutteranalyzer.alert.hint.unknown"
+                : (ms >= extreme ? "stutteranalyzer.alert.hint.extreme" : "stutteranalyzer.alert.hint.severe");
+            mc.player.sendSystemMessage(Component.translatable(hintKey).withStyle(ChatFormatting.YELLOW));
         }
     }
 
@@ -196,9 +195,8 @@ public class ClientSetup {
                 && latestVersion.equals(UpdateChecker.getLastNotifiedVersion())) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.sendSystemMessage(Component.literal(
-            "[SA] Update available: " + latestVersion + ". Use /sa update link for download info."
-        ).withStyle(ChatFormatting.GREEN));
+        mc.player.sendSystemMessage(
+            Component.translatable("stutteranalyzer.alert.update", latestVersion).withStyle(ChatFormatting.GREEN));
         UpdateChecker.markNotified(latestVersion);
     }
 
