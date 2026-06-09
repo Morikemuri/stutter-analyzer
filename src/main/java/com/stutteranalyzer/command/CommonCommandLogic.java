@@ -1105,6 +1105,9 @@ public class CommonCommandLogic {
     }
 
     public static int f3Status(CommandSourceStack src) {
+        if (!SAFabricPlatform.isClient()) {
+            src.sendFailure(CommandFeedback.clientOnly()); return 0;
+        }
         boolean enabled = com.stutteranalyzer.client.DebugHudStatusProvider.isF3Enabled();
         String pos = SAConfig.INSTANCE.f3LinePosition.get();
         src.sendSuccess(() -> CommandFeedback.row("F3 status line", enabled ? "ON" : "OFF"), false);
@@ -1113,6 +1116,9 @@ public class CommonCommandLogic {
     }
 
     public static int f3On(CommandSourceStack src) {
+        if (!SAFabricPlatform.isClient()) {
+            src.sendFailure(CommandFeedback.clientOnly()); return 0;
+        }
         com.stutteranalyzer.client.DebugHudStatusProvider.setF3Enabled(true);
         SAConfig.INSTANCE.debugHudEnabled.set(true);
         src.sendSuccess(() -> CommandFeedback.success("[SA] F3 status line: ON"), false);
@@ -1120,6 +1126,9 @@ public class CommonCommandLogic {
     }
 
     public static int f3Off(CommandSourceStack src) {
+        if (!SAFabricPlatform.isClient()) {
+            src.sendFailure(CommandFeedback.clientOnly()); return 0;
+        }
         com.stutteranalyzer.client.DebugHudStatusProvider.setF3Enabled(false);
         SAConfig.INSTANCE.debugHudEnabled.set(false);
         src.sendSuccess(() -> CommandFeedback.info("[SA] F3 status line: OFF"), false);
@@ -1127,6 +1136,9 @@ public class CommonCommandLogic {
     }
 
     public static int f3Toggle(CommandSourceStack src) {
+        if (!SAFabricPlatform.isClient()) {
+            src.sendFailure(CommandFeedback.clientOnly()); return 0;
+        }
         boolean current = com.stutteranalyzer.client.DebugHudStatusProvider.isF3Enabled();
         if (current) return f3Off(src);
         return f3On(src);
