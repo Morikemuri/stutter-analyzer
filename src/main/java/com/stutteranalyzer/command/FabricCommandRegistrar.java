@@ -341,7 +341,9 @@ public class FabricCommandRegistrar {
             .then(Commands.literal("overlay")
                 .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })
                 .then(Commands.literal("on").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
-                .then(Commands.literal("off").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
+                .then(Commands.literal("off").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
+                .then(Commands.literal("toggle").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
+                .then(Commands.literal("status").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
 
             .then(Commands.literal("client")
                 .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })
