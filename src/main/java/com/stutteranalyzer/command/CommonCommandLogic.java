@@ -588,30 +588,23 @@ public class CommonCommandLogic {
     public static int alertsSetMode(CommandSourceStack src, String modeName) {
         AlertMode mode = AlertMode.fromString(modeName);
         SAConfig.INSTANCE.alertMode.set(mode.name());
-        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
-        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
-        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
-        switch (mode) {
-            case OFF -> {
-                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: OFF"), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
-            }
-            case MINOR -> {
-                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: MINOR"), false);
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
-            }
-            case MEDIUM -> {
-                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: MEDIUM"), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
-            }
-            case SEVERE -> {
-                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: SEVERE"), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
-            }
-            case EXTREME -> {
-                src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: EXTREME"), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
-            }
+        if (mode == AlertMode.OFF) {
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: OFF"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
+        } else if (mode == AlertMode.MINOR) {
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: MINOR"), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
+        } else if (mode == AlertMode.MEDIUM) {
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: MEDIUM"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
+        } else if (mode == AlertMode.SEVERE) {
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: SEVERE"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
+        } else if (mode == AlertMode.EXTREME) {
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: EXTREME"), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: " + mode.name()), false);
         }
         return 1;
     }
