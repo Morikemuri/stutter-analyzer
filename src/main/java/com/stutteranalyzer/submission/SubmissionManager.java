@@ -111,8 +111,8 @@ public class SubmissionManager {
             return 1;
         }
         if (!isCloudflareEnabled()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cloudflare endpoint not configured. Use /sa admin submit mode cloudflare to fix."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] For manual local save, use /sa admin submit local."), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload endpoint not configured."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit status to check submission configuration."), false);
             return 1;
         }
         String markdown = report.toMarkdown();
@@ -166,8 +166,7 @@ public class SubmissionManager {
             String rid = report.reportId;
             src.sendSuccess(() -> CommandFeedback.success("[SA] Report prepared: " + rid), false);
             src.sendSuccess(() -> CommandFeedback.info("[SA] Review: " + mdPath), false);
-            src.sendSuccess(() -> CommandFeedback.success("[SA] Run /sa submit yes to upload."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Advanced: /sa submit confirm " + rid), false);
+            src.sendSuccess(() -> CommandFeedback.success("[SA] Run /sa submit to upload."), false);
         } catch (Exception e) {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Could not save prepared report: " + e.getMessage()), false);
         }
@@ -189,7 +188,7 @@ public class SubmissionManager {
         }
         if (pending == null) {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] No prepared report found with ID: " + preparedId), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit prepare last first."), false);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit preview first."), false);
             return 1;
         }
         final PendingSubmission sub = pending;
@@ -245,7 +244,7 @@ public class SubmissionManager {
             long elapsed = (System.currentTimeMillis() - uploadStartMs) / 1000L;
             src.sendSuccess(() -> CommandFeedback.row("Started", elapsed + "s ago"), false);
             if (elapsed > timeoutSec + 5) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload appears stuck. Use /sa submit reset."), false);
+                src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload appears stuck. Try again later or restart."), false);
             }
         } else {
             String uid = currentUploadId;
@@ -280,15 +279,14 @@ public class SubmissionManager {
         SAConfig.INSTANCE.openIssueUrlOnClient.set(false);
         SAConfig.INSTANCE.copyIssueBodyToClipboard.set(false);
         src.sendSuccess(() -> CommandFeedback.success("[SA] Submission mode set to Cloudflare."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] /sa submit last will upload to the report server, not open GitHub."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] /sa submit will upload to the report server."), false);
         return 1;
     }
 
     public static int submitModeLocal(CommandSourceStack src) {
         SAConfig.INSTANCE.submissionTarget.set("local");
         src.sendSuccess(() -> CommandFeedback.warn("[SA] Submission mode set to local."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] /sa submit last will save locally only."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit local last for the manual GitHub fallback flow."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit status to check submission configuration."), false);
         return 1;
     }
 
@@ -299,11 +297,11 @@ public class SubmissionManager {
         boolean clipboard = SAConfig.INSTANCE.copyIssueBodyToClipboard.get();
         src.sendSuccess(() -> CommandFeedback.header("[SA] Submit mode"), false);
         src.sendSuccess(() -> CommandFeedback.row("Current mode", cfEnabled ? "cloudflare" : target), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit last routes to", cfEnabled ? "CloudflareSubmitCommand" : "ManualGitHubIssueFlow"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit routes to", cfEnabled ? "CloudflareSubmitCommand" : "LocalFallback"), false);
         src.sendSuccess(() -> CommandFeedback.row("Browser opening", browserOpen ? "enabled" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("Clipboard issue body", clipboard ? "enabled" : "disabled"), false);
         if (!cfEnabled) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cloudflare mode is not active. Run /sa submit mode cloudflare to fix."), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload endpoint not configured. Use /sa submit status."), false);
         }
         return 1;
     }
@@ -317,13 +315,8 @@ public class SubmissionManager {
 
         String pendingInfo = lastPendingId != null ? lastPendingId : "none";
         src.sendSuccess(() -> CommandFeedback.header("[SA] Submit routing"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit last",
-            cfEnabled ? "CloudflareSubmitCommand.prepareOrSubmitLatest" : "ManualGitHubIssueFlow (WRONG - run /sa submit mode cloudflare)"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit yes", "CloudflareSubmitCommand.confirmLatestPrepared"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit send", "CloudflareSubmitCommand.confirmLatestPrepared"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit confirm last", "CloudflareSubmitCommand.confirmLatestPrepared"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit confirm <prepared_id>", "CloudflareSubmitCommand.confirmPrepared"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit local last", "LocalManualSubmissionCommand"), false);
+        src.sendSuccess(() -> CommandFeedback.row("/sa submit",
+            cfEnabled ? "CloudflareSubmitCommand" : "LocalFallback"), false);
         src.sendSuccess(() -> CommandFeedback.row("browser opening", browserOpen ? "enabled (WRONG)" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("clipboard issue body", clipboard ? "enabled (WRONG)" : "disabled"), false);
         src.sendSuccess(() -> CommandFeedback.row("endpoint", cfEnabled ? endpoint : "not set"), false);
@@ -469,7 +462,7 @@ public class SubmissionManager {
                 id = last.reportId;
             } else {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] No prepared submission is waiting for confirmation."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit last first."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit first."), false);
                 return 1;
             }
         }
@@ -1364,7 +1357,7 @@ public class SubmissionManager {
             "Please attach or paste the contents of `" + report.reportId + ".md`" +
             " from `config/stutter-analyzer/submissions/`.\n\n" +
             "---\n" +
-            "*Prepared via StutterAnalyzer /sa submit local last*\n";
+            "*Prepared via StutterAnalyzer*\n";
     }
 
     private static String buildCrashMarkdown(CrashEvent ce) {
@@ -1677,7 +1670,7 @@ public class SubmissionManager {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] " + outPath), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Payload size: " + Math.max(1, payload.length() / 1024) + " KB"), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] SHA-256: " + prepared.sha256()), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa submit validate-payload to POST to Worker for schema check."), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit health to check the upload endpoint."), false);
             } catch (Exception e) {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Export failed: " + e.getMessage()), false);
             }
@@ -1725,7 +1718,7 @@ public class SubmissionManager {
                 // POST to /api/validate-report
                 String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
                 if (endpoint == null || endpoint.isBlank()) {
-                    src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Run /sa submit config-reset"), false);
+                    src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Use /sa submit status."), false);
                     return;
                 }
                 String validateUrl = endpoint.replaceFirst("/api/submit-report$", "") + "/api/validate-report";
@@ -1776,7 +1769,7 @@ public class SubmissionManager {
     public static int netHealth(CommandSourceStack src) {
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         if (endpoint == null || endpoint.isBlank()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Run /sa submit config-reset"), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Use /sa submit status."), false);
             return 1;
         }
         String healthUrl = endpoint.replaceFirst("/api/.*$", "") + "/api/health";
@@ -1824,7 +1817,7 @@ public class SubmissionManager {
     public static int netEcho(CommandSourceStack src) {
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         if (endpoint == null || endpoint.isBlank()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Run /sa submit config-reset"), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Use /sa submit status."), false);
             return 1;
         }
         String echoUrl = endpoint.replaceFirst("/api/.*$", "") + "/api/echo";
@@ -1877,7 +1870,7 @@ public class SubmissionManager {
     public static int netPostMinimal(CommandSourceStack src) {
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         if (endpoint == null || endpoint.isBlank()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Run /sa submit config-reset"), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Use /sa submit status."), false);
             return 1;
         }
         String uploadId = generateUploadId();
@@ -1947,7 +1940,7 @@ public class SubmissionManager {
             } catch (java.net.http.HttpTimeoutException e) {
                 lastNetMinimalResult = "timeout";
                 src.sendSuccess(() -> CommandFeedback.warn("- TIMEOUT: POST timed out after " + timeoutSec + "s"), false);
-                src.sendSuccess(() -> CommandFeedback.info("- Run /sa submit config-reset to verify endpoint/timeout"), false);
+                src.sendSuccess(() -> CommandFeedback.info("- Use /sa submit status to check configuration"), false);
             } catch (Exception e) {
                 lastNetMinimalResult = "error: " + e.getClass().getSimpleName();
                 src.sendSuccess(() -> CommandFeedback.warn("- Error: " + e.getClass().getSimpleName() + " - " + e.getMessage()), false);
@@ -1967,7 +1960,7 @@ public class SubmissionManager {
         src.sendSuccess(() -> CommandFeedback.row("Last health", lastNetHealthResult), false);
         src.sendSuccess(() -> CommandFeedback.row("Last echo", lastNetEchoResult), false);
         src.sendSuccess(() -> CommandFeedback.row("Last post-minimal", lastNetMinimalResult), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Run /sa net health, /sa net echo java/urlconn, /sa net post-minimal java/urlconn"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit health to check the upload endpoint."), false);
         return 1;
     }
 
@@ -1979,7 +1972,7 @@ public class SubmissionManager {
     private static int netEchoWithTransport(CommandSourceStack src, String transport) {
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         if (endpoint == null || endpoint.isBlank()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Run /sa submit config-reset"), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Use /sa submit status."), false);
             return 1;
         }
         String echoUrl = endpoint.replaceFirst("/api/.*$", "") + "/api/echo";
@@ -2034,7 +2027,7 @@ public class SubmissionManager {
     private static int netPostMinimalWithTransport(CommandSourceStack src, String transport) {
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         if (endpoint == null || endpoint.isBlank()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Run /sa submit config-reset"), false);
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] No endpoint configured. Use /sa submit status."), false);
             return 1;
         }
         String uploadId = generateUploadId();
