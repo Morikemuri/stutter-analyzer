@@ -99,6 +99,12 @@ public class ServerCommandRegistrar {
                 .then(Commands.literal("off")   .executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
                 .then(Commands.literal("status").executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
 
+            // ── show <time> ───────────────────────────────────────────────────
+            .then(Commands.literal("show")
+                .then(Commands.argument("time", StringArgumentType.word())
+                    .executes(ctx -> CommonCommandLogic.showRecentEvents(
+                        ctx.getSource(), StringArgumentType.getString(ctx, "time")))))
+
             // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
                 .then(Commands.literal("suggest")

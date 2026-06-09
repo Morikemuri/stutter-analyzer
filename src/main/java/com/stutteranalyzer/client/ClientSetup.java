@@ -65,6 +65,18 @@ public class ClientSetup {
             showAlertMessage(alert);
         }
 
+        // Async optimize scan result
+        java.util.List<net.minecraft.network.chat.Component> scanMsgs =
+            com.stutteranalyzer.optimize.OptimizeInstaller.consumePendingScanMessages();
+        if (scanMsgs != null) {
+            Minecraft mc2 = Minecraft.getInstance();
+            if (mc2.player != null) {
+                for (net.minecraft.network.chat.Component c : scanMsgs) {
+                    mc2.player.sendSystemMessage(c);
+                }
+            }
+        }
+
         // Verbose mode: show minor/medium stutters in chat (suppressed by quiet mode)
         long verboseMs = FreezeDetector.consumeVerboseNotification();
         if (verboseMs > 0 && VerboseMode.isEnabled() && !QuietMode.isEnabled()) {

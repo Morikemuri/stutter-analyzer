@@ -32,6 +32,28 @@ public class OptimizeInstaller {
     private static volatile Path currentModsDir;
     private static volatile long confirmRequestedAt = 0;
 
+    // Async scan state
+    private static volatile boolean scanning = false;
+    private static volatile java.util.List<net.minecraft.network.chat.Component> pendingScanMessages = null;
+
+    public static boolean isScanning() { return scanning; }
+
+    public static void startScan() {
+        scanning = true;
+        pendingScanMessages = null;
+    }
+
+    public static void completeScan(java.util.List<net.minecraft.network.chat.Component> messages) {
+        pendingScanMessages = messages;
+        scanning = false;
+    }
+
+    public static java.util.List<net.minecraft.network.chat.Component> consumePendingScanMessages() {
+        java.util.List<net.minecraft.network.chat.Component> msgs = pendingScanMessages;
+        if (msgs != null) pendingScanMessages = null;
+        return msgs;
+    }
+
     public static void setPlan(OptimizePlan plan, Path modsDir) {
         currentPlan = plan;
         currentModsDir = modsDir;

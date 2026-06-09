@@ -149,6 +149,12 @@ public class ClientCommandRegistrar {
                         return 1;
                     })))
 
+            // ── show <time> ───────────────────────────────────────────────────
+            .then(Commands.literal("show")
+                .then(Commands.argument("time", StringArgumentType.word())
+                    .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.showRecentEvents(
+                        ctx.getSource(), StringArgumentType.getString(ctx, "time"))))))
+
             // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
                 .then(Commands.literal("suggest")

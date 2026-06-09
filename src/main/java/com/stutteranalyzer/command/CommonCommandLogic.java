@@ -29,11 +29,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.api.distmarker.Dist;
 
+import com.stutteranalyzer.events.RecentEventBuffer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Server-safe command logic shared between /stutteranalyzer and /sa.
@@ -867,6 +873,7 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("  /sa privacy             - Show report privacy info"), false);
         src.sendSuccess(() -> CommandFeedback.info("Reports:"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa last                - Show latest tracked event/report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa show <time>         - Show recent non-minor events, e.g. /sa show 5m"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa reports             - List saved reports"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa delete <id>         - Delete a saved report"), false);
         src.sendSuccess(() -> CommandFeedback.info("Submit:"), false);
@@ -886,8 +893,8 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
         src.sendSuccess(() -> CommandFeedback.info("Other:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Scan and suggest compatible optimization mods"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize install    - Install latest plan after confirmation"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Scan optimization options in background"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize install    - Install latest plan after warning"), false);
         return 1;
     }
 
@@ -1205,27 +1212,46 @@ public class CommonCommandLogic {
     }
 
     public static int optimizeSuggest(CommandSourceStack src) {
-        try {
-            java.util.Set<String> installedIds = new java.util.HashSet<>();
-            net.minecraftforge.fml.ModList.get().forEachModContainer(
-                (id, c) -> installedIds.add(id));
-
-            java.nio.file.Path gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get();
-            String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
-            boolean isServer = !(FMLEnvironment.dist == Dist.CLIENT);
-
-            com.stutteranalyzer.optimize.OptimizePlan plan =
-                com.stutteranalyzer.optimize.OptimizeAssistant.buildPlan(
-                    installedIds, gameDir, "forge", mcVersion, isServer);
-
-            com.stutteranalyzer.optimize.OptimizeInstaller.setPlan(plan, gameDir.resolve("mods"));
-            displayOptimizePlan(src, plan, isServer);
+        if (com.stutteranalyzer.optimize.OptimizeInstaller.isScanning()) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization scan already in progress..."), false);
             return 1;
-        } catch (Throwable t) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] optimizeSuggest failed: {}", t.getMessage(), t);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization scan failed: " + t.getMessage()), false);
-            return 0;
         }
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization scan started in background..."), false);
+
+        // Fast synchronous state collection
+        java.util.Set<String> installedIds = new java.util.HashSet<>();
+        try {
+            net.minecraftforge.fml.ModList.get().forEachModContainer((id, c) -> installedIds.add(id));
+        } catch (Throwable t) {
+            StutterAnalyzerMod.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
+        }
+        java.nio.file.Path gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get();
+        String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
+        boolean isServer = !(FMLEnvironment.dist == Dist.CLIENT);
+
+        com.stutteranalyzer.optimize.OptimizeInstaller.startScan();
+        Thread worker = new Thread(() -> {
+            long start = System.currentTimeMillis();
+            try {
+                com.stutteranalyzer.optimize.OptimizePlan plan =
+                    com.stutteranalyzer.optimize.OptimizeAssistant.buildPlan(
+                        installedIds, gameDir, "forge", mcVersion, isServer);
+                com.stutteranalyzer.optimize.OptimizeInstaller.setPlan(plan, gameDir.resolve("mods"));
+                com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(buildPlanDisplay(plan, isServer));
+            } catch (Throwable t) {
+                StutterAnalyzerMod.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
+                com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(
+                    java.util.List.of(CommandFeedback.info("[SA] Optimization scan failed: " + t.getMessage())));
+            } finally {
+                long elapsed = System.currentTimeMillis() - start;
+                if (elapsed > 2000) {
+                    StutterAnalyzerMod.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
+                }
+            }
+        }, "SA-OptimizeScan");
+        worker.setDaemon(true);
+        worker.start();
+        return 1;
     }
 
     public static int optimizeInstall(CommandSourceStack src) {
@@ -1242,49 +1268,124 @@ public class CommonCommandLogic {
     private static void displayOptimizePlan(CommandSourceStack src,
                                              com.stutteranalyzer.optimize.OptimizePlan plan,
                                              boolean isServer) {
+        for (Component c : buildPlanDisplay(plan, isServer)) {
+            src.sendSuccess(() -> c, false);
+        }
+    }
+
+    static List<Component> buildPlanDisplay(com.stutteranalyzer.optimize.OptimizePlan plan, boolean isServer) {
+        List<Component> out = new ArrayList<>();
         String loaderName = plan.loader.isEmpty() ? "unknown"
             : plan.loader.substring(0, 1).toUpperCase() + plan.loader.substring(1);
-        src.sendSuccess(() -> CommandFeedback.header(
-            "[SA] Optimization scan for MC " + plan.mcVersion + " / " + loaderName), false);
-
+        out.add(CommandFeedback.header("[SA] Optimization scan for MC " + plan.mcVersion + " / " + loaderName));
         if (isServer) {
-            src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Server-side optimization suggestions only."), false);
+            out.add(CommandFeedback.info("[SA] Server-side optimization suggestions only."));
         }
-
-        int optCount = plan.alreadyInstalled.size();
-        String optLabel = optCount == 0 ? "none" : String.join(", ", plan.alreadyInstalled);
-        src.sendSuccess(() -> CommandFeedback.info(
-            "Detected: " + plan.totalInstalledCount + " mods installed"), false);
-        src.sendSuccess(() -> CommandFeedback.info(
-            "Optimization mods: " + optLabel), false);
-
+        String optLabel = plan.alreadyInstalled.isEmpty() ? "none" : String.join(", ", plan.alreadyInstalled);
+        out.add(CommandFeedback.info("Detected: " + plan.totalInstalledCount + " mods installed"));
+        out.add(CommandFeedback.info("Optimization mods: " + optLabel));
         if (plan.isEmpty()) {
-            if (plan.alreadyInstalled.isEmpty()) {
-                src.sendSuccess(() -> CommandFeedback.info(
-                    "[SA] No safe compatible optimization suggestions found for this loader/version."), false);
-            } else {
-                src.sendSuccess(() -> CommandFeedback.info(
-                    "[SA] Your modpack already has the key optimization mods installed."), false);
-            }
-            return;
+            out.add(CommandFeedback.info(plan.alreadyInstalled.isEmpty()
+                ? "[SA] No safe compatible optimization suggestions found for this loader/version."
+                : "[SA] Your modpack already has the key optimization mods installed."));
+            return out;
         }
-
-        src.sendSuccess(() -> CommandFeedback.info(
-            "Recommended install plan (" + plan.recommended.size() + " mods):"), false);
+        out.add(CommandFeedback.info("Recommended install plan (" + plan.recommended.size() + " mods):"));
         for (int i = 0; i < plan.recommended.size(); i++) {
             com.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
             int num = i + 1;
+            out.add(CommandFeedback.info("  " + num + ". " + mod.displayName + " - " + mod.reason));
+        }
+        out.add(CommandFeedback.info("Risk: " + plan.risk.label()));
+        if (!plan.riskReason.isEmpty()) {
+            out.add(CommandFeedback.info("Reason: " + plan.riskReason));
+        }
+        out.add(CommandFeedback.info("Run /sa optimize install to review warning and install."));
+        return out;
+    }
+
+    public static int showRecentEvents(CommandSourceStack src, String timeStr) {
+        int seconds = parseTimeString(timeStr);
+        if (seconds <= 0) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "  " + num + ". " + mod.displayName + " - " + mod.reason), false);
+                "[SA] Use /sa show 5m, /sa show 10m, or /sa show 1h."), false);
+            return 0;
+        }
+        RecentEventBuffer buffer = MetricsCollector.eventBuffer();
+        List<RecentEventBuffer.GameEvent> all = buffer.recentSeconds(seconds);
+        int medium = SAConfig.INSTANCE.mediumFrameMs.get();
+
+        List<RecentEventBuffer.GameEvent> relevant = all.stream()
+            .filter(e -> e.type == RecentEventBuffer.EventType.FREEZE_DETECTED
+                      || e.type == RecentEventBuffer.EventType.STUTTER_DETECTED)
+            .filter(e -> parseMsFromDetail(e.detail) >= medium)
+            .sorted(Comparator.comparing(e -> e.timestamp))
+            .collect(Collectors.toList());
+
+        String timeLabel = seconds >= 3600 ? (seconds / 3600) + "h" : (seconds / 60) + "m";
+
+        if (relevant.isEmpty()) {
+            src.sendSuccess(() -> CommandFeedback.info(
+                "[SA] No medium/severe/extreme events in the last " + timeLabel + "."), false);
+            return 1;
         }
 
-        src.sendSuccess(() -> CommandFeedback.info("Risk: " + plan.risk.label()), false);
-        if (!plan.riskReason.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.info("Reason: " + plan.riskReason), false);
+        int total = relevant.size();
+        int limit = 10;
+        src.sendSuccess(() -> CommandFeedback.header(
+            "[SA] Events in last " + timeLabel + ", excluding minor:"), false);
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
+        List<RecentEventBuffer.GameEvent> toShow = relevant.subList(Math.max(0, total - limit), total);
+        for (int i = 0; i < toShow.size(); i++) {
+            RecentEventBuffer.GameEvent e = toShow.get(i);
+            int num = i + 1;
+            String timeStr2 = fmt.format(e.timestamp);
+            String line = num + ". " + e.detail + ", " + timeStr2;
+            FreezeCategory cat = categoryFromDetail(e.detail);
+            long ms = parseMsFromDetail(e.detail);
+            Component msg = (cat != null)
+                ? com.stutteranalyzer.client.AlertHoverText.build(cat, ms, line)
+                : CommandFeedback.info(line);
+            src.sendSuccess(() -> msg, false);
         }
-        src.sendSuccess(() -> CommandFeedback.info(
-            "Run /sa optimize install to review the warning and install."), false);
+
+        if (total > limit) {
+            src.sendSuccess(() -> CommandFeedback.info(
+                "[SA] Showing " + limit + " of " + total + " events. Use /sa preview for full report."), false);
+        }
+        return 1;
+    }
+
+    private static int parseTimeString(String s) {
+        if (s == null || s.isEmpty()) return -1;
+        try {
+            if (s.endsWith("m")) {
+                int v = Integer.parseInt(s.substring(0, s.length() - 1));
+                return (v >= 1 && v <= 120) ? v * 60 : -1;
+            }
+            if (s.endsWith("h")) {
+                int v = Integer.parseInt(s.substring(0, s.length() - 1));
+                return (v >= 1 && v <= 2) ? v * 3600 : -1;
+            }
+        } catch (NumberFormatException ignored) {}
+        return -1;
+    }
+
+    private static long parseMsFromDetail(String detail) {
+        if (detail == null) return 0;
+        int sp = detail.lastIndexOf(' ');
+        if (sp < 0) return 0;
+        String part = detail.substring(sp + 1);
+        if (part.endsWith("ms")) part = part.substring(0, part.length() - 2);
+        try { return Long.parseLong(part); } catch (NumberFormatException e) { return 0; }
+    }
+
+    private static FreezeCategory categoryFromDetail(String detail) {
+        if (detail == null) return null;
+        int sp = detail.lastIndexOf(' ');
+        String name = sp >= 0 ? detail.substring(0, sp) : detail;
+        try { return FreezeCategory.valueOf(name); } catch (Exception e) { return null; }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
