@@ -28,9 +28,15 @@ public class OptimizeAssistant {
 
     private static final Logger LOGGER = LogManager.getLogger("StutterAnalyzer-Optimize");
     private static final long CACHE_TTL_MS = 24L * 3600L * 1000L;
-    private static final int MAX_SUGGESTIONS = 5;
     private static final int CONNECT_TIMEOUT = 5000;
     private static final int READ_TIMEOUT = 10000;
+
+    private static int maxSuggestions(int installedCount) {
+        if (installedCount > 160) return 2;
+        if (installedCount > 80)  return 3;
+        if (installedCount > 20)  return 5;
+        return 7;
+    }
 
     public static OptimizePlan buildPlan(
             Set<String> installedModIds,
@@ -69,7 +75,7 @@ public class OptimizeAssistant {
             .filter(m -> !m.alreadyInstalled(normalizedInstalled))
             .filter(m -> !m.conflictsWith(expandedInstalled))
             .sorted((a, b) -> Integer.compare(b.priority, a.priority))
-            .limit(MAX_SUGGESTIONS)
+            .limit(maxSuggestions(installedModIds.size()))
             .collect(Collectors.toList());
 
         // Resolve Modrinth download URLs

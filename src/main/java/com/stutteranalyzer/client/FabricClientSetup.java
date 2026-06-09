@@ -141,7 +141,7 @@ public class FabricClientSetup {
             msg = "[SA] Minor stutter detected: " + catName + " " + ms + "ms";
         }
 
-        mc.player.sendSystemMessage(Component.literal(msg).withStyle(ChatFormatting.GREEN));
+        mc.player.sendSystemMessage(AlertHoverText.build(event.category(), ms, msg));
 
         if (showHint && info.reportSaved() && SAConfig.INSTANCE.alertShowReportHint.get()) {
             String hint = isUnknown
