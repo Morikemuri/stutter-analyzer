@@ -106,11 +106,7 @@ public class FabricCommandRegistrar {
                 .then(Commands.literal("off")   .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
                 .then(Commands.literal("status").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
 
-            // ── explain / optimize ────────────────────────────────────────────
-            .then(Commands.literal("explain")
-                .then(Commands.argument("category", StringArgumentType.word())
-                    .executes(c -> CommonCommandLogic.explainCategory(
-                        c.getSource(), StringArgumentType.getString(c, "category")))))
+            // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
                 .then(Commands.literal("suggest")
                     .executes(c -> CommonCommandLogic.optimizeSuggest(c.getSource()))))

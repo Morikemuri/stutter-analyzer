@@ -852,7 +852,6 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
         src.sendSuccess(() -> CommandFeedback.info("Info:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa explain <category>  - Explain a category"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Suggest safe optimization ideas"), false);
         return 1;
     }
@@ -1137,15 +1136,6 @@ public class CommonCommandLogic {
         boolean current = com.stutteranalyzer.client.DebugHudStatusProvider.isF3Enabled();
         if (current) return f3Off(src);
         return f3On(src);
-    }
-
-    public static int explainCategory(CommandSourceStack src, String category) {
-        String key = "explain.stutteranalyzer." + category.toLowerCase().replace('_', '_');
-        String catKey = "category.stutteranalyzer." + category.toLowerCase();
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Category: " + category), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable(key)), false);
-        src.sendSuccess(() -> CommandFeedback.info("Use /sa last to see the full report."), false);
-        return 1;
     }
 
     public static int optimizeSuggest(CommandSourceStack src) {

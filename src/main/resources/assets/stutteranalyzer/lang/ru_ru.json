@@ -238,13 +238,5 @@
   "category.stutteranalyzer.chunk_loading_hitch": "Рывок при загрузке чанков",
   "category.stutteranalyzer.modpack_startup_stall": "Зависание при запуске модпака",
   "category.stutteranalyzer.periodic_scheduled_micro_hitch": "Периодический плановый микро-рывок",
-  "category.stutteranalyzer.unknown_extreme_freeze": "Неклассифицированное экстремальное зависание",
-
-  "explain.stutteranalyzer.world_join_load_spike": "Умеренный рывок при загрузке чанков и сущностей на входе в мир. Обычно не повторяется.",
-  "explain.stutteranalyzer.world_join_render_stall": "Поток рендера остановился на 250мс+ после входа в мир. Часто вызвано перезагрузкой шейдеров или первым рендером чанков.",
-  "explain.stutteranalyzer.resource_reload_stall": "Зависание во время перезагрузки ресурс-паков. Ожидаемо при смене ресурс-паков.",
-  "explain.stutteranalyzer.chunk_loading_hitch": "Рывок при загрузке чанков. Часто возникает при движении по незагруженной местности.",
-  "explain.stutteranalyzer.modpack_startup_stall": "Зависание при инициализации модов. Ожидаемо в больших модпаках. Обычно не повторяется.",
-  "explain.stutteranalyzer.periodic_scheduled_micro_hitch": "Небольшой рывок, повторяющийся по расписанию. Обычно безвреден. Возможные причины: оверлеи, опрос скинов, плановые задачи модов.",
-  "explain.stutteranalyzer.unknown_extreme_freeze": "Экстремальное зависание >= 1000мс без установленной причины. Включите режим отладки и отправьте отчёт."
+  "category.stutteranalyzer.unknown_extreme_freeze": "Неклассифицированное экстремальное зависание"
 }
