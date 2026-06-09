@@ -60,7 +60,6 @@ public class SAConfig {
     public final BooleanValue allowPlayersExportOwnClientReports      = new BooleanValue(true);
     public final IntValue     serverReportPermissionLevel             = new IntValue(2, 0, 4);
     public final IntValue     configReloadPermissionLevel             = new IntValue(3, 0, 4);
-    public final IntValue     deleteReportPermissionLevel             = new IntValue(3, 0, 4);
     public final IntValue     debugPermissionLevel                    = new IntValue(4, 0, 4);
     public final IntValue     submitReportPermissionLevel             = new IntValue(3, 0, 4);
     public final IntValue     guardPermissionLevel                    = new IntValue(4, 0, 4);
@@ -337,7 +336,6 @@ public class SAConfig {
         b(m, "commands.allow_players_to_export_own_client_reports", allowPlayersExportOwnClientReports);
         i(m, "commands.server_report_permission_level", serverReportPermissionLevel);
         i(m, "commands.config_reload_permission_level", configReloadPermissionLevel);
-        i(m, "commands.delete_report_permission_level", deleteReportPermissionLevel);
         i(m, "commands.debug_permission_level", debugPermissionLevel);
         i(m, "commands.submit_report_permission_level", submitReportPermissionLevel);
         i(m, "commands.guard_permission_level", guardPermissionLevel);
@@ -519,7 +517,6 @@ public class SAConfig {
         kv(sb, "allow_players_to_export_own_client_reports", allowPlayersExportOwnClientReports.v);
         kv(sb, "server_report_permission_level", serverReportPermissionLevel.v);
         kv(sb, "config_reload_permission_level", configReloadPermissionLevel.v);
-        kv(sb, "delete_report_permission_level", deleteReportPermissionLevel.v);
         kv(sb, "debug_permission_level", debugPermissionLevel.v);
         kv(sb, "submit_report_permission_level", submitReportPermissionLevel.v);
         kv(sb, "guard_permission_level", guardPermissionLevel.v);

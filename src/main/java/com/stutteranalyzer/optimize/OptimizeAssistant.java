@@ -95,15 +95,70 @@ public class OptimizeAssistant {
             saveCache(cacheFile, cache);
         }
 
+        List<OptimizeMod> ready = new ArrayList<>();
+        List<OptimizeMod> skipped = new ArrayList<>();
+        for (OptimizeMod mod : candidates) {
+            if (mod.resolvedUrl != null && !mod.resolvedUrl.isEmpty()) {
+                ready.add(mod);
+            } else {
+                LOGGER.info("[SA] Skipping {} - no compatible file on Modrinth for {} {}", mod.id, loader, mcVersion);
+                skipped.add(mod);
+            }
+        }
+
         OptimizePlan plan = new OptimizePlan();
-        plan.recommended = candidates;
+        plan.recommended = ready;
+        plan.skippedCandidates = skipped;
         plan.alreadyInstalled = alreadyInstalled;
         plan.loader = loader;
         plan.mcVersion = mcVersion;
         plan.serverOnly = isServer;
         plan.totalInstalledCount = normalizedInstalled.size();
         scoreRisk(plan);
+        writePlanJson(plan, gameDir);
         return plan;
+    }
+
+    private static void writePlanJson(OptimizePlan plan, Path gameDir) {
+        try {
+            Path configDir = gameDir.resolve("config").resolve("stutteranalyzer");
+            Files.createDirectories(configDir);
+            Path planFile = configDir.resolve("optimize_last_plan.json");
+
+            JsonObject root = new JsonObject();
+            root.addProperty("timestamp", java.time.Instant.now().toString());
+            root.addProperty("minecraft_version", plan.mcVersion);
+            root.addProperty("loader", plan.loader);
+            root.addProperty("risk", plan.risk.name());
+
+            JsonArray readyArr = new JsonArray();
+            for (OptimizeMod m : plan.recommended) {
+                JsonObject obj = new JsonObject();
+                obj.addProperty("id", m.id);
+                obj.addProperty("name", m.displayName);
+                obj.addProperty("url", m.resolvedUrl != null ? m.resolvedUrl : "");
+                readyArr.add(obj);
+            }
+            root.add("ready_to_install", readyArr);
+
+            JsonArray alreadyArr = new JsonArray();
+            for (String s : plan.alreadyInstalled) alreadyArr.add(s);
+            root.add("already_installed", alreadyArr);
+
+            JsonArray skippedArr = new JsonArray();
+            for (OptimizeMod m : plan.skippedCandidates) {
+                JsonObject obj = new JsonObject();
+                obj.addProperty("id", m.id);
+                obj.addProperty("name", m.displayName);
+                skippedArr.add(obj);
+            }
+            root.add("skipped_candidates", skippedArr);
+
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            Files.writeString(planFile, gson.toJson(root), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            LOGGER.warn("[SA] Failed to write plan JSON: {}", e.getMessage());
+        }
     }
 
     private static List<OptimizeMod> loadDatabase() {
