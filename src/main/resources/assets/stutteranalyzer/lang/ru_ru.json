@@ -1,7 +1,7 @@
 {
   "stutteranalyzer.cmd.no_permission": "У вас нет прав на использование этой команды.",
   "stutteranalyzer.cmd.client_only": "Эта команда доступна только на клиентской стороне.",
-  "stutteranalyzer.cmd.debug_disabled": "Режим отладки отключён. Включите debug = true в stutteranalyzer-common.toml для использования команд отладки.",
+  "stutteranalyzer.cmd.debug_disabled": "Диагностический доступ не включён. Проверьте конфиг мода для включения.",
 
   "stutteranalyzer.cmd.status.header": "Состояние Stutter Analyzer",
   "stutteranalyzer.cmd.status.degraded": "Одна или несколько подсистем работают с ошибками. Используйте /sa status для подробностей.",

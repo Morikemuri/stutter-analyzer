@@ -23,10 +23,10 @@ import org.apache.logging.log4j.Logger;
 public class StutterAnalyzerFabric implements ModInitializer {
 
     public static final String MOD_ID        = "stutteranalyzer";
-    public static final String MOD_VERSION   = "0.1.0-rc1";
+    public static final String MOD_VERSION   = "0.2.0-beta.1";
     public static final String BUILD_ID      = "fabric-port-1.20.4";
-    public static final String BUILD_DATE    = "2026-06-09-fabric";
-    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,debug-routing,submit-cloudflare-v2,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response,submit-check,fabric-port";
+    public static final String BUILD_DATE    = "2026-06-09-b2";
+    public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,submit-cloudflare-v2,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response,submit-check,fabric-port";
     public static final Logger LOGGER        = LogManager.getLogger(MOD_ID);
 
     private static volatile long serverTickStart = 0;
