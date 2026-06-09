@@ -862,16 +862,9 @@ public class CommonCommandLogic {
     public static int showHelp(CommandSourceStack src) {
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Help"), false);
         src.sendSuccess(() -> CommandFeedback.info("Main:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa status              - Show current analyzer status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa status              - Show analyzer status"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa version             - Show version and loader info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa privacy             - Show what submit does and what is sanitized"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Alerts:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts status       - Show alert settings"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor        - Show all stutters, noisy"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium       - Show medium and higher"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe       - Show severe and extreme"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme      - Show only extreme freezes"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off          - Disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa privacy             - Show report privacy info"), false);
         src.sendSuccess(() -> CommandFeedback.info("Reports:"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa last                - Show latest tracked event/report"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa reports             - List saved reports"), false);
@@ -881,12 +874,19 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit preview      - Same as /sa preview"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit              - Send latest report"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa submit status       - Show submit status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa submit health       - Check submit endpoint health"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit health       - Check report server"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Alerts:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts status       - Show alert settings"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor        - Show all stutters"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium       - Show medium and higher"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe       - Show severe and extreme"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme      - Show only extreme freezes"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off          - Disable chat alerts"), false);
         src.sendSuccess(() -> CommandFeedback.info("HUD:"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Info:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Suggest safe optimization ideas"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Other:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Safe optimization suggestions"), false);
         return 1;
     }
 
