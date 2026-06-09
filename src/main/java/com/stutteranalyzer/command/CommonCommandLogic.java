@@ -67,10 +67,10 @@ public class CommonCommandLogic {
         int mediumDisplay  = useEpisodes ? mediumEp  : mediumRaw;
         int severeDisplay  = useEpisodes ? severeEp  : StutterCounter.severeCountInSeconds(60);
         int extremeDisplay = useEpisodes ? extremeEp : StutterCounter.extremeCountInSeconds(60);
-        String minorLabel   = useEpisodes ? "Minor episodes"   : "Minor frames";
-        String mediumLabel  = useEpisodes ? "Medium episodes"  : "Medium frames";
-        String severeLabel  = useEpisodes ? "Severe episodes"  : "Severe frames";
-        String extremeLabel = useEpisodes ? "Extreme episodes" : "Extreme frames";
+        Component minorLabel   = Component.translatable(useEpisodes ? "stutteranalyzer.cmd.status.minor_episodes"   : "stutteranalyzer.cmd.status.minor_frames");
+        Component mediumLabel  = Component.translatable(useEpisodes ? "stutteranalyzer.cmd.status.medium_episodes"  : "stutteranalyzer.cmd.status.medium_frames");
+        Component severeLabel  = Component.translatable(useEpisodes ? "stutteranalyzer.cmd.status.severe_episodes"  : "stutteranalyzer.cmd.status.severe_frames");
+        Component extremeLabel = Component.translatable(useEpisodes ? "stutteranalyzer.cmd.status.extreme_episodes" : "stutteranalyzer.cmd.status.extreme_frames");
 
         Component state = Component.translatable(degraded
             ? "stutteranalyzer.cmd.status.state_degraded"
@@ -80,9 +80,9 @@ public class CommonCommandLogic {
             : "stutteranalyzer.cmd.status.side.dedicated";
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.status.header")), false);
-        src.sendSuccess(() -> CommandFeedback.row("Status UI", "rich-v2"), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.status_ui"), Component.literal("rich-v2")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.state"), state), false);
-        src.sendSuccess(() -> CommandFeedback.row("Side", Component.translatable(sideKey)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.cmd.status.side"), Component.translatable(sideKey)), false);
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.client_tracker"),
             Component.translatable(isClient ? "stutteranalyzer.cmd.status.tracker_on" : "stutteranalyzer.cmd.status.tracker_unavailable")
@@ -93,23 +93,36 @@ public class CommonCommandLogic {
         ), false);
 
         if (lastDurationMs > 0) {
-            src.sendSuccess(() -> CommandFeedback.row("Last tracked spike",
-                lastSeverity + " " + lastDurationMs + "ms"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.last_spike"),
+                Component.literal(lastSeverity + " " + lastDurationMs + "ms")), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.row("Last tracked spike", "none"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.last_spike"),
+                Component.translatable("stutteranalyzer.cmd.status.last_spike_none")), false);
         }
 
-        src.sendSuccess(() -> CommandFeedback.row(minorLabel,
-            minorDisplay + " in last 60s" + (worstMinor > 0 ? " | worst: " + worstMinor + "ms" : "")), false);
+        Component minorCountComp = worstMinor > 0
+            ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", minorDisplay, worstMinor)
+            : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", minorDisplay);
+        src.sendSuccess(() -> CommandFeedback.row(minorLabel, minorCountComp), false);
         if (showRaw && useEpisodes) {
-            src.sendSuccess(() -> CommandFeedback.row("Raw minor frames", minorRaw + " in last 60s"), false);
+            Component rawMinorComp = Component.translatable("stutteranalyzer.cmd.status.count_in_60s", minorRaw);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.minor_frames"), rawMinorComp), false);
         }
-        src.sendSuccess(() -> CommandFeedback.row(mediumLabel,
-            mediumDisplay + " in last 60s" + (worstMedium > 0 ? " | worst: " + worstMedium + "ms" : "")), false);
-        src.sendSuccess(() -> CommandFeedback.row(severeLabel,
-            severeDisplay + " in last 60s" + (worstSevere > 0 ? " | worst: " + worstSevere + "ms" : "")), false);
-        src.sendSuccess(() -> CommandFeedback.row(extremeLabel,
-            extremeDisplay + " in last 60s" + (worstExtreme > 0 ? " | worst: " + worstExtreme + "ms" : "")), false);
+        Component mediumCountComp = worstMedium > 0
+            ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", mediumDisplay, worstMedium)
+            : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", mediumDisplay);
+        src.sendSuccess(() -> CommandFeedback.row(mediumLabel, mediumCountComp), false);
+        Component severeCountComp = worstSevere > 0
+            ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", severeDisplay, worstSevere)
+            : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", severeDisplay);
+        src.sendSuccess(() -> CommandFeedback.row(severeLabel, severeCountComp), false);
+        Component extremeCountComp = worstExtreme > 0
+            ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", extremeDisplay, worstExtreme)
+            : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", extremeDisplay);
+        src.sendSuccess(() -> CommandFeedback.row(extremeLabel, extremeCountComp), false);
 
         int savedReports = ReportWriter.savedReports();
         boolean saveSevere  = SAConfig.INSTANCE.saveSevereStutterReports.get();
@@ -125,22 +138,28 @@ public class CommonCommandLogic {
         FreezeReport lastSaved = ReportWriter.lastReport();
         if (lastSaved != null) {
             FreezeEvent savedEvt = lastSaved.event;
-            src.sendSuccess(() -> CommandFeedback.row("Last saved report",
-                savedEvt.category().name() + " " + savedEvt.durationMs() + "ms"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.last_report"),
+                Component.literal(savedEvt.category().name() + " " + savedEvt.durationMs() + "ms")), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.row("Last saved report", "none"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.last_report"),
+                Component.translatable("stutteranalyzer.cmd.status.last_report_none")), false);
         }
 
         if (!allSavingDisabled) {
             boolean nothingTracked = last == null && lastDurationMs == 0
                 && minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0;
             if (nothingTracked) {
-                src.sendSuccess(() -> CommandFeedback.info("No stutters recorded yet. Use /sa alerts test to inject a test event."), false);
+                src.sendSuccess(() -> CommandFeedback.info(
+                    Component.translatable("stutteranalyzer.cmd.status.no_stutters")), false);
             } else if (savedReports == 0 && (severeDisplay > 0 || extremeDisplay > 0)) {
-                src.sendSuccess(() -> CommandFeedback.warn("Severe/extreme detected but no reports saved - check game log for errors."), false);
+                src.sendSuccess(() -> CommandFeedback.warn(
+                    Component.translatable("stutteranalyzer.cmd.status.reports_warn")), false);
             } else if (savedReports == 0 && (minorDisplay > 0 || mediumDisplay > 0)) {
                 int severeMs = SAConfig.INSTANCE.severeFrameMs.get();
-                src.sendSuccess(() -> CommandFeedback.info("Minor/medium tracked silently; reports start at " + severeMs + "ms."), false);
+                src.sendSuccess(() -> CommandFeedback.info(
+                    Component.translatable("stutteranalyzer.cmd.status.reports_silent", severeMs)), false);
             }
         }
 
@@ -150,11 +169,14 @@ public class CommonCommandLogic {
             String.valueOf(crashCount)), false);
 
         boolean quiet = QuietMode.isEnabled();
-        src.sendSuccess(() -> CommandFeedback.row("Quiet mode",
-            quiet ? "ON (minor/medium in F3 only)" : "OFF"), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.quiet_mode"),
+            Component.translatable(quiet ? "stutteranalyzer.cmd.status.quiet_on" : "stutteranalyzer.cmd.status.quiet_off")), false);
         long aggRemaining = StutterCounter.aggregateCooldownRemainingSeconds();
         if (aggRemaining > 0) {
-            src.sendSuccess(() -> CommandFeedback.row("Aggregate chat cooldown", aggRemaining + "s remaining"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.agg_cooldown"),
+                Component.translatable("stutteranalyzer.cmd.status.agg_cooldown_val", aggRemaining)), false);
         }
 
         boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
@@ -166,23 +188,27 @@ public class CommonCommandLogic {
             Component.translatable(VerboseMode.isEnabled() ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
 
         String subTarget = SAConfig.INSTANCE.submissionTarget.get();
-        String subDisplay = "cloudflare".equalsIgnoreCase(subTarget) ? "Cloudflare enabled" : "local";
-        src.sendSuccess(() -> CommandFeedback.row("Submission", subDisplay), false);
+        Component subDisplay = "cloudflare".equalsIgnoreCase(subTarget)
+            ? Component.translatable("stutteranalyzer.cmd.status.submission_cloudflare")
+            : Component.translatable("stutteranalyzer.cmd.status.submission_local");
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.submission"), subDisplay), false);
 
         UpdateCheckResult updateResult = UpdateChecker.getCached();
-        String updateDisplay;
+        Component updateDisplay;
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            updateDisplay = "disabled";
+            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.disabled");
         } else if (updateResult == null) {
-            updateDisplay = "not checked";
+            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.not_checked");
         } else if (!updateResult.success()) {
-            updateDisplay = "unavailable";
+            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.unavailable");
         } else if (updateResult.updateAvailable()) {
-            updateDisplay = "update available: " + updateResult.latestVersion();
+            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.available", updateResult.latestVersion());
         } else {
-            updateDisplay = "up to date";
+            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.up_to_date");
         }
-        src.sendSuccess(() -> CommandFeedback.row("Update check", updateDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.cmd.status.update_check"), updateDisplay), false);
 
         if (degraded) {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
@@ -449,25 +475,22 @@ public class CommonCommandLogic {
     }
 
     public static int showVersion(CommandSourceStack src) {
-        String loaderName = com.stutteranalyzer.SAEnvironment.getLoaderName();
-        String loaderDisplay = loaderName.isEmpty() ? "unknown"
-            : Character.toUpperCase(loaderName.charAt(0)) + loaderName.substring(1);
         boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
-        String submitDisplay = cfEnabled ? "Cloudflare" : "local";
-        String uploadDisplay = cfEnabled ? "ready" : "local only";
+        Component submitDisplay = Component.translatable(cfEnabled ? "stutteranalyzer.version.submit_cloudflare" : "stutteranalyzer.version.submit_local");
+        Component uploadDisplay = Component.translatable(cfEnabled ? "stutteranalyzer.version.upload_ready" : "stutteranalyzer.version.upload_local");
         String javaVersion = System.getProperty("java.version", "unknown");
         int javaMajor = 0;
         try { javaMajor = Integer.parseInt(javaVersion.contains(".") ? javaVersion.split("[._-]")[0].equals("1") ? javaVersion.split("[._-]")[1] : javaVersion.split("[._-]")[0] : javaVersion); } catch (Exception ignored) {}
         final String javaDisplay = javaMajor > 0 ? String.valueOf(javaMajor) : javaVersion;
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Version Info"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerFabric.MOD_VERSION), false);
-        src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Loader", loaderDisplay), false);
-        src.sendSuccess(() -> CommandFeedback.row("Java", javaDisplay), false);
-        src.sendSuccess(() -> CommandFeedback.row("Status", "Beta / RC"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Features", "F3 status, alerts, reports, submit"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Submit", submitDisplay), false);
-        src.sendSuccess(() -> CommandFeedback.row("Upload", uploadDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.version.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.version"), Component.literal(StutterAnalyzerFabric.MOD_VERSION)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal("1.20.4")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.fabric")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.java"), Component.literal(javaDisplay)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.status"), Component.translatable("stutteranalyzer.version.status_rc")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.features"), Component.translatable("stutteranalyzer.version.features")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.submit"), submitDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.upload"), uploadDisplay), false);
         return 1;
     }
 
@@ -751,56 +774,92 @@ public class CommonCommandLogic {
 
     public static int alertsStatus(CommandSourceStack src) {
         AlertMode mode = AlertManager.currentMode();
-        int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
-        int severe  = SAConfig.INSTANCE.severeFrameMs.get();
-        int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Alert Status"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Mode", mode.name()), false);
+        int cooldown = SAConfig.INSTANCE.alertCooldownSeconds.get();
+        int catCooldown = SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get();
+        int maxPerMin = SAConfig.INSTANCE.alertMaxAlertsPerMinute.get();
+        boolean agg = SAConfig.INSTANCE.alertAggregateSmallStutters.get();
+        boolean quiet = QuietMode.isEnabled();
+        Component modeLabel = switch (mode) {
+            case OFF     -> Component.translatable("stutteranalyzer.alerts.status.mode.off");
+            case MINOR   -> Component.translatable("stutteranalyzer.alerts.status.mode.minor");
+            case MEDIUM  -> Component.translatable("stutteranalyzer.alerts.status.mode.medium");
+            case SEVERE  -> Component.translatable("stutteranalyzer.alerts.status.mode.severe");
+            case EXTREME -> Component.translatable("stutteranalyzer.alerts.status.mode.extreme");
+        };
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.alerts.status.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.alerts.status.mode"), modeLabel), false);
         if (mode == AlertMode.OFF) {
-            src.sendSuccess(() -> CommandFeedback.row("Chat alerts", "disabled"), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status/report saving: still active"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.mode"),
+                Component.translatable("stutteranalyzer.alerts.status.chat_disabled")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.status.still_active")), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.row("Direct chat alerts", mode.alertsOnDescription(medium, severe, extreme)), false);
-            src.sendSuccess(() -> CommandFeedback.row("Cooldown", SAConfig.INSTANCE.alertCooldownSeconds.get() + "s"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Same-category cooldown", SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get() + "s"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Max alerts/minute", String.valueOf(SAConfig.INSTANCE.alertMaxAlertsPerMinute.get())), false);
-            src.sendSuccess(() -> CommandFeedback.row("Scheduled micro-hitch cooldown", SAConfig.INSTANCE.scheduledMicroHitchCooldownSeconds.get() + "s"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Small stutter aggregate", SAConfig.INSTANCE.alertAggregateSmallStutters.get() ? "ON" : "OFF"), false);
-            src.sendSuccess(() -> CommandFeedback.row("Quiet mode", QuietMode.isEnabled() ? "ON" : "OFF"), false);
+            Component directComp = switch (mode) {
+                case EXTREME -> Component.translatable("stutteranalyzer.alerts.status.direct.extreme");
+                case SEVERE  -> Component.translatable("stutteranalyzer.alerts.status.direct.severe");
+                case MEDIUM  -> Component.translatable("stutteranalyzer.alerts.status.direct.medium");
+                case MINOR   -> Component.translatable("stutteranalyzer.alerts.status.direct.minor");
+                default      -> Component.translatable("stutteranalyzer.alerts.status.direct.off");
+            };
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.direct"), directComp), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.cooldown"),
+                Component.translatable("stutteranalyzer.alerts.status.seconds", cooldown)), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.cat_cooldown"),
+                Component.translatable("stutteranalyzer.alerts.status.seconds", catCooldown)), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.max_per_min"),
+                Component.literal(String.valueOf(maxPerMin))), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.sched_cooldown"),
+                Component.translatable("stutteranalyzer.alerts.status.seconds", SAConfig.INSTANCE.scheduledMicroHitchCooldownSeconds.get())), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.aggregate"),
+                Component.translatable(agg ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.alerts.status.quiet"),
+                Component.translatable(quiet ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
         }
-        src.sendSuccess(() -> CommandFeedback.info("Available modes:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor   - show all stutters (noisy)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium  - show medium and higher"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe  - show severe and extreme"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme - show only extreme freezes"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off     - disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.status.modes")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_minor")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_medium")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_severe")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_extreme")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_off")), false);
         return 1;
     }
 
     public static int alertsSetMode(CommandSourceStack src, AlertMode mode) {
         SAConfig.INSTANCE.alertMode.set(mode.name());
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: " + mode.name()), false);
-        if (mode == AlertMode.MINOR) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
+        if (mode == AlertMode.OFF) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.off")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.off_note")), false);
+        } else if (mode == AlertMode.MINOR) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.minor")), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.alerts.set.minor_note")), false);
         } else if (mode == AlertMode.MEDIUM) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.medium")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.medium_note")), false);
         } else if (mode == AlertMode.SEVERE) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.severe")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.severe_note")), false);
         } else if (mode == AlertMode.EXTREME) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
-        } else if (mode == AlertMode.OFF) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.extreme")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.extreme_note")), false);
         }
         return 1;
     }
 
     public static int alertsCooldown(CommandSourceStack src, int seconds) {
         if (seconds < 5 || seconds > 600) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Cooldown must be between 5 and 600 seconds."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.alerts.cooldown.range")), false);
             return 0;
         }
         SAConfig.INSTANCE.alertCooldownSeconds.set(seconds);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Alert cooldown set to " + seconds + " seconds."), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.cooldown.set", seconds)), false);
         return 1;
     }
 
@@ -809,22 +868,17 @@ public class CommonCommandLogic {
         int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
         int severe  = SAConfig.INSTANCE.severeFrameMs.get();
         int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
-
-        record TestCase(String label, long ms) {}
-        var cases = java.util.List.of(
-            new TestCase("SERVER_TICK_SPIKE", 485L),
-            new TestCase("CLIENT_RENDER_STUTTER", 3867L),
-            new TestCase("medium", (long) (medium + 10))
-        );
-
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Alert Test (mode: " + mode.name() + ")"), false);
-        for (var tc : cases) {
-            boolean shown = mode.shouldAlertDirect(tc.ms(), medium, severe, extreme);
-            if (shown) {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Test: " + tc.label() + " " + tc.ms() + "ms would be shown."), false);
-            } else {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Test: " + tc.label() + " " + tc.ms() + "ms would be hidden in this mode."), false);
-            }
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.alerts.test.header")), false);
+        long[] testMs = {76L, 184L, 485L, 3867L};
+        String[] cats = {"CLIENT_RENDER_STUTTER", "CLIENT_RENDER_STUTTER", "SERVER_TICK_SPIKE", "CLIENT_RENDER_STUTTER"};
+        for (int i = 0; i < testMs.length; i++) {
+            final long ms = testMs[i];
+            final String cat = cats[i];
+            boolean shown = mode.shouldAlertDirect(ms, medium, severe, extreme);
+            Component line = shown
+                ? Component.translatable("stutteranalyzer.alerts.test.shown", cat, ms)
+                : Component.translatable("stutteranalyzer.alerts.test.hidden", cat, ms);
+            src.sendSuccess(() -> CommandFeedback.info(line), false);
         }
         return 1;
     }
@@ -839,7 +893,6 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.last")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.show")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.reports")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.delete")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.section.submit")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.preview")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.submit_preview")), false);

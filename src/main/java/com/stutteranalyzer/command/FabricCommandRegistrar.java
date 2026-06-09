@@ -75,10 +75,6 @@ public class FabricCommandRegistrar {
                 .executes(c -> CommonCommandLogic.listReports(c.getSource())))
             .then(Commands.literal("last")
                 .executes(c -> CommonCommandLogic.showLast(c.getSource())))
-            .then(Commands.literal("delete")
-                .then(Commands.argument("report_id", StringArgumentType.word())
-                    .executes(c -> CommonCommandLogic.deleteReport(
-                        c.getSource(), StringArgumentType.getString(c, "report_id")))))
 
             // ── f3 (client-only) ──────────────────────────────────────────────
             .then(Commands.literal("f3")

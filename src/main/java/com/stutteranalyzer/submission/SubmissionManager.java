@@ -94,25 +94,25 @@ public class SubmissionManager {
             return 0;
         }
         if (submissionInProgress.get()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] A report upload is already in progress. Please wait."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.already_in_progress")), false);
             return 1;
         }
         int cooldown = SAConfig.INSTANCE.submitCommandCooldownSeconds.get();
         long elapsedSec = (System.currentTimeMillis() - lastSubmissionEpochMs) / 1000L;
         if (cooldown > 0 && elapsedSec < cooldown) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Please wait before submitting another report."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.wait_cooldown")), false);
             return 1;
         }
         checkMigrationNotice(src);
         FreezeReport report = ReportWriter.lastReport();
         if (report == null) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No saved freeze report is available yet."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Severe/extreme events create reports automatically. Minor stutters are tracked in F3/status only."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report_yet")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.no_report_hint")), false);
             return 1;
         }
         if (!isCloudflareEnabled()) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload endpoint not configured."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit status to check submission configuration."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_endpoint")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.no_endpoint_hint")), false);
             return 1;
         }
         String markdown = report.toMarkdown();
@@ -216,50 +216,78 @@ public class SubmissionManager {
         boolean fallback = SAConfig.INSTANCE.fallbackToLocal.get();
         String target = SAConfig.INSTANCE.submissionTarget.get();
 
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Submission status"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Mode", cfEnabled ? "Cloudflare" : target), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.submit.status.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.mode"),
+            Component.literal(cfEnabled ? "Cloudflare" : target)), false);
 
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
-        src.sendSuccess(() -> CommandFeedback.row("Endpoint", endpoint.isBlank() ? "(not set)" : endpoint), false);
-        src.sendSuccess(() -> CommandFeedback.row("Fallback", fallback ? "local" : "none"), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.endpoint"),
+            Component.literal(endpoint.isBlank() ? "(not set)" : endpoint)), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.fallback"),
+            Component.literal(fallback ? "local" : "none")), false);
 
         // Show timeout source: from config or default
         int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
         int defaultTimeout = 30;
         String timeoutSource = (timeoutSec == defaultTimeout) ? timeoutSec + "s default" : timeoutSec + "s from config";
-        src.sendSuccess(() -> CommandFeedback.row("Upload timeout", timeoutSource), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.timeout"),
+            Component.literal(timeoutSource)), false);
 
         // Show transport
         String configuredTransport = SAConfig.INSTANCE.httpTransport.get();
         String activeTransport = sessionTransport != null ? sessionTransport + " (session-learned)" : configuredTransport;
-        src.sendSuccess(() -> CommandFeedback.row("HTTP transport", activeTransport), false);
-        src.sendSuccess(() -> CommandFeedback.row("Submit implementation", "AsyncQueuedSubmitClient v2"), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.transport"),
+            Component.literal(activeTransport)), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.impl"),
+            Component.literal("AsyncQueuedSubmitClient v2")), false);
 
         boolean inProgress = submissionInProgress.get();
-        src.sendSuccess(() -> CommandFeedback.row("Upload in progress", inProgress ? "true" : "false"), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.in_progress"),
+            Component.literal(inProgress ? "true" : "false")), false);
 
         if (inProgress) {
             String uid = currentUploadId;
-            if (uid != null) src.sendSuccess(() -> CommandFeedback.row("Current upload ID", uid), false);
+            if (uid != null) src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.submit.status.upload_id"),
+                Component.literal(uid)), false);
             long elapsed = (System.currentTimeMillis() - uploadStartMs) / 1000L;
-            src.sendSuccess(() -> CommandFeedback.row("Started", elapsed + "s ago"), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.submit.status.started"),
+                Component.literal(elapsed + "s ago")), false);
             if (elapsed > timeoutSec + 5) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Upload appears stuck. Try again later or restart."), false);
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.status.stuck")), false);
             }
         } else {
             String uid = currentUploadId;
-            if (uid != null) src.sendSuccess(() -> CommandFeedback.row("Last upload ID", uid), false);
+            if (uid != null) src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.submit.status.last_upload"),
+                Component.literal(uid)), false);
         }
 
-        src.sendSuccess(() -> CommandFeedback.row("Last result", lastSubmissionStatus), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.submit.status.last_result"),
+            Component.literal(lastSubmissionStatus)), false);
         if (!lastUploadStage.equals("none") && !lastUploadStage.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.row("Last stage", lastUploadStage), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.submit.status.last_stage"),
+                Component.literal(lastUploadStage)), false);
         }
         if (!lastUploadTiming.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.row("Last timing", lastUploadTiming), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.submit.status.last_timing"),
+                Component.literal(lastUploadTiming)), false);
         }
         if (!lastSubmissionError.isEmpty() && !"none".equals(lastSubmissionStatus) && !"success".equals(lastSubmissionStatus)) {
-            src.sendSuccess(() -> CommandFeedback.row("Last error", lastSubmissionError), false);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.submit.status.last_error"),
+                Component.literal(lastSubmissionError)), false);
         }
         return 1;
     }
@@ -335,7 +363,7 @@ public class SubmissionManager {
             ? endpoint.replace("/api/report", "/api/health")
             : endpoint.replaceAll("/+$", "") + "/api/health";
 
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Checking Worker health..."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.health.checking")), false);
         CompletableFuture.runAsync(() -> {
             try {
                 HttpRequest req = HttpRequest.newBuilder()
@@ -350,16 +378,16 @@ public class SubmissionManager {
                     String version = extractJsonField(body, "version");
                     String fwd = extractJsonField(body, "github_forwarding");
                     String storage = extractJsonField(body, "storage");
-                    src.sendSuccess(() -> CommandFeedback.success("[SA] Worker health: OK"), false);
-                    if (version != null) src.sendSuccess(() -> CommandFeedback.info("[SA] Worker version: " + version), false);
-                    if (fwd != null) src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub forwarding: " + fwd), false);
-                    if (storage != null) src.sendSuccess(() -> CommandFeedback.info("[SA] Storage: " + storage), false);
+                    src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.health.ok")), false);
+                    if (version != null) src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.health.version", version)), false);
+                    if (fwd != null) src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.health.forwarding", fwd)), false);
+                    if (storage != null) src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.health.storage", storage)), false);
                 } else {
-                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Worker health: unexpected response (" + status + ")"), false);
+                    src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.health.unexpected", status)), false);
                 }
             } catch (Exception e) {
                 StutterAnalyzerFabric.LOGGER.warn("[SA] Worker health check failed: {}", e.getMessage());
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Worker health: unavailable"), false);
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.health.unavailable")), false);
             }
         }, UPLOAD_EXECUTOR);
         return 1;
@@ -487,7 +515,7 @@ public class SubmissionManager {
     private static void submitToCloudflare(CommandSourceStack src, FreezeReport report, String markdown, String reportHash) {
         // ── Command thread: lock + first message only ─────────────────────────
         if (!submissionInProgress.compareAndSet(false, true)) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] A report upload is already in progress. Please wait."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.already_in_progress")), false);
             return;
         }
         lastSubmissionEpochMs = System.currentTimeMillis();
@@ -498,7 +526,7 @@ public class SubmissionManager {
         currentUploadId = uploadId;
         uploadStartMs = System.currentTimeMillis();
 
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Preparing latest report..."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preparing")), false);
 
         // All heavy work is async - command thread returns immediately after this
         try {
@@ -512,7 +540,7 @@ public class SubmissionManager {
                     lastSubmissionStatus = "failure";
                     lastSubmissionError = "internal: " + shortErr;
                     StutterAnalyzerFabric.LOGGER.error("[SA] Unexpected submit error (upload_id={}): {}", uploadId, errMsg, t);
-                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: internal submit error."), false);
+                    src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.upload_failed")), false);
                     src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + errClass + " - " + shortErr), false);
                     src.sendSuccess(() -> CommandFeedback.info("[SA] Upload lock cleared."), false);
                     if (SAConfig.INSTANCE.fallbackToLocal.get()) {
@@ -547,7 +575,7 @@ public class SubmissionManager {
         }
         String sanitizedMarkdown = mdResult.text();
 
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Collecting diagnostics and sanitized logs..."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.collecting")), false);
 
         // Read log sections with null-safe fallbacks
         String logExcerpt       = safeGet(() -> LogExcerpter.extractExcerpt(report.event.timestamp()),       "latest.log excerpt unavailable.");
@@ -1245,7 +1273,7 @@ public class SubmissionManager {
         long durationMs  = report.event.durationMs();
         String hash      = sha256Hex(markdown);
 
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Submit preview"), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.submit.preview.header")), false);
         src.sendSuccess(() -> CommandFeedback.info("- Report ID: " + report.reportId), false);
         src.sendSuccess(() -> CommandFeedback.info("- Category: " + category), false);
         src.sendSuccess(() -> CommandFeedback.info("- Duration: " + durationMs + " ms"), false);
@@ -1307,9 +1335,13 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: unavailable or sanitizer blocked it"), false);
         }
 
-        src.sendSuccess(() -> CommandFeedback.info("- Sensitive data scan: " + (mdResult.hadSensitiveData() ? "BLOCKED - sensitive data found" : "passed")), false);
+        Component sensitivityComp = Component.literal("- Sensitive data scan: ")
+            .append(mdResult.hadSensitiveData()
+                ? Component.translatable("stutteranalyzer.submit.preview.sensitivity.blocked")
+                : Component.translatable("stutteranalyzer.submit.preview.sensitivity.passed"));
+        src.sendSuccess(() -> CommandFeedback.info(sensitivityComp), false);
         src.sendSuccess(() -> CommandFeedback.info("- Report hash: " + hash.substring(0, 16) + "..."), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Nothing was uploaded. Run /sa submit to upload."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.not_uploaded")), false);
         return 1;
     }
 
