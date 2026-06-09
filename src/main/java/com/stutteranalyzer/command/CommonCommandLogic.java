@@ -444,14 +444,23 @@ public class CommonCommandLogic {
     }
 
     public static int showVersion(CommandSourceStack src) {
+        String loaderName = com.stutteranalyzer.SAEnvironment.getLoaderName();
+        String loaderDisplay = loaderName.isEmpty() ? "unknown"
+            : Character.toUpperCase(loaderName.charAt(0)) + loaderName.substring(1);
+        boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
+        String submitDisplay = cfEnabled ? "Cloudflare" : "local";
+        String uploadDisplay = cfEnabled ? "ready" : "local only";
+
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Version Info"), false);
         src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerFabric.MOD_VERSION), false);
         src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerFabric.BUILD_DATE), false);
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Loader", "Fabric"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Loader", loaderDisplay), false);
         src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
         src.sendSuccess(() -> CommandFeedback.row("Status", "Beta / RC"), false);
         src.sendSuccess(() -> CommandFeedback.row("Features", "F3 status, alerts, reports, submit"), false);
+        src.sendSuccess(() -> CommandFeedback.row("Submit", submitDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.row("Upload", uploadDisplay), false);
 
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
             src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
@@ -844,6 +853,8 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("/sa submit check <id>       - check submission status"), false);
         src.sendSuccess(() -> CommandFeedback.info("/sa reports                 - list reports"), false);
         src.sendSuccess(() -> CommandFeedback.info("/sa last                    - show latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa health                  - subsystem health overview"), false);
+        src.sendSuccess(() -> CommandFeedback.info("/sa selfcheck               - full self-diagnostic"), false);
         return 1;
     }
 
