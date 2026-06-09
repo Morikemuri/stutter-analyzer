@@ -95,15 +95,79 @@ public class OptimizeAssistant {
             saveCache(cacheFile, cache);
         }
 
+        // Split into ready (resolved) and skipped (unresolved)
+        List<OptimizeMod> ready = new ArrayList<>();
+        List<OptimizeMod> skipped = new ArrayList<>();
+        for (OptimizeMod mod : candidates) {
+            if (mod.resolvedUrl != null && !mod.resolvedUrl.isEmpty()) {
+                ready.add(mod);
+            } else {
+                LOGGER.info("[SA] Skipping {} - no compatible file on Modrinth for {} {}", mod.id, loader, mcVersion);
+                skipped.add(mod);
+            }
+        }
+
         OptimizePlan plan = new OptimizePlan();
-        plan.recommended = candidates;
+        plan.recommended = ready;
+        plan.skippedCandidates = skipped;
         plan.alreadyInstalled = alreadyInstalled;
         plan.loader = loader;
         plan.mcVersion = mcVersion;
         plan.serverOnly = isServer;
         plan.totalInstalledCount = normalizedInstalled.size();
         scoreRisk(plan);
+        writePlanJson(plan, gameDir);
         return plan;
+    }
+
+    private static void writePlanJson(OptimizePlan plan, Path gameDir) {
+        try {
+            Path configDir = gameDir.resolve("config").resolve("stutteranalyzer");
+            Files.createDirectories(configDir);
+            Path planFile = configDir.resolve("optimize_last_plan.json");
+
+            com.google.gson.JsonObject root = new com.google.gson.JsonObject();
+            root.addProperty("timestamp", java.time.Instant.now().toString());
+            root.addProperty("minecraft_version", plan.mcVersion);
+            root.addProperty("loader", plan.loader);
+            root.addProperty("risk", plan.risk.name());
+
+            com.google.gson.JsonArray readyArr = new com.google.gson.JsonArray();
+            for (OptimizeMod m : plan.recommended) {
+                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+                o.addProperty("id", m.id);
+                o.addProperty("display_name", m.displayName);
+                o.addProperty("source", "modrinth");
+                o.addProperty("file_name", m.resolvedFilename != null ? m.resolvedFilename : "");
+                o.addProperty("download_url", m.resolvedUrl != null ? m.resolvedUrl : "");
+                o.addProperty("file_size", m.resolvedFileSize);
+                o.addProperty("hash_sha512", m.resolvedSha512 != null ? m.resolvedSha512 : "");
+                readyArr.add(o);
+            }
+            root.add("ready_to_install", readyArr);
+
+            com.google.gson.JsonArray alreadyArr = new com.google.gson.JsonArray();
+            for (String name : plan.alreadyInstalled) alreadyArr.add(name);
+            root.add("already_installed", alreadyArr);
+
+            com.google.gson.JsonArray skippedArr = new com.google.gson.JsonArray();
+            for (OptimizeMod m : plan.skippedCandidates) {
+                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+                o.addProperty("id", m.id);
+                o.addProperty("display_name", m.displayName);
+                o.addProperty("reason", "no compatible file on Modrinth");
+                o.addProperty("loader", plan.loader);
+                o.addProperty("minecraft_version", plan.mcVersion);
+                o.addProperty("source_checked", "modrinth");
+                skippedArr.add(o);
+            }
+            root.add("skipped_candidates", skippedArr);
+
+            com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
+            Files.writeString(planFile, gson.toJson(root), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            LOGGER.warn("[SA] Failed to write optimize plan JSON: {}", e.getMessage());
+        }
     }
 
     private static List<OptimizeMod> loadDatabase() {

@@ -42,7 +42,6 @@
   "stutteranalyzer.cmd.report.none": "No reports saved yet.",
   "stutteranalyzer.cmd.report.no_unknown": "No unclassified freeze reports in current session.",
   "stutteranalyzer.cmd.report.not_found": "Report not found in memory: %s. Check config/stutter-analyzer/reports/",
-  "stutteranalyzer.cmd.report.delete_note": "Delete request noted for: %s. Delete the file manually from config/stutter-analyzer/reports/",
   "stutteranalyzer.cmd.report.header": "Report: %s",
 
   "stutteranalyzer.cmd.config.reloaded": "Config reloaded. Some values require restart.",
@@ -71,7 +70,6 @@
   "stutteranalyzer.cmd.help.status": "/sa status            - Analyzer status and current freeze count",
 
   "stutteranalyzer.cmd.help.last": "/sa last              - Last detected freeze, if Minecraft recently had a dramatic pause",
-  "stutteranalyzer.cmd.help.delete": "/sa delete <id>       - Delete report",
   "stutteranalyzer.cmd.help.overlay": "/sa overlay ...       - Overlay (client only)",
 
   "stutteranalyzer.cmd.selfcheck.header": "StutterAnalyzer Self-Check",
@@ -481,5 +479,37 @@
   "stutteranalyzer.version.upload_ready": "ready",
   "stutteranalyzer.version.upload_local": "local only",
   "stutteranalyzer.version.submit_cloudflare": "Cloudflare",
-  "stutteranalyzer.version.submit_local": "local"
+  "stutteranalyzer.version.submit_local": "local",
+
+  "stutteranalyzer.optimize.reason.sodium": "renderer",
+  "stutteranalyzer.optimize.reason.embeddium": "renderer",
+  "stutteranalyzer.optimize.reason.immediatelyfast": "render/UI",
+  "stutteranalyzer.optimize.reason.entity_culling": "hidden entities",
+  "stutteranalyzer.optimize.reason.moreculling": "block culling",
+  "stutteranalyzer.optimize.reason.lithium": "game logic",
+  "stutteranalyzer.optimize.reason.radium": "game logic",
+  "stutteranalyzer.optimize.reason.ferritecore": "memory",
+  "stutteranalyzer.optimize.reason.modernfix": "fixes/performance",
+  "stutteranalyzer.optimize.reason.memoryleakfix": "memory leaks",
+  "stutteranalyzer.optimize.reason.noisium": "worldgen",
+  "stutteranalyzer.optimize.reason.krypton": "network",
+  "stutteranalyzer.optimize.reason.vmp": "server",
+  "stutteranalyzer.optimize.reason.dynamic_fps": "background FPS",
+  "stutteranalyzer.optimize.reason.debugify": "bug fixes",
+  "stutteranalyzer.optimize.reason.exordium": "UI rendering",
+  "stutteranalyzer.optimize.reason.ebe": "block entities",
+  "stutteranalyzer.optimize.reason.cull_less_leaves": "leaf rendering",
+  "stutteranalyzer.optimize.reason.clumps": "XP orbs",
+  "stutteranalyzer.optimize.reason.ai_improvements": "mob AI",
+  "stutteranalyzer.optimize.reason.connectivity": "network",
+  "stutteranalyzer.optimize.reason.packet_fixer": "network",
+
+  "stutteranalyzer.optimize.btn.install": "[Install]",
+  "stutteranalyzer.optimize.btn.confirm": "[Confirm install]",
+  "stutteranalyzer.optimize.skipped": "Skipped: %s without files for %s %s",
+  "stutteranalyzer.optimize.install.already": "Already installed: %s",
+  "stutteranalyzer.optimize.install.done": "Done: %s installed, %s already present, %s failed. Restart required.",
+  "stutteranalyzer.optimize.install.done_no_new": "Done: %s already present, %s failed.",
+  "stutteranalyzer.optimize.install.fail_item": "Failed: %s",
+  "stutteranalyzer.optimize.install.fail_hint": "Failures: see latest.log"
 }

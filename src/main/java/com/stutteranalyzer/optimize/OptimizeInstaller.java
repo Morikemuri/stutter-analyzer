@@ -112,6 +112,14 @@ public class OptimizeInstaller {
         String plannedLine = remaining > 0 ? nameList + " +" + remaining : nameList;
         send(src, Component.translatable("stutteranalyzer.optimize.warning.planned", plannedLine));
         send(src, Component.translatable("stutteranalyzer.optimize.warning.confirm"));
+
+        Component confirmBtn = Component.translatable("stutteranalyzer.optimize.btn.confirm")
+            .withStyle(s -> s
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/sa optimize install"))
+                .withUnderlined(true)
+                .withColor(net.minecraft.ChatFormatting.GOLD));
+        send(src, confirmBtn);
     }
 
     private static void executeInstall(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
@@ -125,14 +133,14 @@ public class OptimizeInstaller {
         List<ManifestEntry> installedList = new ArrayList<>();
         List<ManifestEntry> failedList = new ArrayList<>();
         int successCount = 0;
-        int skipCount = 0;
+        int alreadyCount = 0;
         int failCount = 0;
 
         for (OptimizeMod mod : plan.recommended) {
             if (mod.resolvedUrl == null || mod.resolvedUrl.isEmpty()) {
-                String reason = "not found for " + plan.loader + " " + plan.mcVersion;
-                send(src, Component.translatable("stutteranalyzer.optimize.install.fail", mod.displayName, reason));
-                failedList.add(new ManifestEntry(mod.id, mod.displayName, null, null, null, "failed", reason));
+                // Safety net - should not happen after pre-filtering
+                LOGGER.warn("[SA] Skipping {} - no resolved URL at install time", mod.id);
+                failedList.add(new ManifestEntry(mod.id, mod.displayName, null, null, null, "failed", "no resolved url"));
                 failCount++;
                 continue;
             }
@@ -140,11 +148,11 @@ public class OptimizeInstaller {
             try {
                 DownloadResult result = downloadAndVerify(mod, modsDir);
                 if (result.skipped) {
-                    send(src, Component.translatable("stutteranalyzer.optimize.install.skip", mod.displayName));
+                    send(src, Component.translatable("stutteranalyzer.optimize.install.already", mod.displayName));
                     installedList.add(new ManifestEntry(mod.id, mod.displayName,
                         result.filename, modsDir.resolve(result.filename).toString(),
-                        mod.resolvedSha512, "skipped", null));
-                    skipCount++;
+                        mod.resolvedSha512, "already_present", null));
+                    alreadyCount++;
                 } else {
                     send(src, Component.translatable("stutteranalyzer.optimize.install.ok", mod.displayName));
                     installedList.add(new ManifestEntry(mod.id, mod.displayName,
@@ -154,7 +162,7 @@ public class OptimizeInstaller {
                 }
             } catch (Exception e) {
                 LOGGER.warn("[SA] Install failed for {}: {}", mod.displayName, e.getMessage(), e);
-                send(src, Component.translatable("stutteranalyzer.optimize.install.fail", mod.displayName, e.getMessage()));
+                send(src, Component.translatable("stutteranalyzer.optimize.install.fail_item", mod.displayName));
                 failedList.add(new ManifestEntry(mod.id, mod.displayName,
                     null, null, null, "failed", e.getMessage()));
                 failCount++;
@@ -163,14 +171,15 @@ public class OptimizeInstaller {
 
         writeManifest(plan, installedList, failedList, modsDir.getParent());
 
-        if (successCount == 0 && skipCount == 0 && failCount > 0) {
-            send(src, Component.translatable("stutteranalyzer.optimize.install.done_fail", failCount));
-        } else if (skipCount > 0 && successCount == 0 && failCount == 0) {
-            send(src, Component.translatable("stutteranalyzer.optimize.install.done_skipped", skipCount));
-        } else if (failCount > 0) {
-            send(src, Component.translatable("stutteranalyzer.optimize.install.done_partial", successCount, failCount));
+        if (successCount > 0) {
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done", successCount, alreadyCount, failCount));
+        } else if (alreadyCount > 0 || failCount > 0) {
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done_no_new", alreadyCount, failCount));
         } else {
-            send(src, Component.translatable("stutteranalyzer.optimize.install.done_ok", successCount));
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done_fail"));
+        }
+        if (failCount > 0) {
+            send(src, Component.translatable("stutteranalyzer.optimize.install.fail_hint"));
         }
     }
 

@@ -18,10 +18,6 @@ public class CommandPermissionHelper {
         return src.hasPermission(SAConfig.INSTANCE.configReloadPermissionLevel.get());
     }
 
-    public static boolean canDeleteReports(CommandSourceStack src) {
-        return src.hasPermission(SAConfig.INSTANCE.deleteReportPermissionLevel.get());
-    }
-
     public static boolean canSubmitReports(CommandSourceStack src) {
         return src.hasPermission(SAConfig.INSTANCE.submitReportPermissionLevel.get());
     }

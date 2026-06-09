@@ -42,7 +42,6 @@
   "stutteranalyzer.cmd.report.none": "Сохранённых отчётов пока нет.",
   "stutteranalyzer.cmd.report.no_unknown": "В текущей сессии неклассифицированных зависаний нет.",
   "stutteranalyzer.cmd.report.not_found": "Отчёт не найден в памяти: %s. Проверьте config/stutter-analyzer/reports/",
-  "stutteranalyzer.cmd.report.delete_note": "Запрос на удаление принят для: %s. Удалите файл вручную из config/stutter-analyzer/reports/",
   "stutteranalyzer.cmd.report.header": "Отчёт: %s",
 
   "stutteranalyzer.cmd.config.reloaded": "Конфигурация перезагружена. Некоторые значения требуют перезапуска.",
@@ -71,7 +70,6 @@
   "stutteranalyzer.cmd.help.status": "/sa status            - Состояние анализатора и количество зависаний",
 
   "stutteranalyzer.cmd.help.last": "/sa last              - Последнее зафиксированное зависание",
-  "stutteranalyzer.cmd.help.delete": "/sa delete <id>       - Удалить отчёт",
   "stutteranalyzer.cmd.help.overlay": "/sa overlay ...       - Оверлей (только клиент)",
 
   "stutteranalyzer.cmd.selfcheck.header": "Самопроверка StutterAnalyzer",
@@ -481,5 +479,37 @@
   "stutteranalyzer.version.upload_ready": "готово",
   "stutteranalyzer.version.upload_local": "только локально",
   "stutteranalyzer.version.submit_cloudflare": "Cloudflare",
-  "stutteranalyzer.version.submit_local": "локально"
+  "stutteranalyzer.version.submit_local": "локально",
+
+  "stutteranalyzer.optimize.reason.sodium": "рендер",
+  "stutteranalyzer.optimize.reason.embeddium": "рендер",
+  "stutteranalyzer.optimize.reason.immediatelyfast": "рендер/UI",
+  "stutteranalyzer.optimize.reason.entity_culling": "скрытые сущности",
+  "stutteranalyzer.optimize.reason.moreculling": "отсечение блоков",
+  "stutteranalyzer.optimize.reason.lithium": "логика игры",
+  "stutteranalyzer.optimize.reason.radium": "логика игры",
+  "stutteranalyzer.optimize.reason.ferritecore": "память",
+  "stutteranalyzer.optimize.reason.modernfix": "фиксы/производительность",
+  "stutteranalyzer.optimize.reason.memoryleakfix": "утечки памяти",
+  "stutteranalyzer.optimize.reason.noisium": "генерация мира",
+  "stutteranalyzer.optimize.reason.krypton": "сеть",
+  "stutteranalyzer.optimize.reason.vmp": "сервер",
+  "stutteranalyzer.optimize.reason.dynamic_fps": "фоновой FPS",
+  "stutteranalyzer.optimize.reason.debugify": "фиксы багов",
+  "stutteranalyzer.optimize.reason.exordium": "рендер UI",
+  "stutteranalyzer.optimize.reason.ebe": "блок-сущности",
+  "stutteranalyzer.optimize.reason.cull_less_leaves": "листья",
+  "stutteranalyzer.optimize.reason.clumps": "опыт",
+  "stutteranalyzer.optimize.reason.ai_improvements": "ИИ мобов",
+  "stutteranalyzer.optimize.reason.connectivity": "сеть",
+  "stutteranalyzer.optimize.reason.packet_fixer": "сеть",
+
+  "stutteranalyzer.optimize.btn.install": "[Установить]",
+  "stutteranalyzer.optimize.btn.confirm": "[Подтвердить установку]",
+  "stutteranalyzer.optimize.skipped": "Пропущено: %s без файла под %s %s",
+  "stutteranalyzer.optimize.install.already": "Уже стоит: %s",
+  "stutteranalyzer.optimize.install.done": "Готово: %s установлено, %s уже было, %s ошибок. Нужен перезапуск.",
+  "stutteranalyzer.optimize.install.done_no_new": "Готово: %s уже стоит, %s ошибок.",
+  "stutteranalyzer.optimize.install.fail_item": "Ошибка: %s",
+  "stutteranalyzer.optimize.install.fail_hint": "Ошибки: подробности в latest.log"
 }

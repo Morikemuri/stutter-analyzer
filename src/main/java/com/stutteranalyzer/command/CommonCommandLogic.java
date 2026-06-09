@@ -334,15 +334,6 @@ public class CommonCommandLogic {
         return 1;
     }
 
-    public static int deleteReport(CommandSourceStack src, String reportId) {
-        if (!CommandPermissionHelper.canDeleteReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.report.delete_note", reportId)), false);
-        return 1;
-    }
-
     public static int reloadConfig(CommandSourceStack src) {
         if (!CommandPermissionHelper.canReloadConfig(src)) {
             src.sendFailure(CommandFeedback.noPermission());
@@ -1363,16 +1354,31 @@ public class CommonCommandLogic {
         for (int i = 0; i < shown; i++) {
             com.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
             int num = i + 1;
+            Component reasonComp = Component.translatable("stutteranalyzer.optimize.reason." + mod.id);
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mod_entry",
-                num, mod.displayName, mod.reason)));
+                num, mod.displayName, reasonComp)));
         }
         int remaining = plan.recommended.size() - shown;
         if (remaining > 0) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.more", remaining)));
         }
-        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.run_install")));
+        if (!plan.skippedCandidates.isEmpty()) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
+                plan.skippedCandidates.size(), plan.loader, plan.mcVersion)));
+        }
+        Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
+            .withStyle(s -> s
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/sa optimize install"))
+                .withUnderlined(true)
+                .withColor(net.minecraft.ChatFormatting.GREEN));
+        out.add(CommandFeedback.info(installBtn));
         StutterAnalyzerMod.LOGGER.info("[SA] Full optimization plan: {}",
             plan.recommended.stream().map(m -> m.displayName).collect(Collectors.joining(", ")));
+        if (!plan.skippedCandidates.isEmpty()) {
+            StutterAnalyzerMod.LOGGER.info("[SA] Skipped candidates (no file): {}",
+                plan.skippedCandidates.stream().map(m -> m.id).collect(Collectors.joining(", ")));
+        }
         return out;
     }
 
