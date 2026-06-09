@@ -775,12 +775,16 @@ public class CommonCommandLogic {
     public static int alertsSetMode(CommandSourceStack src, AlertMode mode) {
         SAConfig.INSTANCE.alertMode.set(mode.name());
         src.sendSuccess(() -> CommandFeedback.success("[SA] Alert mode: " + mode.name()), false);
-        switch (mode) {
-            case MINOR   -> src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
-            case MEDIUM  -> src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
-            case SEVERE  -> src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
-            case EXTREME -> src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
-            case OFF     -> src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
+        if (mode == AlertMode.MINOR) {
+            src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: minor alerts can be noisy. Use /sa alerts off to disable."), false);
+        } else if (mode == AlertMode.MEDIUM) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Medium, severe, and extreme stutters will appear in chat."), false);
+        } else if (mode == AlertMode.SEVERE) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Only important freezes will appear in chat."), false);
+        } else if (mode == AlertMode.EXTREME) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Only extreme freezes will appear in chat."), false);
+        } else if (mode == AlertMode.OFF) {
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Chat alerts disabled. F3, /sa status, reports, and /sa submit still work."), false);
         }
         return 1;
     }

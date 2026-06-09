@@ -3,10 +3,20 @@ package com.stutteranalyzer.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.stutteranalyzer.submission.SubmissionManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 
 public class FabricCommandRegistrar {
+
+    private static int safe(CommandSourceStack src, java.util.concurrent.Callable<Integer> action) {
+        try {
+            return action.call();
+        } catch (Throwable t) {
+            SubmissionManager.handleTopLevelSubmitCrash(src, t);
+            return 0;
+        }
+    }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, String root) {
         dispatcher.register(Commands.literal(root)
@@ -30,21 +40,21 @@ public class FabricCommandRegistrar {
                 .then(Commands.literal("status")
                     .executes(c -> CommonCommandLogic.alertsStatus(c.getSource())))
                 .then(Commands.literal("minor")
-                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.MINOR)))
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.MINOR))))
                 .then(Commands.literal("medium")
-                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.MEDIUM)))
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.MEDIUM))))
                 .then(Commands.literal("severe")
-                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.SEVERE)))
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.SEVERE))))
                 .then(Commands.literal("extreme")
-                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.EXTREME)))
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.EXTREME))))
                 .then(Commands.literal("off")
-                    .executes(c -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.OFF)))
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsSetMode(c.getSource(), com.stutteranalyzer.core.AlertMode.OFF))))
                 .then(Commands.literal("cooldown")
                     .then(Commands.argument("seconds", IntegerArgumentType.integer(5, 600))
-                        .executes(c -> CommonCommandLogic.alertsCooldown(
-                            c.getSource(), IntegerArgumentType.getInteger(c, "seconds")))))
+                        .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsCooldown(
+                            c.getSource(), IntegerArgumentType.getInteger(c, "seconds"))))))
                 .then(Commands.literal("test")
-                    .executes(c -> CommonCommandLogic.alertsTest(c.getSource()))))
+                    .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.alertsTest(c.getSource())))))
 
             // ── submit ────────────────────────────────────────────────────────
             .then(Commands.literal("submit")
