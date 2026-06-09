@@ -7,9 +7,9 @@ import net.minecraft.network.chat.HoverEvent;
 
 public class AlertHoverText {
 
-    public static Component build(FreezeCategory category, long ms, String visibleMsg) {
+    public static Component build(FreezeCategory category, long ms, Component visibleMsg) {
         Component hover = Component.translatable(hoverKey(category), ms);
-        return Component.literal(visibleMsg)
+        return visibleMsg.copy()
             .withStyle(s -> s.withColor(ChatFormatting.GREEN)
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover)));
     }

@@ -67,24 +67,24 @@ public class OptimizeInstaller {
 
         if (plan == null) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] No optimization plan found. Run /sa optimize suggest first."), false);
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.no_plan")), false);
             return;
         }
         if (plan.isExpired(PLAN_MAX_AGE_MS)) {
             currentPlan = null;
             confirmRequestedAt = 0;
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Plan expired. Run /sa optimize suggest again."), false);
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.plan_expired")), false);
             return;
         }
         if (plan.isEmpty()) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Nothing to install. Your modpack already looks optimized."), false);
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.nothing_to_install")), false);
             return;
         }
         if (modsDir == null) {
             src.sendSuccess(() -> CommandFeedback.info(
-                "[SA] Could not detect mods folder. Install cancelled."), false);
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.no_mods_dir")), false);
             return;
         }
 
@@ -101,29 +101,20 @@ public class OptimizeInstaller {
     }
 
     private static void showInstallWarning(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
-        src.sendFailure(Component.literal(
-            "[SA] WARNING: Installing mods can break modpacks, especially large or heavily customized ones."));
-        if (plan.risk == OptimizePlan.RiskLevel.HIGH) {
-            src.sendFailure(Component.literal("[SA] Risk is HIGH: " + plan.riskReason));
-        }
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Planned installs:"), false);
-        for (OptimizeMod mod : plan.recommended) {
-            boolean hasUrl = mod.resolvedUrl != null && !mod.resolvedUrl.isEmpty();
-            String suffix = hasUrl ? "" : " (no download URL - will be skipped)";
-            src.sendSuccess(() -> CommandFeedback.info("  - " + mod.displayName + suffix), false);
-        }
-        src.sendSuccess(() -> CommandFeedback.info(
-            "[SA] Files will be downloaded into: " + modsDir.toAbsolutePath()), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Backup your modpack first."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] No guarantee of performance improvement."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Restart required after installation."), false);
-        src.sendSuccess(() -> CommandFeedback.info(
-            "[SA] Run /sa optimize install again within 60 seconds to confirm."), false);
+        src.sendFailure(Component.translatable("stutteranalyzer.optimize.warning.line1"));
+        src.sendFailure(Component.translatable("stutteranalyzer.optimize.warning.backup"));
+
+        int shown = Math.min(plan.recommended.size(), 5);
+        String nameList = plan.recommended.subList(0, shown).stream()
+            .map(m -> m.displayName).collect(java.util.stream.Collectors.joining(", "));
+        int remaining = plan.recommended.size() - shown;
+        String plannedLine = remaining > 0 ? nameList + " +" + remaining : nameList;
+        send(src, Component.translatable("stutteranalyzer.optimize.warning.planned", plannedLine));
+        send(src, Component.translatable("stutteranalyzer.optimize.warning.confirm"));
     }
 
     private static void executeInstall(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
-        src.sendSuccess(() -> CommandFeedback.info(
-            "[SA] Downloading compatible optimization mods..."), false);
+        send(src, Component.translatable("stutteranalyzer.optimize.install.starting", plan.recommended.size()));
         Thread worker = new Thread(() -> doInstall(src, plan, modsDir), "SA-OptimizeInstall");
         worker.setDaemon(true);
         worker.start();
@@ -138,8 +129,8 @@ public class OptimizeInstaller {
 
         for (OptimizeMod mod : plan.recommended) {
             if (mod.resolvedUrl == null || mod.resolvedUrl.isEmpty()) {
-                String reason = "no compatible file found for " + plan.loader + " " + plan.mcVersion;
-                send(src, "[SA] Failed: " + mod.displayName + " - " + reason + ".");
+                String reason = "not found for " + plan.loader + " " + plan.mcVersion;
+                send(src, Component.translatable("stutteranalyzer.optimize.install.fail", mod.displayName, reason));
                 failedList.add(new ManifestEntry(mod.id, mod.displayName, null, null, null, "failed", reason));
                 failCount++;
                 continue;
@@ -148,13 +139,13 @@ public class OptimizeInstaller {
             try {
                 DownloadResult result = downloadAndVerify(mod, modsDir);
                 if (result.skipped) {
-                    send(src, "[SA] Already installed: " + mod.displayName + " -> " + result.filename + " (skipped)");
+                    send(src, Component.translatable("stutteranalyzer.optimize.install.skip", mod.displayName));
                     installedList.add(new ManifestEntry(mod.id, mod.displayName,
                         result.filename, modsDir.resolve(result.filename).toString(),
                         mod.resolvedSha512, "skipped", null));
                     skipCount++;
                 } else {
-                    send(src, "[SA] Installed: " + mod.displayName + " -> " + result.filename);
+                    send(src, Component.translatable("stutteranalyzer.optimize.install.ok", mod.displayName));
                     installedList.add(new ManifestEntry(mod.id, mod.displayName,
                         result.filename, modsDir.resolve(result.filename).toString(),
                         mod.resolvedSha512, "installed", null));
@@ -162,7 +153,7 @@ public class OptimizeInstaller {
                 }
             } catch (Exception e) {
                 LOGGER.warn("[SA] Install failed for {}: {}", mod.displayName, e.getMessage(), e);
-                send(src, "[SA] Failed: " + mod.displayName + " - " + e.getMessage());
+                send(src, Component.translatable("stutteranalyzer.optimize.install.fail", mod.displayName, e.getMessage()));
                 failedList.add(new ManifestEntry(mod.id, mod.displayName,
                     null, null, null, "failed", e.getMessage()));
                 failCount++;
@@ -172,15 +163,14 @@ public class OptimizeInstaller {
         writeManifest(plan, installedList, failedList, modsDir.getParent());
 
         if (successCount == 0 && skipCount == 0 && failCount > 0) {
-            send(src, "[SA] No files were installed. Check latest.log for details.");
-        } else if (failCount > 0 && successCount > 0) {
-            send(src, "[SA] Done with " + failCount + " failure(s). Check latest.log.");
-        } else if (successCount > 0) {
-            send(src, "[SA] Done. Restart Minecraft to load installed mods.");
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done_fail", failCount));
+        } else if (skipCount > 0 && successCount == 0 && failCount == 0) {
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done_skipped", skipCount));
+        } else if (failCount > 0) {
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done_partial", successCount, failCount));
         } else {
-            send(src, "[SA] All planned mods were already installed.");
+            send(src, Component.translatable("stutteranalyzer.optimize.install.done_ok", successCount));
         }
-        send(src, "[SA] Install manifest saved to config/stutteranalyzer/optimize_last_install.json");
     }
 
     private static class DownloadResult {
@@ -348,6 +338,14 @@ public class OptimizeInstaller {
             src.sendSuccess(() -> CommandFeedback.info(msg), false);
         } catch (Exception e) {
             LOGGER.info("[SA] {}", msg);
+        }
+    }
+
+    private static void send(CommandSourceStack src, Component comp) {
+        try {
+            src.sendSuccess(() -> CommandFeedback.info(comp), false);
+        } catch (Exception e) {
+            LOGGER.info("[SA] {}", comp.getString());
         }
     }
 
