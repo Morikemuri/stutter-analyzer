@@ -477,36 +477,19 @@ public class CommonCommandLogic {
         boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
         String submitDisplay = cfEnabled ? "Cloudflare" : "local";
         String uploadDisplay = cfEnabled ? "ready" : "local only";
+        String javaVersion = System.getProperty("java.version", "unknown");
+        int javaMajor = 0;
+        try { javaMajor = Integer.parseInt(javaVersion.contains(".") ? javaVersion.split("[._-]")[0].equals("1") ? javaVersion.split("[._-]")[1] : javaVersion.split("[._-]")[0] : javaVersion); } catch (Exception ignored) {}
+        final String javaDisplay = javaMajor > 0 ? String.valueOf(javaMajor) : javaVersion;
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Version Info"), false);
         src.sendSuccess(() -> CommandFeedback.row("Version", StutterAnalyzerMod.MOD_VERSION), false);
-        src.sendSuccess(() -> CommandFeedback.row("Build", StutterAnalyzerMod.BUILD_DATE), false);
         src.sendSuccess(() -> CommandFeedback.row("Minecraft", "1.20.4"), false);
         src.sendSuccess(() -> CommandFeedback.row("Loader", "Forge"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Java", System.getProperty("java.version", "unknown")), false);
+        src.sendSuccess(() -> CommandFeedback.row("Java", javaDisplay), false);
         src.sendSuccess(() -> CommandFeedback.row("Status", "Beta / RC"), false);
         src.sendSuccess(() -> CommandFeedback.row("Features", "F3 status, alerts, reports, submit"), false);
         src.sendSuccess(() -> CommandFeedback.row("Submit", submitDisplay), false);
         src.sendSuccess(() -> CommandFeedback.row("Upload", uploadDisplay), false);
-
-        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            src.sendSuccess(() -> CommandFeedback.row("Update check", "disabled"), false);
-        } else {
-            UpdateCheckResult result = UpdateChecker.getCached();
-            if (result == null) {
-                src.sendSuccess(() -> CommandFeedback.row("Update check", "not checked - use /sa update check"), false);
-            } else if (!result.success()) {
-                src.sendSuccess(() -> CommandFeedback.row("Update check", "unavailable"), false);
-                String reason = result.errorReason() != null ? result.errorReason() : "unknown error";
-                src.sendSuccess(() -> CommandFeedback.row("Reason", reason), false);
-            } else if (result.updateAvailable()) {
-                src.sendSuccess(() -> CommandFeedback.row("Latest", result.latestVersion()), false);
-                src.sendSuccess(() -> CommandFeedback.row("Update", "available"), false);
-                src.sendSuccess(() -> CommandFeedback.row("Download", result.githubPage()), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] CurseForge link is available on the GitHub page."), false);
-            } else {
-                src.sendSuccess(() -> CommandFeedback.row("Update check", "up to date"), false);
-            }
-        }
         return 1;
     }
 
@@ -885,23 +868,33 @@ public class CommonCommandLogic {
     }
 
     public static int showHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa                         - quick status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa status                  - detailed analyzer status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa version                 - version and update info"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa privacy                 - what gets submitted"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts status           - show alert mode and cooldowns"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts minor/medium/severe/extreme - set alert mode"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts off              - disable chat alerts"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts cooldown <sec>   - set cooldown (5-600s)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa alerts test             - preview what would be shown"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit                  - send latest report and logs"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit preview          - preview report before sending"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit check <id>       - check submission status"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa reports                 - list reports"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa last                    - show latest report"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa health                  - subsystem health overview"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa selfcheck               - full self-diagnostic"), false);
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer Help"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Main:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa status              - Show current analyzer status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa version             - Show version and loader info"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa privacy             - Show what submit does and what is sanitized"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Alerts:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts status       - Show alert settings"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts minor        - Show all stutters, noisy"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts medium       - Show medium and higher"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts severe       - Show severe and extreme"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts extreme      - Show only extreme freezes"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa alerts off          - Disable chat alerts"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Reports:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa last                - Show latest tracked event/report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa reports             - List saved reports"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa show <id>           - Show a saved report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa delete <id>         - Delete a saved report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Submit:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit preview      - Preview what would be sent"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit              - Send latest report"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa submit check <id>   - Check report status"), false);
+        src.sendSuccess(() -> CommandFeedback.info("HUD:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
+        src.sendSuccess(() -> CommandFeedback.info("Info:"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa explain <category>  - Explain a category"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Suggest safe optimization ideas"), false);
         return 1;
     }
 
