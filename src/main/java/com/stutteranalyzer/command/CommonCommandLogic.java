@@ -544,7 +544,7 @@ public class CommonCommandLogic {
     public static int quietOff(CommandSourceStack src) {
         QuietMode.setEnabled(false);
         src.sendSuccess(() -> CommandFeedback.success("[SA] Quiet mode: OFF"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Using normal notification rules. Use /sa verbose on for per-stutter chat."), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Using normal notification rules. Use /sa alerts minor to show minor stutters in chat."), false);
         return 1;
     }
 

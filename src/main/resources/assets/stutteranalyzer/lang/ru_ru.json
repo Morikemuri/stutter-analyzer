@@ -71,11 +71,6 @@
   "stutteranalyzer.cmd.help.status": "/sa status            - Состояние анализатора и количество зависаний",
 
   "stutteranalyzer.cmd.help.last": "/sa last              - Последнее зафиксированное зависание",
-  "stutteranalyzer.cmd.help.report": "/sa report            - Сгенерировать отчёт из текущих данных",
-  "stutteranalyzer.cmd.help.export": "/sa export            - Экспортировать последний отчёт для GitHub, Discord или поддержки",
-  "stutteranalyzer.cmd.help.list": "/sa list              - Список сохранённых отчётов",
-  "stutteranalyzer.cmd.help.list_unknown": "/sa list unknown      - Список неклассифицированных зависаний",
-  "stutteranalyzer.cmd.help.show": "/sa show <id>         - Показать детали отчёта",
   "stutteranalyzer.cmd.help.delete": "/sa delete <id>       - Удалить отчёт",
   "stutteranalyzer.cmd.help.overlay": "/sa overlay ...       - Оверлей (только клиент)",
 
@@ -143,7 +138,7 @@
   "stutteranalyzer.verbose.off": "ВЫКЛ",
   "stutteranalyzer.verbose.stutter_detected": "[SA] Фриз: %s мс (verbose режим)",
   "stutteranalyzer.verbose.aggregate": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status.",
-  "stutteranalyzer.verbose.test_minor_hint": "Используйте /sa verbose on чтобы видеть мелкие фризы в чате.",
+  "stutteranalyzer.verbose.test_minor_hint": "Используйте /sa alerts minor, чтобы видеть мелкие микрофризы в чате.",
 
   "stutteranalyzer.cmd.status.last_stutter": "Последний фриз",
   "stutteranalyzer.cmd.status.last_minor": "Последний мелкий фриз",
@@ -155,7 +150,7 @@
   "stutteranalyzer.cmd.status.chat_medium": "Чат: средние",
   "stutteranalyzer.cmd.status.chat_severe": "Чат: серьёзные",
   "stutteranalyzer.cmd.status.verbose_mode": "Verbose режим",
-  "stutteranalyzer.cmd.status.minor_silent_hint": "[SA] Мелкие фризы отслеживаются тихо. Используйте /sa verbose on для временного показа в чате.",
+  "stutteranalyzer.cmd.status.minor_silent_hint": "[SA] Мелкие микрофризы отслеживаются тихо. Используйте /sa alerts minor для показа в чате.",
 
   "stutteranalyzer.f3.active": "SA: АКТИВЕН",
   "stutteranalyzer.f3.status_warn": "SA: ПРЕДУПРЕЖДЕНИЕ | %s | /sa status",

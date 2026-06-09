@@ -763,7 +763,7 @@ public class SubmissionManager {
 
             if ("queued".equals(githubFwd)) {
                 src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue creation queued."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Check status: /sa submit check " + finalId), false);
+                src.sendSuccess(() -> CommandFeedback.info("[SA] Check status: use /sa submit status"), false);
             } else if ("GITHUB_FORWARD_FAILED".equals(warning)) {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] GitHub forwarding failed server-side, but no data was lost."), false);
             } else if (issueNum != null && !issueNum.equals("null") && !issueNum.isBlank()) {
