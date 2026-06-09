@@ -115,6 +115,40 @@
       "Usually harmless. A small hitch repeats at a scheduled interval.",
       "If you can feel it in gameplay, try disabling overlays, skin/cape polling mods, launcher cosmetic features, or scheduled diagnostic features one by one.",
       "This is a pattern hint, not a proven root cause."
+    ],
+    "WORLD_JOIN_LOAD_SPIKE": [
+      "Expected during world join. A moderate hitch while loading chunks and entities.",
+      "Usually resolves on its own. If it happens every join, pregenerate spawn chunks.",
+      "Try ImmediatelyFast to speed up resource preparation."
+    ],
+    "WORLD_JOIN_RENDER_STALL": [
+      "The client render thread stalled shortly after joining a world.",
+      "Often caused by shader/resource reload, first-time chunk rendering, or heavy mod initialization on join.",
+      "Try: disable shaders temporarily, reduce view distance, or pregen the spawn area.",
+      "Attach the JSON report to GitHub if this occurs repeatedly."
+    ],
+    "RESOURCE_RELOAD_STALL": [
+      "A stall occurred during resource pack or asset reload.",
+      "Expected when switching resource packs or after /reload.",
+      "If it happens unexpectedly mid-session, check for mods that trigger resource reloads automatically.",
+      "Try ImmediatelyFast or a lighter resource pack."
+    ],
+    "CHUNK_LOADING_HITCH": [
+      "A hitch occurred while loading chunks.",
+      "Try reducing view distance or adding a chunk loading optimization mod.",
+      "Pregen commonly visited areas to reduce on-the-fly chunk loading."
+    ],
+    "MODPACK_STARTUP_STALL": [
+      "A stall occurred during mod initialization or late loading.",
+      "This is expected in large modpacks. It usually does not recur after first load.",
+      "If it repeats mid-session, check for mods that do late initialization or file I/O on demand."
+    ],
+    "UNKNOWN_EXTREME_FREEZE": [
+      "An extreme freeze >= 1000ms with no identifiable cause.",
+      "Enable debug mode and reproduce the freeze.",
+      "Export report and compare with a run without recently added mods.",
+      "Submit the report via /sa submit last.",
+      "Attach Markdown and JSON files to GitHub."
     ]
   }
 }

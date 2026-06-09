@@ -1132,6 +1132,23 @@ public class CommonCommandLogic {
         return f3On(src);
     }
 
+    public static int explainCategory(CommandSourceStack src, String category) {
+        String key = "explain.stutteranalyzer." + category.toLowerCase().replace('_', '_');
+        String catKey = "category.stutteranalyzer." + category.toLowerCase();
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Category: " + category), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable(key)), false);
+        src.sendSuccess(() -> CommandFeedback.info("Use /sa last to see the full report."), false);
+        return 1;
+    }
+
+    public static int optimizeSuggest(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.header("[SA] Optimization Suggestions"), false);
+        src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization suggestions are planned but not enabled in this beta."), false);
+        src.sendSuccess(() -> CommandFeedback.info("Future builds may use CurseForge/Modrinth APIs to suggest compatible performance mods."), false);
+        src.sendSuccess(() -> CommandFeedback.info("For now, check the knowledge base report section after /sa submit."), false);
+        return 1;
+    }
+
     private static List<CrashEvent> findCrash(String crashId) {
         return PreviousCrashImporter.allImported().stream()
             .filter(ce -> ce.crashId.equals(crashId))

@@ -93,6 +93,13 @@ public class FabricCommandRegistrar {
                 .executes(c -> CommonCommandLogic.selfCheck(c.getSource())))
             .then(Commands.literal("test")
                 .executes(c -> CommonCommandLogic.selfCheck(c.getSource())))
+            .then(Commands.literal("explain")
+                .then(Commands.argument("category", StringArgumentType.word())
+                    .executes(c -> CommonCommandLogic.explainCategory(
+                        c.getSource(), StringArgumentType.getString(c, "category")))))
+            .then(Commands.literal("optimize")
+                .then(Commands.literal("suggest")
+                    .executes(c -> CommonCommandLogic.optimizeSuggest(c.getSource()))))
 
             .then(Commands.literal("report")
                 .executes(c -> CommonCommandLogic.generateReport(c.getSource())))
