@@ -101,6 +101,11 @@
       "Check for scheduled mod timers firing at regular intervals.",
       "Do not adjust GPU, render distance, or server settings for this category."
     ],
+    "PERIODIC_SCHEDULED_MICRO_HITCH": [
+      "Usually harmless. A small hitch repeats at a scheduled interval.",
+      "If you can feel it in gameplay, try disabling overlays, skin/cape polling mods, launcher cosmetic features, or scheduled diagnostic features one by one.",
+      "This is a pattern hint, not a proven root cause."
+    ],
     "UNCLASSIFIED_MICRO_HITCH": [
       "Usually harmless for a one-off minor hitch.",
       "Monitor for recurrence. If it becomes frequent, enable debug mode.",
@@ -110,11 +115,6 @@
       "Enable debug mode if this recurs frequently.",
       "Check GPU usage and server MSPT around the time of the hitch.",
       "Compare a report with and without recently added mods."
-    ],
-    "PERIODIC_SCHEDULED_MICRO_HITCH": [
-      "Usually harmless. A small hitch repeats at a scheduled interval.",
-      "If you can feel it in gameplay, try disabling overlays, skin/cape polling mods, launcher cosmetic features, or scheduled diagnostic features one by one.",
-      "This is a pattern hint, not a proven root cause."
     ],
     "WORLD_JOIN_LOAD_SPIKE": [
       "Expected during world join. A moderate hitch while loading chunks and entities.",
