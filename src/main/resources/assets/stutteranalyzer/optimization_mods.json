@@ -8,7 +8,12 @@
     "risk_areas": ["client frame stutter", "chunk render rebuild spike", "terrain rendering stall", "fluid rendering crash", "texture atlas/resource reload context"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": "Primary Fabric render engine replacement."
+    "notes": "Primary Fabric render engine replacement.",
+    "install_priority": 100,
+    "install_safe": true,
+    "install_reason": "Renderer optimization for Fabric.",
+    "install_modrinth": "sodium",
+    "install_conflicts": ["embeddium", "rubidium", "xenon"]
   },
   "embeddium": {
     "display_names": ["Embeddium"],
@@ -19,7 +24,12 @@
     "risk_areas": ["Forge/NeoForge rendering stutter", "chunk mesh build spike", "shader/render addon compatibility context"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": "Forge/NeoForge port of Sodium."
+    "notes": "Forge/NeoForge port of Sodium.",
+    "install_priority": 100,
+    "install_safe": true,
+    "install_reason": "Renderer optimization for Forge.",
+    "install_modrinth": "embeddium",
+    "install_conflicts": ["sodium", "rubidium", "xenon"]
   },
   "rubidium": {
     "display_names": ["Rubidium"],
@@ -30,7 +40,9 @@
     "risk_areas": ["chunk mesh build crash", "lava/fluid rendering crash", "texture sprite null in fluid renderer"],
     "safe_report_language": "possible related area",
     "known_patterns": ["RUBIDIUM_LAVA_FLUID_RENDER_CRASH"],
-    "notes": "Older Forge port of Sodium. Some versions have known lava/fluid rendering crashes."
+    "notes": "Older Forge port of Sodium. Some versions have known lava/fluid rendering crashes.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "xenon": {
     "display_names": ["Xenon"],
@@ -41,7 +53,9 @@
     "risk_areas": ["Embeddium-family rendering context", "chunk mesh build stutter"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": "Embeddium-family render engine."
+    "notes": "Embeddium-family render engine.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "nvidium": {
     "display_names": ["Nvidium"],
@@ -52,7 +66,9 @@
     "risk_areas": ["GPU/driver render stalls", "Sodium backend compatibility", "Nvidia-specific context"],
     "safe_report_language": "experimental optimization context. May affect rendering/terrain. Need stronger evidence before assigning cause.",
     "known_patterns": [],
-    "notes": "Experimental Nvidia-specific Sodium backend."
+    "notes": "Experimental Nvidia-specific Sodium backend.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "vulkanmod": {
     "display_names": ["VulkanMod"],
@@ -63,7 +79,9 @@
     "risk_areas": ["Vulkan backend stutter", "device lost", "swapchain/render backend errors"],
     "safe_report_language": "experimental optimization context. May affect threading/rendering. Need stronger evidence before assigning cause.",
     "known_patterns": [],
-    "notes": "Experimental Vulkan rendering backend."
+    "notes": "Experimental Vulkan rendering backend.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "iris": {
     "display_names": ["Iris Shaders"],
@@ -74,7 +92,9 @@
     "risk_areas": ["shader compilation stutter", "shader reload freeze", "resource reload freeze", "Sodium compatibility"],
     "safe_report_language": "installed context",
     "known_patterns": ["IRIS_OCULUS_SHADER_PIPELINE_CONTEXT"],
-    "notes": "Fabric shader mod."
+    "notes": "Fabric shader mod.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "oculus": {
     "display_names": ["Oculus"],
@@ -85,7 +105,9 @@
     "risk_areas": ["shader reload freeze", "Forge shader/render compatibility", "Embeddium/Rubidium context"],
     "safe_report_language": "installed context",
     "known_patterns": ["IRIS_OCULUS_SHADER_PIPELINE_CONTEXT", "EMBEDDIUM_OCULUS_TAINT_CONTEXT"],
-    "notes": "Forge port of Iris. Known taint issue with some Embeddium versions."
+    "notes": "Forge port of Iris. Known taint issue with some Embeddium versions.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "immediatelyfast": {
     "display_names": ["ImmediatelyFast"],
@@ -96,7 +118,12 @@
     "risk_areas": ["GUI/text rendering stutter", "immediate-mode render spikes"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 60,
+    "install_safe": true,
+    "install_reason": "UI and text rendering optimization.",
+    "install_modrinth": "immediatelyfast",
+    "install_conflicts": []
   },
   "entity_culling": {
     "display_names": ["Entity Culling"],
@@ -107,7 +134,12 @@
     "risk_areas": ["entity visibility calculation spikes", "block entity render stutter", "entity-heavy area FPS drops"],
     "safe_report_language": "installed context",
     "known_patterns": ["CULLING_RENDER_CONTEXT"],
-    "notes": ""
+    "notes": "",
+    "install_priority": 65,
+    "install_safe": true,
+    "install_reason": "Skips rendering of hidden entities.",
+    "install_modrinth": "entity-culling",
+    "install_conflicts": []
   },
   "moreculling": {
     "display_names": ["More Culling"],
@@ -118,7 +150,12 @@
     "risk_areas": ["block face culling", "leaves/transparent rendering"],
     "safe_report_language": "installed context",
     "known_patterns": ["CULLING_RENDER_CONTEXT"],
-    "notes": ""
+    "notes": "",
+    "install_priority": 40,
+    "install_safe": true,
+    "install_reason": "Additional block face culling optimization.",
+    "install_modrinth": "moreculling",
+    "install_conflicts": []
   },
   "lithium": {
     "display_names": ["Lithium"],
@@ -129,7 +166,12 @@
     "risk_areas": ["server tick spike", "entity AI spike", "pathfinding spike", "block ticking spike"],
     "safe_report_language": "installed context",
     "known_patterns": ["LITHIUM_FAMILY_GAME_LOGIC_CONTEXT"],
-    "notes": ""
+    "notes": "",
+    "install_priority": 90,
+    "install_safe": true,
+    "install_reason": "Game logic optimization for Fabric.",
+    "install_modrinth": "lithium",
+    "install_conflicts": ["radium", "canary"]
   },
   "radium": {
     "display_names": ["Radium", "Canary"],
@@ -140,7 +182,12 @@
     "risk_areas": ["server tick spike", "modded entity AI/pathfinding", "Lithium-family overlap"],
     "safe_report_language": "installed context",
     "known_patterns": ["LITHIUM_FAMILY_GAME_LOGIC_CONTEXT"],
-    "notes": "Forge port of Lithium family."
+    "notes": "Forge port of Lithium family.",
+    "install_priority": 80,
+    "install_safe": true,
+    "install_reason": "Game logic optimization for Forge (Lithium port).",
+    "install_modrinth": "radium",
+    "install_conflicts": ["lithium"]
   },
   "ferritecore": {
     "display_names": ["FerriteCore"],
@@ -151,7 +198,12 @@
     "risk_areas": ["memory usage context", "model/state memory context", "memory pressure context"],
     "safe_report_language": "installed context",
     "known_patterns": ["FERRITECORE_MEMORY_CONTEXT"],
-    "notes": "Do not blame without strong evidence."
+    "notes": "Do not blame without strong evidence.",
+    "install_priority": 80,
+    "install_safe": true,
+    "install_reason": "Memory usage optimization.",
+    "install_modrinth": "ferrite-core",
+    "install_conflicts": []
   },
   "modernfix": {
     "display_names": ["ModernFix"],
@@ -162,7 +214,12 @@
     "risk_areas": ["startup/load-time changes", "memory usage", "dynamic resources", "resource reload"],
     "safe_report_language": "installed context",
     "known_patterns": ["MODERNFIX_MEMORY_RESOURCE_CONTEXT"],
-    "notes": ""
+    "notes": "",
+    "install_priority": 75,
+    "install_safe": true,
+    "install_reason": "General performance and bug fixes.",
+    "install_modrinth": "modernfix",
+    "install_conflicts": []
   },
   "memoryleakfix": {
     "display_names": ["Memory Leak Fix", "MemoryLeakFix"],
@@ -173,7 +230,12 @@
     "risk_areas": ["heap growth", "long-session degradation", "GC pressure"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 50,
+    "install_safe": true,
+    "install_reason": "Fixes common memory leaks.",
+    "install_modrinth": "memoryleakfix",
+    "install_conflicts": []
   },
   "lazydfu": {
     "display_names": ["LazyDFU"],
@@ -184,7 +246,9 @@
     "risk_areas": ["startup time", "first-use DFU initialization", "world upgrade/data migration"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 0,
+    "install_safe": false
   },
   "c2me": {
     "display_names": ["C2ME", "C2ME Fabric", "C2ME NeoForge"],
@@ -195,7 +259,9 @@
     "risk_areas": ["chunk generation spike", "chunk I/O spike", "worldgen thread pool saturation", "terrain exploration stutter", "async chunk loading"],
     "safe_report_language": "experimental optimization context. May affect threading/worldgen. Need stronger evidence before assigning cause.",
     "known_patterns": ["C2ME_CORRUPTED_CHUNK_CONTEXT", "C2ME_WORLDGEN_DEADLOCK_CONTEXT"],
-    "notes": "Experimental multithreaded chunk generation. Known chunk corruption and deadlock contexts."
+    "notes": "Experimental multithreaded chunk generation. Known chunk corruption and deadlock contexts.",
+    "install_priority": 0,
+    "install_safe": false
   },
   "noisium": {
     "display_names": ["Noisium"],
@@ -206,7 +272,12 @@
     "risk_areas": ["worldgen noise CPU spikes", "new terrain generation stutter", "pregen performance context"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 35,
+    "install_safe": true,
+    "install_reason": "Worldgen noise calculation optimization.",
+    "install_modrinth": "noisium",
+    "install_conflicts": []
   },
   "starlight": {
     "display_names": ["Starlight", "ScalableLux", "Phosphor"],
@@ -217,7 +288,9 @@
     "risk_areas": ["lighting update spikes", "chunk light propagation", "block placement/breaking updates", "worldgen lighting"],
     "safe_report_language": "installed context",
     "known_patterns": ["LIGHTING_ENGINE_OPTIMIZATION_CONTEXT"],
-    "notes": ""
+    "notes": "",
+    "install_priority": 0,
+    "install_safe": false
   },
   "krypton": {
     "display_names": ["Krypton"],
@@ -228,7 +301,28 @@
     "risk_areas": ["network packet spike", "player join spike", "compression/decompression context"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 55,
+    "install_safe": true,
+    "install_reason": "Network packet optimization.",
+    "install_modrinth": "krypton",
+    "install_conflicts": []
+  },
+  "vmp": {
+    "display_names": ["Very Many Players", "VMP"],
+    "known_aliases": ["vmp", "verymanyplayers"],
+    "loader_support": ["fabric"],
+    "side": "client_server",
+    "category_tags": ["NETWORKING", "SERVER_TICK", "PLAYER_COUNT"],
+    "risk_areas": ["high player count context", "server tick overhead", "player tracking spike"],
+    "safe_report_language": "installed context",
+    "known_patterns": [],
+    "notes": "Server optimization for many simultaneous players.",
+    "install_priority": 30,
+    "install_safe": true,
+    "install_reason": "Server optimization for high player counts.",
+    "install_modrinth": "vmp",
+    "install_conflicts": []
   },
   "servercore": {
     "display_names": ["ServerCore"],
@@ -239,7 +333,9 @@
     "risk_areas": ["TPS drop", "MSPT spike", "mob spawning", "activation range", "chunk tick distance"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 0,
+    "install_safe": false
   },
   "alternate_current": {
     "display_names": ["Alternate Current"],
@@ -250,7 +346,9 @@
     "risk_areas": ["redstone contraption spike", "block update spike", "dust network recalculation"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": ""
+    "notes": "",
+    "install_priority": 0,
+    "install_safe": false
   },
   "dynamic_fps": {
     "display_names": ["Dynamic FPS", "Dynamic FPS Reforged", "FPS Reducer"],
@@ -261,7 +359,12 @@
     "risk_areas": ["low FPS while unfocused", "intentional background FPS cap", "false-positive stutter"],
     "safe_report_language": "installed context",
     "known_patterns": ["DYNAMIC_FPS_BACKGROUND_FALSE_POSITIVE"],
-    "notes": "Intentional FPS reduction when unfocused. May cause false-positive stutter reports."
+    "notes": "Intentional FPS reduction when unfocused. May cause false-positive stutter reports.",
+    "install_priority": 45,
+    "install_safe": true,
+    "install_reason": "Reduces FPS usage when Minecraft is in the background.",
+    "install_modrinth": "dynamic-fps",
+    "install_conflicts": []
   },
   "distant_horizons": {
     "display_names": ["Distant Horizons"],
@@ -272,7 +375,9 @@
     "risk_areas": ["LOD generation spike", "distant terrain cache loading", "disk I/O spike", "exploration stutter"],
     "safe_report_language": "installed context",
     "known_patterns": ["DISTANT_HORIZONS_LOD_STUTTER_OR_CACHE_IO"],
-    "notes": ""
+    "notes": "",
+    "install_priority": 0,
+    "install_safe": false
   },
   "spark": {
     "display_names": ["spark"],
@@ -283,6 +388,8 @@
     "risk_areas": ["profiler available", "cross-reference reports", "profiler output can be attached"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": "Profiler. Cross-reference spark reports for detailed hotspot data."
+    "notes": "Profiler. Cross-reference spark reports for detailed hotspot data.",
+    "install_priority": 0,
+    "install_safe": false
   }
 }
