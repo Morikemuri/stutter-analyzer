@@ -886,7 +886,8 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("  /sa f3 on/off/status    - F3 status line"), false);
         src.sendSuccess(() -> CommandFeedback.info("  /sa overlay on/off/status - Optional overlay"), false);
         src.sendSuccess(() -> CommandFeedback.info("Other:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Safe optimization suggestions"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize suggest    - Scan and suggest compatible optimization mods"), false);
+        src.sendSuccess(() -> CommandFeedback.info("  /sa optimize install    - Install latest plan after confirmation"), false);
         return 1;
     }
 
@@ -1204,11 +1205,86 @@ public class CommonCommandLogic {
     }
 
     public static int optimizeSuggest(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Optimization Suggestions"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization suggestions are planned but not enabled in this beta."), false);
-        src.sendSuccess(() -> CommandFeedback.info("Future builds may use CurseForge/Modrinth APIs to suggest compatible performance mods."), false);
-        src.sendSuccess(() -> CommandFeedback.info("For now, check the knowledge base report section after /sa submit."), false);
-        return 1;
+        try {
+            java.util.Set<String> installedIds = new java.util.HashSet<>();
+            net.minecraftforge.fml.ModList.get().forEachModContainer(
+                (id, c) -> installedIds.add(id));
+
+            java.nio.file.Path gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get();
+            String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
+            boolean isServer = !(FMLEnvironment.dist == Dist.CLIENT);
+
+            com.stutteranalyzer.optimize.OptimizePlan plan =
+                com.stutteranalyzer.optimize.OptimizeAssistant.buildPlan(
+                    installedIds, gameDir, "forge", mcVersion, isServer);
+
+            com.stutteranalyzer.optimize.OptimizeInstaller.setPlan(plan, gameDir.resolve("mods"));
+            displayOptimizePlan(src, plan, isServer);
+            return 1;
+        } catch (Throwable t) {
+            StutterAnalyzerMod.LOGGER.warn("[SA] optimizeSuggest failed: {}", t.getMessage(), t);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Optimization scan failed: " + t.getMessage()), false);
+            return 0;
+        }
+    }
+
+    public static int optimizeInstall(CommandSourceStack src) {
+        try {
+            com.stutteranalyzer.optimize.OptimizeInstaller.handleInstall(src);
+            return 1;
+        } catch (Throwable t) {
+            StutterAnalyzerMod.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
+            src.sendSuccess(() -> CommandFeedback.info("[SA] Install command failed: " + t.getMessage()), false);
+            return 0;
+        }
+    }
+
+    private static void displayOptimizePlan(CommandSourceStack src,
+                                             com.stutteranalyzer.optimize.OptimizePlan plan,
+                                             boolean isServer) {
+        String loaderName = plan.loader.isEmpty() ? "unknown"
+            : plan.loader.substring(0, 1).toUpperCase() + plan.loader.substring(1);
+        src.sendSuccess(() -> CommandFeedback.header(
+            "[SA] Optimization scan for MC " + plan.mcVersion + " / " + loaderName), false);
+
+        if (isServer) {
+            src.sendSuccess(() -> CommandFeedback.info(
+                "[SA] Server-side optimization suggestions only."), false);
+        }
+
+        if (!plan.alreadyInstalled.isEmpty()) {
+            src.sendSuccess(() -> CommandFeedback.info("Already detected:"), false);
+            for (String name : plan.alreadyInstalled) {
+                src.sendSuccess(() -> CommandFeedback.info("  " + name), false);
+            }
+        }
+
+        if (plan.isEmpty()) {
+            if (plan.alreadyInstalled.isEmpty()) {
+                src.sendSuccess(() -> CommandFeedback.info(
+                    "[SA] No safe compatible optimization suggestions found for this loader/version."), false);
+            } else {
+                src.sendSuccess(() -> CommandFeedback.info(
+                    "[SA] Your modpack already has the key optimization mods installed."), false);
+            }
+            return;
+        }
+
+        src.sendSuccess(() -> CommandFeedback.info(
+            "Recommended plan (" + plan.recommended.size() + " mods):"), false);
+        for (int i = 0; i < plan.recommended.size(); i++) {
+            com.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
+            int num = i + 1;
+            src.sendSuccess(() -> CommandFeedback.info(
+                "  " + num + ". " + mod.displayName + " - " + mod.reason), false);
+        }
+
+        src.sendSuccess(() -> CommandFeedback.info("Risk: " + plan.risk.label()), false);
+        if (!plan.riskReason.isEmpty()) {
+            src.sendSuccess(() -> CommandFeedback.info("Reason: " + plan.riskReason), false);
+        }
+        src.sendSuccess(() -> CommandFeedback.info(
+            "Run /sa optimize install to review the warning and install."), false);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
