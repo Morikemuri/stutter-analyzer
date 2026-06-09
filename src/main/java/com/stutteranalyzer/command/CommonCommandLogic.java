@@ -1252,12 +1252,12 @@ public class CommonCommandLogic {
                 "[SA] Server-side optimization suggestions only."), false);
         }
 
-        if (!plan.alreadyInstalled.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.info("Already detected:"), false);
-            for (String name : plan.alreadyInstalled) {
-                src.sendSuccess(() -> CommandFeedback.info("  " + name), false);
-            }
-        }
+        int optCount = plan.alreadyInstalled.size();
+        String optLabel = optCount == 0 ? "none" : String.join(", ", plan.alreadyInstalled);
+        src.sendSuccess(() -> CommandFeedback.info(
+            "Detected: " + plan.totalInstalledCount + " mods installed"), false);
+        src.sendSuccess(() -> CommandFeedback.info(
+            "Optimization mods: " + optLabel), false);
 
         if (plan.isEmpty()) {
             if (plan.alreadyInstalled.isEmpty()) {
@@ -1271,7 +1271,7 @@ public class CommonCommandLogic {
         }
 
         src.sendSuccess(() -> CommandFeedback.info(
-            "Recommended plan (" + plan.recommended.size() + " mods):"), false);
+            "Recommended install plan (" + plan.recommended.size() + " mods):"), false);
         for (int i = 0; i < plan.recommended.size(); i++) {
             com.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
             int num = i + 1;
