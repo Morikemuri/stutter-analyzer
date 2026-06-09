@@ -58,15 +58,15 @@ public class ServerCommandRegistrar {
                         .executes(ctx -> CommonCommandLogic.alertsCooldown(
                             ctx.getSource(), IntegerArgumentType.getInteger(ctx, "seconds"))))))
 
+            // ── preview (alias for submit preview) ───────────────────────────
+            .then(Commands.literal("preview")
+                .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource())))
+
             // ── submit ────────────────────────────────────────────────────────
             .then(Commands.literal("submit")
                 .executes(ctx -> CommonCommandLogic.submitLast(ctx.getSource()))
                 .then(Commands.literal("preview")
                     .executes(ctx -> CommonCommandLogic.submitPreview(ctx.getSource())))
-                .then(Commands.literal("check")
-                    .then(Commands.argument("report_id", StringArgumentType.greedyString())
-                        .executes(ctx -> CommonCommandLogic.submitCheckStatus(
-                            ctx.getSource(), StringArgumentType.getString(ctx, "report_id")))))
                 .then(Commands.literal("status")
                     .executes(ctx -> CommonCommandLogic.submitStatus(ctx.getSource())))
                 .then(Commands.literal("health")
@@ -77,15 +77,6 @@ public class ServerCommandRegistrar {
                 .executes(ctx -> CommonCommandLogic.listReports(ctx.getSource())))
             .then(Commands.literal("last")
                 .executes(ctx -> CommonCommandLogic.showLast(ctx.getSource())))
-            .then(Commands.literal("show")
-                .then(Commands.argument("report_id", StringArgumentType.word())
-                    .executes(ctx -> {
-                        CommandSourceStack src = ctx.getSource();
-                        if (!CommandPermissionHelper.canViewServerReports(src)) {
-                            src.sendFailure(CommandFeedback.noPermission()); return 0;
-                        }
-                        return CommonCommandLogic.showReport(src, StringArgumentType.getString(ctx, "report_id"));
-                    })))
             .then(Commands.literal("delete")
                 .then(Commands.argument("report_id", StringArgumentType.word())
                     .executes(ctx -> CommonCommandLogic.deleteReport(
