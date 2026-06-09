@@ -238,13 +238,5 @@
   "category.stutteranalyzer.chunk_loading_hitch": "Chunk loading hitch",
   "category.stutteranalyzer.modpack_startup_stall": "Modpack startup stall",
   "category.stutteranalyzer.periodic_scheduled_micro_hitch": "Periodic scheduled micro-hitch",
-  "category.stutteranalyzer.unknown_extreme_freeze": "Unclassified extreme freeze",
-
-  "explain.stutteranalyzer.world_join_load_spike": "A moderate hitch while loading chunks and entities on world join. Usually harmless and does not recur.",
-  "explain.stutteranalyzer.world_join_render_stall": "The client render thread paused for 250ms+ shortly after joining a world. Often caused by shader/resource reload or first-time chunk rendering.",
-  "explain.stutteranalyzer.resource_reload_stall": "A stall occurred during resource pack or asset reload. Expected when switching resource packs.",
-  "explain.stutteranalyzer.chunk_loading_hitch": "A hitch occurred while loading chunks. Common when moving through ungenerated terrain.",
-  "explain.stutteranalyzer.modpack_startup_stall": "A stall occurred during mod initialization. Expected in large modpacks. Usually does not recur.",
-  "explain.stutteranalyzer.periodic_scheduled_micro_hitch": "A small hitch repeating at a scheduled interval. Usually harmless. Possible causes: overlays, cosmetic polling, scheduled mod tasks.",
-  "explain.stutteranalyzer.unknown_extreme_freeze": "An extreme freeze >= 1000ms with no identifiable cause. Enable debug mode and submit a report."
+  "category.stutteranalyzer.unknown_extreme_freeze": "Unclassified extreme freeze"
 }

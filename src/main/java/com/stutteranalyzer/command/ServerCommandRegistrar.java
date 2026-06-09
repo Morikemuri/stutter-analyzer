@@ -108,11 +108,7 @@ public class ServerCommandRegistrar {
                 .then(Commands.literal("off")   .executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
                 .then(Commands.literal("status").executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
 
-            // ── explain / optimize ────────────────────────────────────────────
-            .then(Commands.literal("explain")
-                .then(Commands.argument("category", StringArgumentType.word())
-                    .executes(ctx -> CommonCommandLogic.explainCategory(
-                        ctx.getSource(), StringArgumentType.getString(ctx, "category")))))
+            // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
                 .then(Commands.literal("suggest")
                     .executes(ctx -> CommonCommandLogic.optimizeSuggest(ctx.getSource()))))
