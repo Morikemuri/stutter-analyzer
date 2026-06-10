@@ -127,26 +127,26 @@ public class ClientCommandRegistrar {
                         return 1;
                     })))
 
-            // ── overlay (client-side) ─────────────────────────────────────────
+            // ── overlay (placeholder: not implemented in this build) ──────────
             .then(Commands.literal("overlay")
+                .executes(ctx -> CommonCommandLogic.overlayUnavailable(ctx.getSource()))
                 .then(Commands.literal("on")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.overlay.enabled")), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.not_available")), false);
                         return 1;
                     }))
                 .then(Commands.literal("off")
                     .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.overlay.disabled")), false);
+                        ctx.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.already_off")), false);
                         return 1;
                     }))
                 .then(Commands.literal("status")
-                    .executes(ctx -> {
-                        ctx.getSource().sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.overlay.status_off")), false);
-                        return 1;
-                    })))
+                    .executes(ctx -> CommonCommandLogic.overlayUnavailable(ctx.getSource()))))
 
             // ── show <time> ───────────────────────────────────────────────────
             .then(Commands.literal("show")
+                .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.showRecentEvents(
+                    ctx.getSource(), "15m")))
                 .then(Commands.argument("time", StringArgumentType.word())
                     .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.showRecentEvents(
                         ctx.getSource(), StringArgumentType.getString(ctx, "time"))))))

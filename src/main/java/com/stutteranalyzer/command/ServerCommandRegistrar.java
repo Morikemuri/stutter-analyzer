@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.stutteranalyzer.config.SAConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -88,15 +89,16 @@ public class ServerCommandRegistrar {
                 .then(Commands.literal("status")
                     .executes(ctx -> CommonCommandLogic.f3Status(ctx.getSource()))))
 
-            // ── overlay (client-only, fails gracefully on server) ─────────────
+            // ── overlay (server: dedicated server message) ────────────────────
             .then(Commands.literal("overlay")
-                .executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })
-                .then(Commands.literal("on")    .executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
-                .then(Commands.literal("off")   .executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
-                .then(Commands.literal("status").executes(ctx -> { ctx.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
+                .executes(ctx -> { ctx.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.server_only")), false); return 1; })
+                .then(Commands.literal("on")    .executes(ctx -> { ctx.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.server_only")), false); return 1; }))
+                .then(Commands.literal("off")   .executes(ctx -> { ctx.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.server_only")), false); return 1; }))
+                .then(Commands.literal("status").executes(ctx -> { ctx.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.server_only")), false); return 1; })))
 
             // ── show <time> ───────────────────────────────────────────────────
             .then(Commands.literal("show")
+                .executes(ctx -> CommonCommandLogic.showRecentEvents(ctx.getSource(), "15m"))
                 .then(Commands.argument("time", StringArgumentType.word())
                     .executes(ctx -> CommonCommandLogic.showRecentEvents(
                         ctx.getSource(), StringArgumentType.getString(ctx, "time")))))
