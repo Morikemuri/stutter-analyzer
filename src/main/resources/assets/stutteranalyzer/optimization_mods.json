@@ -536,6 +536,22 @@
     "install_safe": true,
     "install_reason": "Faster painting entity rendering on Forge/NeoForge.",
     "install_modrinth": "fast-paintings",
+    "install_conflicts": [],
+    "install_requires": ["moonlight"]
+  },
+  "moonlight": {
+    "display_names": ["Moonlight"],
+    "known_aliases": ["moonlight", "moonlight-lib", "moonlightlib", "selene"],
+    "loader_support": ["fabric", "forge", "neoforge"],
+    "side": "client_server",
+    "category_tags": [],
+    "risk_areas": [],
+    "safe_report_language": "installed context",
+    "known_patterns": [],
+    "notes": "Library mod. Does nothing alone, but Fast Paintings refuses to leave home without it.",
+    "install_priority": 0,
+    "install_safe": true,
+    "install_modrinth": "moonlight",
     "install_conflicts": []
   },
   "badoptimizations": {

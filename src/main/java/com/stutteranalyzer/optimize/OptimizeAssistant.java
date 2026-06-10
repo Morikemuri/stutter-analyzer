@@ -175,55 +175,77 @@ public class OptimizeAssistant {
             }
         }
 
-        // Dependency resolution: for each ready candidate with required deps,
-        // verify deps are installed or can be resolved; skip parent if any dep fails.
+        // Dependency resolution: walk each candidate's required deps (recursively,
+        // with a depth cap and cycle guard) and either pull the whole chain into the
+        // plan or drop the candidate. All-or-nothing per candidate - a mod that ships
+        // without its library is just a crash with extra steps.
         List<OptimizeMod> depsToAdd = new ArrayList<>();
         List<OptimizeMod> failedDeps = new ArrayList<>();
+        boolean[] cacheDirty = { cacheUpdated };
         for (OptimizeMod candidate : new ArrayList<>(ready)) {
             if (candidate.installRequires == null || candidate.installRequires.isEmpty()) continue;
-            boolean allDepsOk = true;
-            for (String depId : candidate.installRequires) {
-                String depNorm = depId.toLowerCase();
-                if (expandedInstalled.contains(depNorm)) continue;
-                boolean inPlan = ready.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId))
-                    || depsToAdd.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId));
-                if (inPlan) continue;
-                OptimizeMod depMod = dbById.get(depNorm);
-                if (depMod == null) {
-                    LOGGER.info("[SA] Skipped {} - required dep {} not in database", candidate.displayName, depId);
-                    candidate.skipReason = "required dependency " + depId + " not in database";
-                    allDepsOk = false;
-                    break;
+            List<OptimizeMod> chain = new ArrayList<>();
+            Set<String> visited = new HashSet<>();
+            visited.add(candidate.id.toLowerCase());
+            String failReason = resolveDepChain(candidate, candidate.installRequires, chain,
+                ready, depsToAdd, expandedInstalled, dbById, loader, mcVersion, cache,
+                visited, 0, cacheDirty);
+            if (failReason == null) {
+                for (OptimizeMod dep : chain) {
+                    dep.depForMod = candidate.displayName;
+                    depsToAdd.add(dep);
+                    LOGGER.info("[SA] Added dependency: {} for {}", dep.displayName, candidate.displayName);
                 }
-                if (!depMod.supportsLoader(loader)) {
-                    LOGGER.info("[SA] Skipped {} - required dep {} not available for {}", candidate.displayName, depMod.displayName, loader);
-                    candidate.skipReason = "required dependency " + depMod.displayName + " not available for " + loader;
-                    allDepsOk = false;
-                    break;
-                }
-                if (depMod.modrinthSlug != null && !depMod.resolvedOnline) {
-                    resolveModrinth(depMod, loader, mcVersion, cache);
-                    cacheUpdated = true;
-                }
-                if (depMod.resolvedUrl == null || depMod.resolvedUrl.isEmpty()) {
-                    LOGGER.info("[SA] Skipped {} - required dep {} could not be resolved for {} {}", candidate.displayName, depMod.displayName, loader, mcVersion);
-                    candidate.skipReason = "required dependency " + depMod.displayName + " could not be resolved for " + loader + " " + mcVersion;
-                    allDepsOk = false;
-                    break;
-                }
-                depMod.depForMod = candidate.displayName;
-                depsToAdd.add(depMod);
-            }
-            if (!allDepsOk) {
+            } else {
+                LOGGER.info("[SA] Skipped {} - {}", candidate.displayName, failReason);
+                candidate.skipReason = failReason;
                 ready.remove(candidate);
                 failedDeps.add(candidate);
             }
         }
-        if (cacheUpdated) {
-            saveCache(cacheFile, cache);
-        }
         skipped.addAll(failedDeps);
         ready.addAll(depsToAdd);
+
+        // Pre-install final validation: nobody leaves this method depending on a mod
+        // that is neither installed nor in the plan. Loop because evicting one mod
+        // can orphan another's bookkeeping.
+        boolean planChanged;
+        do {
+            planChanged = false;
+            Set<String> planIds = new HashSet<>();
+            for (OptimizeMod m : ready) planIds.add(m.id.toLowerCase());
+            for (OptimizeMod m : new ArrayList<>(ready)) {
+                if (m.installRequires == null) continue;
+                for (String depId : m.installRequires) {
+                    String depNorm = depId.toLowerCase();
+                    OptimizeMod depMod = dbById.get(depNorm);
+                    boolean satisfied = planIds.contains(depNorm)
+                        || expandedInstalled.contains(depNorm)
+                        || (depMod != null && depMod.alreadyInstalled(expandedInstalled));
+                    if (!satisfied) {
+                        LOGGER.warn("[SA] Plan validation: {} is missing required dep {} - evicting from plan",
+                            m.displayName, depId);
+                        m.skipReason = "required dependency " + depId + " missing from final plan";
+                        m.skippedDepName = depMod != null ? depMod.displayName : depId;
+                        ready.remove(m);
+                        skipped.add(m);
+                        planChanged = true;
+                    }
+                }
+            }
+        } while (planChanged);
+
+        // Evict orphaned libraries whose parent fell out of the plan -
+        // nobody needs a lonely Moonlight howling in the mods folder
+        Set<String> parentNames = new HashSet<>();
+        for (OptimizeMod m : ready) {
+            if (m.depForMod == null) parentNames.add(m.displayName);
+        }
+        ready.removeIf(m -> m.depForMod != null && !parentNames.contains(m.depForMod));
+
+        if (cacheDirty[0]) {
+            saveCache(cacheFile, cache);
+        }
 
         OptimizePlan plan = new OptimizePlan();
         plan.recommended = ready;
@@ -237,6 +259,73 @@ public class OptimizeAssistant {
         scoreRisk(plan);
         writePlanJson(plan, gameDir);
         return plan;
+    }
+
+    /** Deps of deps of deps... at some point you have to suspect a cycle. */
+    private static final int MAX_DEP_DEPTH = 5;
+
+    /**
+     * Recursively resolves the required-dependency chain for one candidate.
+     * Collected deps land in {@code chain}; returns null on success or a
+     * human-readable reason why the candidate must be skipped.
+     */
+    private static String resolveDepChain(OptimizeMod candidate, List<String> requires,
+            List<OptimizeMod> chain, List<OptimizeMod> ready, List<OptimizeMod> plannedDeps,
+            Set<String> expandedInstalled, Map<String, OptimizeMod> dbById,
+            String loader, String mcVersion, Map<String, JsonObject> cache,
+            Set<String> visited, int depth, boolean[] cacheDirty) {
+
+        if (depth > MAX_DEP_DEPTH) {
+            return "dependency chain could not be resolved safely (too deep or cyclic)";
+        }
+        for (String depId : requires) {
+            String depNorm = depId.toLowerCase();
+            if (!visited.add(depNorm)) continue; // been there, resolved that (cycle guard)
+
+            // Already loaded, pending restart, or otherwise known to be present?
+            if (expandedInstalled.contains(depNorm)
+                    || expandedInstalled.contains(OptimizeMod.normalize(depId))) {
+                LOGGER.info("[SA] Dependency already present: {}", depId);
+                continue;
+            }
+            OptimizeMod depMod = dbById.get(depNorm);
+            if (depMod == null) {
+                candidate.skippedDepName = depId;
+                return "required dependency " + depId + " not in database";
+            }
+            if (depMod.alreadyInstalled(expandedInstalled)) {
+                LOGGER.info("[SA] Dependency already present: {}", depMod.displayName);
+                continue;
+            }
+            // Already heading into the plan via another candidate?
+            boolean inPlan = ready.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId))
+                || plannedDeps.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId))
+                || chain.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId));
+            if (inPlan) continue;
+
+            if (!depMod.supportsLoader(loader)) {
+                candidate.skippedDepName = depMod.displayName;
+                return "required dependency " + depMod.displayName + " not available for " + loader;
+            }
+            if (depMod.modrinthSlug != null && !depMod.resolvedOnline) {
+                resolveModrinth(depMod, loader, mcVersion, cache);
+                cacheDirty[0] = true;
+            }
+            if (depMod.resolvedUrl == null || depMod.resolvedUrl.isEmpty()) {
+                candidate.skippedDepName = depMod.displayName;
+                return "required dependency " + depMod.displayName
+                    + " could not be resolved for " + loader + " " + mcVersion;
+            }
+            // The dependency may have dependencies of its own. It's turtles all the way down.
+            if (depMod.installRequires != null && !depMod.installRequires.isEmpty()) {
+                String sub = resolveDepChain(candidate, depMod.installRequires, chain,
+                    ready, plannedDeps, expandedInstalled, dbById, loader, mcVersion,
+                    cache, visited, depth + 1, cacheDirty);
+                if (sub != null) return sub;
+            }
+            chain.add(depMod);
+        }
+        return null;
     }
 
     private static void writePlanJson(OptimizePlan plan, Path gameDir) {

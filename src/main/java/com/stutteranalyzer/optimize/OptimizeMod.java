@@ -27,6 +27,7 @@ public class OptimizeMod {
 
     public transient String depForMod;
     public transient String skipReason;
+    public transient String skippedDepName; // which dependency let this candidate down
 
     // resolved from Modrinth API at plan-build time
     public transient String resolvedUrl;

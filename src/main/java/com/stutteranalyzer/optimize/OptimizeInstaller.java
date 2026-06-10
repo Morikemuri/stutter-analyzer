@@ -131,7 +131,47 @@ public class OptimizeInstaller {
         worker.start();
     }
 
+    /**
+     * Last line of defense: evict any plan member whose required dependency is
+     * neither in this plan nor already sitting in the mods folder. A smaller
+     * plan beats a Minecraft that greets you with a missing-dependency screen.
+     */
+    private static void validatePlanDeps(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
+        Map<String, String> folder = ModsFolderScanner.scan(modsDir);
+        boolean changed;
+        do {
+            changed = false;
+            java.util.Set<String> planIds = new java.util.HashSet<>();
+            for (OptimizeMod m : plan.recommended) planIds.add(m.id.toLowerCase());
+            for (OptimizeMod m : new ArrayList<>(plan.recommended)) {
+                if (m.installRequires == null) continue;
+                for (String depId : m.installRequires) {
+                    String depNorm = depId.toLowerCase();
+                    boolean satisfied = planIds.contains(depNorm)
+                        || folder.containsKey(depNorm)
+                        || folder.containsKey(OptimizeMod.normalize(depId));
+                    if (!satisfied) {
+                        LOGGER.warn("[SA] Install-time guard: {} is missing required dep {} - removed from install",
+                            m.displayName, depId);
+                        send(src, Component.translatable("stutteranalyzer.optimize.dep_skipped",
+                            m.displayName, depId));
+                        plan.recommended.remove(m);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        } while (changed);
+        // Orphaned libraries whose parent got evicted have no business being installed
+        java.util.Set<String> parents = new java.util.HashSet<>();
+        for (OptimizeMod m : plan.recommended) {
+            if (m.depForMod == null) parents.add(m.displayName);
+        }
+        plan.recommended.removeIf(m -> m.depForMod != null && !parents.contains(m.depForMod));
+    }
+
     private static void doInstall(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
+        validatePlanDeps(src, plan, modsDir);
         List<ManifestEntry> installedList = new ArrayList<>();
         List<ManifestEntry> failedList = new ArrayList<>();
         int successCount = 0;
@@ -150,7 +190,9 @@ public class OptimizeInstaller {
             try {
                 DownloadResult result = downloadAndVerify(mod, modsDir);
                 if (result.skipped) {
-                    send(src, Component.translatable("stutteranalyzer.optimize.install.already", mod.displayName));
+                    send(src, Component.translatable(mod.depForMod != null
+                        ? "stutteranalyzer.optimize.dep_present"
+                        : "stutteranalyzer.optimize.install.already", mod.displayName));
                     installedList.add(new ManifestEntry(mod.id, mod.displayName,
                         result.filename, modsDir.resolve(result.filename).toString(),
                         mod.resolvedSha512, "already_present", null));
