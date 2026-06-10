@@ -365,17 +365,18 @@ public class SubmissionManager {
             ? endpoint.replace("/api/report", "/api/health")
             : endpoint.replaceAll("/+$", "") + "/api/health";
 
-        src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.checking")), false);
+        src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.start")), false);
         CompletableFuture.runAsync(() -> {
             try {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(healthUrl))
                     .GET()
                     .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.4")
+                    .timeout(Duration.ofSeconds(5))
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
                 int status = resp.statusCode();
-                String body = resp.body();
+                String body = resp.body() != null ? resp.body() : "";
                 if (status == 200 && body.contains("\"ok\":true")) {
                     String version = extractJsonField(body, "version");
                     String fwd = extractJsonField(body, "github_forwarding");
@@ -385,8 +386,15 @@ public class SubmissionManager {
                     if (fwd != null) src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.forwarding", fwd)), false);
                     if (storage != null) src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.storage", storage)), false);
                 } else {
-                    src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.unexpected", status)), false);
+                    StutterAnalyzerMod.LOGGER.warn("[SA] Submit health check failed: HTTP {} from report server", status);
+                    src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.invalid_response")), false);
                 }
+            } catch (java.net.http.HttpTimeoutException e) {
+                StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check timed out");
+                src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.timeout")), false);
+            } catch (java.io.IOException e) {
+                StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check network error: {}", e.getMessage());
+                src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.network_error")), false);
             } catch (Exception e) {
                 StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check failed: {}", e.getMessage());
                 src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.unavailable")), false);
