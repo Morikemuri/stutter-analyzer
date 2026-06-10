@@ -1773,7 +1773,8 @@ public class SubmissionManager {
                     showWorkerDetails(src, respBody);
                 }
             } catch (Exception e) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Validate-payload failed: " + e.getMessage()), false);
+                final String errMsg = e.getMessage();
+                src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.validate_failed", errMsg)), false);
             }
         }, UPLOAD_EXECUTOR);
         return 1;
