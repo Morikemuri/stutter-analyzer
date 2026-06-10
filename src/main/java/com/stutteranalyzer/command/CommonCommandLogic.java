@@ -10,7 +10,6 @@ import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
-import com.stutteranalyzer.core.QuietMode;
 import com.stutteranalyzer.crash.CrashEvent;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.guard.EmergencyGuard;
@@ -551,7 +550,6 @@ public class CommonCommandLogic {
         int catCooldown = SAConfig.INSTANCE.alertSameCategoryCooldownSeconds.get();
         int maxPerMin = SAConfig.INSTANCE.alertMaxAlertsPerMinute.get();
         boolean agg = SAConfig.INSTANCE.alertAggregateSmallStutters.get();
-        boolean quiet = QuietMode.isEnabled();
         Component modeLabel = switch (mode) {
             case OFF     -> Component.translatable("stutteranalyzer.alerts.status.mode.off");
             case MINOR   -> Component.translatable("stutteranalyzer.alerts.status.mode.minor");
@@ -592,9 +590,6 @@ public class CommonCommandLogic {
             src.sendSuccess(() -> CommandFeedback.row(
                 Component.translatable("stutteranalyzer.alerts.status.aggregate"),
                 Component.translatable(agg ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
-            src.sendSuccess(() -> CommandFeedback.row(
-                Component.translatable("stutteranalyzer.alerts.status.quiet"),
-                Component.translatable(quiet ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
         }
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.status.modes")), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.help.line.alerts_minor")), false);
@@ -769,170 +764,8 @@ public class CommonCommandLogic {
         return SubmissionManager.submitStatus(src);
     }
 
-    public static int submitReset(CommandSourceStack src) {
-        return SubmissionManager.submitReset(src);
-    }
-
-    public static int submitMinimal(CommandSourceStack src) {
-        return SubmissionManager.submitMinimal(src);
-    }
-
-    public static int submitCheckStatus(CommandSourceStack src, String reportId) {
-        return SubmissionManager.submitCheckStatus(src, reportId);
-    }
-
-    public static int submitModeCloudflare(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission()); return 0;
-        }
-        return SubmissionManager.submitModeCloudflare(src);
-    }
-
-    public static int submitModeLocal(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission()); return 0;
-        }
-        return SubmissionManager.submitModeLocal(src);
-    }
-
-    public static int submitModeStatus(CommandSourceStack src) {
-        return SubmissionManager.submitModeStatus(src);
-    }
-
-    public static int submitDebugRouting(CommandSourceStack src) {
-        return SubmissionManager.submitDebugRouting(src);
-    }
-
     public static int submitHealth(CommandSourceStack src) {
         return SubmissionManager.submitHealth(src);
-    }
-
-    public static int submitYes(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission()); return 0;
-        }
-        return SubmissionManager.confirmLatestPending(src);
-    }
-
-    public static int submitSend(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission()); return 0;
-        }
-        return SubmissionManager.confirmLatestPending(src);
-    }
-
-    public static int submitConfirmLast(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission()); return 0;
-        }
-        return SubmissionManager.confirmLatestPending(src);
-    }
-
-    public static int submitCancelPrepared(CommandSourceStack src, String preparedId) {
-        return SubmissionManager.cancelPrepared(src, preparedId);
-    }
-
-    public static int generateTestReport(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canUseDebug(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        boolean isClient = SAFabricPlatform.isClient();
-        String side = isClient ? "client" : "dedicated-server";
-        FreezeEvent testEvent = new FreezeEvent(
-            FreezeCategory.UNKNOWN_FREEZE, 0.5,
-            "Synthetic test report",
-            "Artificially generated for testing - no real freeze occurred",
-            side, 500L,
-            MetricsCollector.eventBuffer().snapshot(),
-            "This is a test report. Use /sa submit to test the submission flow."
-        );
-        FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
-        src.sendSuccess(() -> CommandFeedback.debug("Test report generated. Use /sa last to view."), true);
-        return 1;
-    }
-
-    public static int debugCommandRouting(CommandSourceStack src) {
-        boolean isClient = SAFabricPlatform.isClient();
-        boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Command routing"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa status", "CommonCommandLogic"), false);
-        src.sendSuccess(() -> CommandFeedback.row("/sa submit", cfEnabled ? "CloudflareSubmitCommand" : "LocalFallback"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Loader", "Fabric"), false);
-        return 1;
-    }
-
-    public static int selfCheck(CommandSourceStack src) {
-        SelfCheckResult result = new SelfCheckResult();
-        boolean isClient = SAFabricPlatform.isClient();
-
-        result.ok("Core");
-
-        try {
-            SAConfig.INSTANCE.enabled.get();
-            result.ok("Config");
-        } catch (Throwable t) {
-            result.error("Config", t.getMessage());
-        }
-
-        result.ok("Commands");
-
-        try {
-            java.nio.file.Path reportDir = SAFabricPlatform.getGameDir()
-                .resolve("config/stutter-analyzer/reports");
-            Files.createDirectories(reportDir);
-            result.ok("Report folder");
-        } catch (Throwable t) {
-            result.error("Report folder", "cannot write reports: " + t.getMessage());
-        }
-
-        if (isClient) result.ok("Client frame tracker");
-        else result.unavailable("Client frame tracker", "server-only install");
-
-        result.ok("Server tick tracker");
-
-        if (isClient) {
-            SubsystemHealth.Status f3 = SubsystemHealth.all().getOrDefault("F3StatusLineRenderer", SubsystemHealth.Status.OK);
-            if (f3 == SubsystemHealth.Status.OK) result.ok("F3 status line");
-            else result.error("F3 status line", SubsystemHealth.note("F3StatusLineRenderer"));
-        } else {
-            result.unavailable("F3 status line", "client only");
-        }
-
-        if (OptimizationModKnowledgeBase.isLoaded()) result.ok("Knowledge base");
-        else result.warn("Knowledge base", "not loaded");
-
-        result.ok("Known pattern detector");
-        result.ok("Emergency Guard");
-        result.ok("Submission manager");
-
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.selfcheck.header")), false);
-        for (SelfCheckResult.CheckItem item : result.items()) {
-            String statusKey = switch (item.status) {
-                case OK          -> "stutteranalyzer.selfcheck.status.ok";
-                case WARN        -> "stutteranalyzer.selfcheck.status.warn";
-                case ERROR       -> "stutteranalyzer.selfcheck.status.error";
-                case UNAVAILABLE -> "stutteranalyzer.selfcheck.status.unavailable";
-            };
-            Component statusComp = item.note.isEmpty()
-                ? Component.translatable(statusKey)
-                : Component.translatable(statusKey).copy()
-                    .append(Component.literal(" - " + item.note));
-            String nameKey = selfCheckItemKey(item.name);
-            Component nameComp = nameKey != null
-                ? Component.literal("- ").append(Component.translatable(nameKey))
-                : Component.literal("- " + item.name);
-            src.sendSuccess(() -> CommandFeedback.row(nameComp, statusComp), false);
-        }
-        String overall = result.overall();
-        src.sendSuccess(() -> (result.isHealthy()
-            ? CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.selfcheck.overall_ok", overall))
-            : CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.selfcheck.overall_warn", overall))), false);
-        FreezeReport lastForHint = ReportWriter.lastReport();
-        if (lastForHint != null && lastForHint.event.category().name().equals("UNKNOWN_FREEZE")) {
-            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.selfcheck.unknown_freeze_hint")), false);
-        }
-        return 1;
     }
 
     public static int f3Status(CommandSourceStack src) {

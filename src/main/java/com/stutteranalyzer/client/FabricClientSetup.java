@@ -10,7 +10,6 @@ import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.QuietMode;
 import com.stutteranalyzer.core.StutterCounter;
-import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.update.UpdateCheckResult;
 import com.stutteranalyzer.update.UpdateChecker;
@@ -56,21 +55,6 @@ public class FabricClientSetup {
             }
         }
 
-        long verboseMs = FreezeDetector.consumeVerboseNotification();
-        if (verboseMs > 0 && VerboseMode.isEnabled() && !QuietMode.isEnabled()) {
-            int severe  = SAConfig.INSTANCE.severeFrameMs.get();
-            int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
-            boolean showMinor  = verboseMs < medium && SAConfig.INSTANCE.minorChatInVerbose.get();
-            boolean showMedium = verboseMs >= medium && verboseMs < severe && SAConfig.INSTANCE.mediumChatInVerbose.get();
-            if ((showMinor || showMedium) && VerboseMode.tryNotify(SAConfig.INSTANCE.verboseChatCooldownSeconds.get())) {
-                if (client.player != null) {
-                    client.player.sendSystemMessage(
-                        Component.translatable("stutteranalyzer.verbose.stutter_detected", verboseMs)
-                            .withStyle(ChatFormatting.GREEN));
-                }
-            }
-        }
-
         long[] aggregate = FreezeDetector.consumeAggregateNotification();
         if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()
                 && SAConfig.INSTANCE.minorAggregateChatEnabled.get()
@@ -93,7 +77,7 @@ public class FabricClientSetup {
                 if (shouldShow && client.player != null) {
                     int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
                     client.player.sendSystemMessage(
-                        Component.translatable("stutteranalyzer.verbose.aggregate", count, window, worst)
+                        Component.translatable("stutteranalyzer.alerts.aggregate.small", count, window, worst)
                             .withStyle(ChatFormatting.GREEN));
                     lastAggregateChatShownTime = now;
                     lastAggregateShownCount = count;
