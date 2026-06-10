@@ -913,17 +913,17 @@ public class CommonCommandLogic {
         if (isServer) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.scan.server_mode")));
         }
-        if (plan.alreadyInstalled.isEmpty() && plan.pendingRestart.isEmpty()) {
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line_none",
-                plan.totalInstalledCount)));
-        } else if (plan.alreadyInstalled.isEmpty()) {
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line_pending_only",
-                plan.totalInstalledCount, plan.pendingRestart.size())));
-        } else {
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line",
-                plan.totalInstalledCount, String.join(", ", plan.alreadyInstalled))));
+        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.loaded_mods",
+            plan.totalInstalledCount)));
+        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.optimization_active_count",
+            plan.alreadyInstalled.size())));
+        if (!plan.alreadyInstalled.isEmpty()) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.already_active",
+                String.join(", ", plan.alreadyInstalled))));
         }
         if (!plan.pendingRestart.isEmpty()) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.optimization_pending_count",
+                plan.pendingRestart.size())));
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.pending_restart",
                 String.join(", ", plan.pendingRestart))));
         }
