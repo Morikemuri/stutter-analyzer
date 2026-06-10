@@ -307,6 +307,7 @@
   "stutteranalyzer.optimize.warning.confirm": "Run /sa optimize install again within 60s to confirm.",
   "stutteranalyzer.optimize.warning.risk_high": "Risk is HIGH: %s",
   "stutteranalyzer.optimize.install.starting": "Installing %s mods...",
+  "stutteranalyzer.optimize.install.already_running": "Optimization install is already running.",
   "stutteranalyzer.optimize.install.ok": "OK: %s",
   "stutteranalyzer.optimize.install.skip": "Skip: %s",
   "stutteranalyzer.optimize.install.fail": "Fail: %s - %s",

@@ -307,6 +307,7 @@
   "stutteranalyzer.optimize.warning.confirm": "Повтори /sa optimize install в течение 60с для подтверждения.",
   "stutteranalyzer.optimize.warning.risk_high": "Риск ВЫСОКИЙ: %s",
   "stutteranalyzer.optimize.install.starting": "Установка: %s мод...",
+  "stutteranalyzer.optimize.install.already_running": "Установка оптимизационных модов уже идёт.",
   "stutteranalyzer.optimize.install.ok": "OK: %s",
   "stutteranalyzer.optimize.install.skip": "Пропущено: %s",
   "stutteranalyzer.optimize.install.fail": "Ошибка: %s - %s",

@@ -30,6 +30,8 @@ public class OptimizeInstaller {
 
     private static volatile OptimizePlan currentPlan;
     private static volatile Path currentModsDir;
+    private static final java.util.concurrent.atomic.AtomicBoolean installRunning =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
 
     // Async scan state
     private static volatile boolean scanning = false;
@@ -85,6 +87,12 @@ public class OptimizeInstaller {
             return;
         }
 
+        if (!installRunning.compareAndSet(false, true)) {
+            src.sendSuccess(() -> CommandFeedback.info(
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.install.already_running")), false);
+            return;
+        }
+        currentPlan = null;
         showInstallWarning(src, plan, modsDir);
         executeInstall(src, plan, modsDir);
     }
@@ -104,7 +112,13 @@ public class OptimizeInstaller {
 
     private static void executeInstall(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
         send(src, Component.translatable("stutteranalyzer.optimize.install.starting", plan.recommended.size()));
-        Thread worker = new Thread(() -> doInstall(src, plan, modsDir), "SA-OptimizeInstall");
+        Thread worker = new Thread(() -> {
+            try {
+                doInstall(src, plan, modsDir);
+            } finally {
+                installRunning.set(false);
+            }
+        }, "SA-OptimizeInstall");
         worker.setDaemon(true);
         worker.start();
     }
