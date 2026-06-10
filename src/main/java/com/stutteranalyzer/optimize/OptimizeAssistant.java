@@ -103,6 +103,23 @@ public class OptimizeAssistant {
             }
         }
 
+        // Don't drip-feed a second install wave while restart is still required
+        if (!pendingRestartNames.isEmpty()) {
+            OptimizePlan earlyPlan = new OptimizePlan();
+            earlyPlan.recommended    = new ArrayList<>();
+            earlyPlan.skippedCandidates = new ArrayList<>();
+            earlyPlan.alreadyInstalled  = alreadyInstalled;
+            earlyPlan.pendingRestart    = pendingRestartNames;
+            earlyPlan.loader      = loader;
+            earlyPlan.mcVersion   = mcVersion;
+            earlyPlan.serverOnly  = isServer;
+            earlyPlan.totalInstalledCount = normalizedInstalled.size();
+            earlyPlan.risk        = OptimizePlan.RiskLevel.LOW;
+            earlyPlan.riskReason  = "Restart required before next wave.";
+            writePlanJson(earlyPlan, gameDir);
+            return earlyPlan;
+        }
+
         // Filter candidates (exclude loaded, pending, and conflicting mods) - no limit yet
         List<OptimizeMod> allCandidates = database.stream()
             .filter(m -> m.priority > 0)

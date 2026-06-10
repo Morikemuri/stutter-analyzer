@@ -909,9 +909,12 @@ public class CommonCommandLogic {
         if (isServer) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.scan.server_mode")));
         }
-        if (plan.alreadyInstalled.isEmpty()) {
+        if (plan.alreadyInstalled.isEmpty() && plan.pendingRestart.isEmpty()) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line_none",
                 plan.totalInstalledCount)));
+        } else if (plan.alreadyInstalled.isEmpty()) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line_pending_only",
+                plan.totalInstalledCount, plan.pendingRestart.size())));
         } else {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line",
                 plan.totalInstalledCount, String.join(", ", plan.alreadyInstalled))));
@@ -921,9 +924,14 @@ public class CommonCommandLogic {
                 String.join(", ", plan.pendingRestart))));
         }
         if (plan.isEmpty()) {
-            out.add(CommandFeedback.info(Component.translatable(plan.alreadyInstalled.isEmpty() && plan.pendingRestart.isEmpty()
-                ? "stutteranalyzer.optimize.no_suggestions"
-                : "stutteranalyzer.optimize.already_optimized")));
+            if (!plan.pendingRestart.isEmpty()) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.restart_required")));
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.no_plan_until_restart")));
+            } else if (plan.alreadyInstalled.isEmpty()) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.no_suggestions")));
+            } else {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.already_optimized")));
+            }
             return out;
         }
         Component riskLabel = Component.translatable(
