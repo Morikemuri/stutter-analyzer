@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.command.CommandFeedback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -247,7 +247,7 @@ public class OptimizeInstaller {
         URL url = new URL(fileUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("User-Agent",
-            "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
+            "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
         conn.setConnectTimeout(10_000);
         conn.setReadTimeout(60_000);
         conn.setInstanceFollowRedirects(true);
@@ -396,3 +396,4 @@ public class OptimizeInstaller {
         }
     }
 }
+

@@ -6,7 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -131,10 +131,15 @@ public class OptimizeAssistant {
             return earlyPlan;
         }
 
-        // Filter candidates (exclude loaded, pending, and conflicting mods) - no limit yet
+        // Build a lookup map for dep resolution
+        Map<String, OptimizeMod> dbById = new HashMap<>();
+        for (OptimizeMod m : database) {
+            dbById.put(m.id.toLowerCase(), m);
+        }
+
+        // Filter primary candidates (exclude loaded, pending, and conflicting mods) - no limit yet
         List<OptimizeMod> allCandidates = database.stream()
-            .filter(m -> m.priority > 0)
-            .filter(m -> m.safeDefault)
+            .filter(m -> m.primarySuggestion)
             .filter(m -> m.supportsLoader(loader))
             .filter(m -> m.supportsEnvironment(isServer))
             .filter(m -> !m.alreadyInstalled(normalizedInstalled))
@@ -156,10 +161,6 @@ public class OptimizeAssistant {
             }
         }
 
-        if (cacheUpdated) {
-            saveCache(cacheFile, cache);
-        }
-
         // Apply limit only to resolved mods so the full quota is always filled
         int limit = maxSuggestions(installedModIds.size());
         List<OptimizeMod> ready = new ArrayList<>();
@@ -173,6 +174,56 @@ public class OptimizeAssistant {
                 skipped.add(mod);
             }
         }
+
+        // Dependency resolution: for each ready candidate with required deps,
+        // verify deps are installed or can be resolved; skip parent if any dep fails.
+        List<OptimizeMod> depsToAdd = new ArrayList<>();
+        List<OptimizeMod> failedDeps = new ArrayList<>();
+        for (OptimizeMod candidate : new ArrayList<>(ready)) {
+            if (candidate.installRequires == null || candidate.installRequires.isEmpty()) continue;
+            boolean allDepsOk = true;
+            for (String depId : candidate.installRequires) {
+                String depNorm = depId.toLowerCase();
+                if (expandedInstalled.contains(depNorm)) continue;
+                boolean inPlan = ready.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId))
+                    || depsToAdd.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId));
+                if (inPlan) continue;
+                OptimizeMod depMod = dbById.get(depNorm);
+                if (depMod == null) {
+                    LOGGER.info("[SA] Skipped {} - required dep {} not in database", candidate.displayName, depId);
+                    candidate.skipReason = "required dependency " + depId + " not in database";
+                    allDepsOk = false;
+                    break;
+                }
+                if (!depMod.supportsLoader(loader)) {
+                    LOGGER.info("[SA] Skipped {} - required dep {} not available for {}", candidate.displayName, depMod.displayName, loader);
+                    candidate.skipReason = "required dependency " + depMod.displayName + " not available for " + loader;
+                    allDepsOk = false;
+                    break;
+                }
+                if (depMod.modrinthSlug != null && !depMod.resolvedOnline) {
+                    resolveModrinth(depMod, loader, mcVersion, cache);
+                    cacheUpdated = true;
+                }
+                if (depMod.resolvedUrl == null || depMod.resolvedUrl.isEmpty()) {
+                    LOGGER.info("[SA] Skipped {} - required dep {} could not be resolved for {} {}", candidate.displayName, depMod.displayName, loader, mcVersion);
+                    candidate.skipReason = "required dependency " + depMod.displayName + " could not be resolved for " + loader + " " + mcVersion;
+                    allDepsOk = false;
+                    break;
+                }
+                depMod.depForMod = candidate.displayName;
+                depsToAdd.add(depMod);
+            }
+            if (!allDepsOk) {
+                ready.remove(candidate);
+                failedDeps.add(candidate);
+            }
+        }
+        if (cacheUpdated) {
+            saveCache(cacheFile, cache);
+        }
+        skipped.addAll(failedDeps);
+        ready.addAll(depsToAdd);
 
         OptimizePlan plan = new OptimizePlan();
         plan.recommended = ready;
@@ -205,6 +256,7 @@ public class OptimizeAssistant {
                 com.google.gson.JsonObject o = new com.google.gson.JsonObject();
                 o.addProperty("id", m.id);
                 o.addProperty("display_name", m.displayName);
+                if (m.depForMod != null) o.addProperty("required_dep_for", m.depForMod);
                 o.addProperty("source", "modrinth");
                 o.addProperty("file_name", m.resolvedFilename != null ? m.resolvedFilename : "");
                 o.addProperty("download_url", m.resolvedUrl != null ? m.resolvedUrl : "");
@@ -223,7 +275,7 @@ public class OptimizeAssistant {
                 com.google.gson.JsonObject o = new com.google.gson.JsonObject();
                 o.addProperty("id", m.id);
                 o.addProperty("display_name", m.displayName);
-                o.addProperty("reason", "no compatible file on Modrinth");
+                o.addProperty("reason", m.skipReason != null ? m.skipReason : "no compatible file on Modrinth");
                 o.addProperty("loader", plan.loader);
                 o.addProperty("minecraft_version", plan.mcVersion);
                 o.addProperty("source_checked", "modrinth");
@@ -255,15 +307,14 @@ public class OptimizeAssistant {
 
                     int priority = obj.has("install_priority")
                         ? obj.get("install_priority").getAsInt() : 0;
-                    if (priority <= 0) continue;
 
                     boolean safe = !obj.has("install_safe") || obj.get("install_safe").getAsBoolean();
-                    if (!safe) continue;
 
                     OptimizeMod mod = new OptimizeMod();
                     mod.id = modKey;
                     mod.priority = priority;
-                    mod.safeDefault = true;
+                    mod.safeDefault = safe;
+                    mod.primarySuggestion = priority > 0 && safe;
 
                     if (obj.has("display_names") && obj.get("display_names").isJsonArray()) {
                         JsonArray names = obj.getAsJsonArray("display_names");
@@ -302,6 +353,13 @@ public class OptimizeAssistant {
                         }
                     }
 
+                    mod.installRequires = new ArrayList<>();
+                    if (obj.has("install_requires") && obj.get("install_requires").isJsonArray()) {
+                        for (JsonElement re : obj.getAsJsonArray("install_requires")) {
+                            mod.installRequires.add(re.getAsString());
+                        }
+                    }
+
                     result.add(mod);
                 }
             }
@@ -335,7 +393,7 @@ public class OptimizeAssistant {
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent",
-                "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
+                "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
             conn.setConnectTimeout(CONNECT_TIMEOUT);
             conn.setReadTimeout(READ_TIMEOUT);
             conn.setRequestMethod("GET");
@@ -469,3 +527,4 @@ public class OptimizeAssistant {
         }
     }
 }
+

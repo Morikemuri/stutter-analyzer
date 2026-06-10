@@ -1,7 +1,7 @@
 package com.stutteranalyzer.knowledge;
 
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.forgespi.language.IModInfo;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforgespi.language.IModInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,3 +35,4 @@ public class ModInventory {
         return ModList.get().isLoaded(modId);
     }
 }
+

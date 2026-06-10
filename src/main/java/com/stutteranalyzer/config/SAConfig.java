@@ -1,221 +1,221 @@
 package com.stutteranalyzer.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class SAConfig {
 
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec SPEC;
     public static final SAConfig INSTANCE;
 
     static {
-        Pair<SAConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(SAConfig::new);
+        Pair<SAConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(SAConfig::new);
         INSTANCE = specPair.getLeft();
         SPEC     = specPair.getRight();
     }
 
-    // ── [general] ─────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue enabled;
-    public final ForgeConfigSpec.BooleanValue debug;
-    public final ForgeConfigSpec.BooleanValue overlay;
-    public final ForgeConfigSpec.ConfigValue<String> reportFormat;
-    public final ForgeConfigSpec.IntValue maxReports;
+    // â”€â”€ [general] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue enabled;
+    public final ModConfigSpec.BooleanValue debug;
+    public final ModConfigSpec.BooleanValue overlay;
+    public final ModConfigSpec.ConfigValue<String> reportFormat;
+    public final ModConfigSpec.IntValue maxReports;
 
-    // ── [commands] ────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue enableCommands;
-    public final ForgeConfigSpec.BooleanValue enableAliasSa;
-    public final ForgeConfigSpec.BooleanValue allowPlayersBasicStatus;
-    public final ForgeConfigSpec.BooleanValue allowPlayersExportOwnClientReports;
-    public final ForgeConfigSpec.IntValue serverReportPermissionLevel;
-    public final ForgeConfigSpec.IntValue configReloadPermissionLevel;
-    public final ForgeConfigSpec.IntValue debugPermissionLevel;
-    public final ForgeConfigSpec.IntValue submitReportPermissionLevel;
-    public final ForgeConfigSpec.IntValue guardPermissionLevel;
+    // â”€â”€ [commands] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue enableCommands;
+    public final ModConfigSpec.BooleanValue enableAliasSa;
+    public final ModConfigSpec.BooleanValue allowPlayersBasicStatus;
+    public final ModConfigSpec.BooleanValue allowPlayersExportOwnClientReports;
+    public final ModConfigSpec.IntValue serverReportPermissionLevel;
+    public final ModConfigSpec.IntValue configReloadPermissionLevel;
+    public final ModConfigSpec.IntValue debugPermissionLevel;
+    public final ModConfigSpec.IntValue submitReportPermissionLevel;
+    public final ModConfigSpec.IntValue guardPermissionLevel;
 
-    // ── [client] ──────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue enableClientStutterDetection;
-    public final ForgeConfigSpec.IntValue minorFrameMs;
-    public final ForgeConfigSpec.IntValue mediumFrameMs;
-    public final ForgeConfigSpec.IntValue severeFrameMs;
-    public final ForgeConfigSpec.IntValue extremeFrameMs;
-    public final ForgeConfigSpec.BooleanValue trackOnePercentLows;
-    public final ForgeConfigSpec.BooleanValue trackPointOnePercentLows;
+    // â”€â”€ [client] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue enableClientStutterDetection;
+    public final ModConfigSpec.IntValue minorFrameMs;
+    public final ModConfigSpec.IntValue mediumFrameMs;
+    public final ModConfigSpec.IntValue severeFrameMs;
+    public final ModConfigSpec.IntValue extremeFrameMs;
+    public final ModConfigSpec.BooleanValue trackOnePercentLows;
+    public final ModConfigSpec.BooleanValue trackPointOnePercentLows;
 
-    // ── [server] ──────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue enableServerTickDetection;
-    public final ForgeConfigSpec.IntValue warningMspt;
-    public final ForgeConfigSpec.IntValue mediumMspt;
-    public final ForgeConfigSpec.IntValue severeMspt;
-    public final ForgeConfigSpec.IntValue extremeMspt;
+    // â”€â”€ [server] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue enableServerTickDetection;
+    public final ModConfigSpec.IntValue warningMspt;
+    public final ModConfigSpec.IntValue mediumMspt;
+    public final ModConfigSpec.IntValue severeMspt;
+    public final ModConfigSpec.IntValue extremeMspt;
 
-    // ── [classification] ──────────────────────────────────────────────────
-    public final ForgeConfigSpec.DoubleValue minimumConfidence;
-    public final ForgeConfigSpec.BooleanValue unknownFreezeEnabled;
+    // â”€â”€ [classification] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.DoubleValue minimumConfidence;
+    public final ModConfigSpec.BooleanValue unknownFreezeEnabled;
 
-    // ── [safety] ──────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue failSilently;
-    public final ForgeConfigSpec.BooleanValue disableFailedSubsystems;
-    public final ForgeConfigSpec.BooleanValue neverCrashGame;
+    // â”€â”€ [safety] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue failSilently;
+    public final ModConfigSpec.BooleanValue disableFailedSubsystems;
+    public final ModConfigSpec.BooleanValue neverCrashGame;
 
-    // ── [reports] ─────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue saveMarkdown;
-    public final ForgeConfigSpec.BooleanValue saveJson;
-    public final ForgeConfigSpec.BooleanValue includeModList;
-    public final ForgeConfigSpec.BooleanValue includeSystemInfo;
-    public final ForgeConfigSpec.BooleanValue includeRecentEvents;
+    // â”€â”€ [reports] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue saveMarkdown;
+    public final ModConfigSpec.BooleanValue saveJson;
+    public final ModConfigSpec.BooleanValue includeModList;
+    public final ModConfigSpec.BooleanValue includeSystemInfo;
+    public final ModConfigSpec.BooleanValue includeRecentEvents;
 
-    // ── [reports] chat + auto-report thresholds ───────────────────────────
-    public final ForgeConfigSpec.BooleanValue saveMinorStutterReports;
-    public final ForgeConfigSpec.BooleanValue saveMediumStutterReports;
-    public final ForgeConfigSpec.BooleanValue saveSevereStutterReports;
-    public final ForgeConfigSpec.BooleanValue saveExtremeReports;
-    public final ForgeConfigSpec.BooleanValue chatNotifyMinorStutters;
-    public final ForgeConfigSpec.BooleanValue chatNotifyMediumStutters;
-    public final ForgeConfigSpec.BooleanValue chatNotifySevereStutters;
-    public final ForgeConfigSpec.BooleanValue chatNotifyExtremeFreeze;
-    public final ForgeConfigSpec.IntValue minimumAutoReportFrameMs;
-    public final ForgeConfigSpec.IntValue minimumAutoReportMspt;
-    public final ForgeConfigSpec.IntValue chatNotificationCooldownSeconds;
-    public final ForgeConfigSpec.BooleanValue aggregateRepeatedMinorStutters;
-    public final ForgeConfigSpec.IntValue minorStutterAggregateWindowSeconds;
-    public final ForgeConfigSpec.IntValue minorStutterAggregateCount;
-    public final ForgeConfigSpec.IntValue minorStutterAggregateChatCooldownSeconds;
+    // â”€â”€ [reports] chat + auto-report thresholds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue saveMinorStutterReports;
+    public final ModConfigSpec.BooleanValue saveMediumStutterReports;
+    public final ModConfigSpec.BooleanValue saveSevereStutterReports;
+    public final ModConfigSpec.BooleanValue saveExtremeReports;
+    public final ModConfigSpec.BooleanValue chatNotifyMinorStutters;
+    public final ModConfigSpec.BooleanValue chatNotifyMediumStutters;
+    public final ModConfigSpec.BooleanValue chatNotifySevereStutters;
+    public final ModConfigSpec.BooleanValue chatNotifyExtremeFreeze;
+    public final ModConfigSpec.IntValue minimumAutoReportFrameMs;
+    public final ModConfigSpec.IntValue minimumAutoReportMspt;
+    public final ModConfigSpec.IntValue chatNotificationCooldownSeconds;
+    public final ModConfigSpec.BooleanValue aggregateRepeatedMinorStutters;
+    public final ModConfigSpec.IntValue minorStutterAggregateWindowSeconds;
+    public final ModConfigSpec.IntValue minorStutterAggregateCount;
+    public final ModConfigSpec.IntValue minorStutterAggregateChatCooldownSeconds;
 
-    // ── [debug] ───────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue logDetectionPipeline;
+    // â”€â”€ [debug] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue logDetectionPipeline;
 
-    // ── [stutter_counting] ────────────────────────────────────────────────
-    public final ForgeConfigSpec.ConfigValue<String> countMode;
-    public final ForgeConfigSpec.IntValue episodeGapMs;
-    public final ForgeConfigSpec.IntValue episodeMinDurationMs;
-    public final ForgeConfigSpec.BooleanValue showRawFrameSpikeCount;
+    // â”€â”€ [stutter_counting] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.ConfigValue<String> countMode;
+    public final ModConfigSpec.IntValue episodeGapMs;
+    public final ModConfigSpec.IntValue episodeMinDurationMs;
+    public final ModConfigSpec.BooleanValue showRawFrameSpikeCount;
 
-    // ── [notifications] chat alert settings ──────────────────────────────
-    public final ForgeConfigSpec.BooleanValue quietMode;
-    public final ForgeConfigSpec.BooleanValue minorAggregateChatEnabled;
-    public final ForgeConfigSpec.IntValue minorAggregateChatCooldownSeconds;
-    public final ForgeConfigSpec.BooleanValue minorAggregateShowOnlyIfWorse;
-    public final ForgeConfigSpec.IntValue minorAggregateMinCountIncrease;
-    public final ForgeConfigSpec.IntValue minorAggregateMinWorstIncreaseMs;
-    public final ForgeConfigSpec.BooleanValue verboseMode;
-    public final ForgeConfigSpec.BooleanValue verboseModeSessionOnly;
-    public final ForgeConfigSpec.BooleanValue minorChatInVerbose;
-    public final ForgeConfigSpec.BooleanValue mediumChatInVerbose;
-    public final ForgeConfigSpec.IntValue verboseChatCooldownSeconds;
+    // â”€â”€ [notifications] chat alert settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue quietMode;
+    public final ModConfigSpec.BooleanValue minorAggregateChatEnabled;
+    public final ModConfigSpec.IntValue minorAggregateChatCooldownSeconds;
+    public final ModConfigSpec.BooleanValue minorAggregateShowOnlyIfWorse;
+    public final ModConfigSpec.IntValue minorAggregateMinCountIncrease;
+    public final ModConfigSpec.IntValue minorAggregateMinWorstIncreaseMs;
+    public final ModConfigSpec.BooleanValue verboseMode;
+    public final ModConfigSpec.BooleanValue verboseModeSessionOnly;
+    public final ModConfigSpec.BooleanValue minorChatInVerbose;
+    public final ModConfigSpec.BooleanValue mediumChatInVerbose;
+    public final ModConfigSpec.IntValue verboseChatCooldownSeconds;
 
-    // ── [notifications.alerts] ────────────────────────────────────────────
-    public final ForgeConfigSpec.ConfigValue<String> alertMode;
-    public final ForgeConfigSpec.IntValue alertCooldownSeconds;
-    public final ForgeConfigSpec.IntValue alertSameCategoryCooldownSeconds;
-    public final ForgeConfigSpec.IntValue alertMaxAlertsPerMinute;
-    public final ForgeConfigSpec.IntValue scheduledMicroHitchCooldownSeconds;
-    public final ForgeConfigSpec.BooleanValue alertAggregateSmallStutters;
-    public final ForgeConfigSpec.IntValue alertMinorAggregateCooldownSeconds;
-    public final ForgeConfigSpec.BooleanValue alertShowReportHint;
-    public final ForgeConfigSpec.BooleanValue alertShowSubmitHint;
+    // â”€â”€ [notifications.alerts] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.ConfigValue<String> alertMode;
+    public final ModConfigSpec.IntValue alertCooldownSeconds;
+    public final ModConfigSpec.IntValue alertSameCategoryCooldownSeconds;
+    public final ModConfigSpec.IntValue alertMaxAlertsPerMinute;
+    public final ModConfigSpec.IntValue scheduledMicroHitchCooldownSeconds;
+    public final ModConfigSpec.BooleanValue alertAggregateSmallStutters;
+    public final ModConfigSpec.IntValue alertMinorAggregateCooldownSeconds;
+    public final ModConfigSpec.BooleanValue alertShowReportHint;
+    public final ModConfigSpec.BooleanValue alertShowSubmitHint;
 
-    // ── [debug_hud] extra ─────────────────────────────────────────────────
-    public final ForgeConfigSpec.ConfigValue<String> f3CounterMode;
-    public final ForgeConfigSpec.BooleanValue showRawSpikeCountOnF3;
+    // â”€â”€ [debug_hud] extra â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.ConfigValue<String> f3CounterMode;
+    public final ModConfigSpec.BooleanValue showRawSpikeCountOnF3;
 
-    // ── [submission] ──────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue enableManualSubmission;
-    public final ForgeConfigSpec.BooleanValue enableAutomaticUnknownFreezeUpload;
-    public final ForgeConfigSpec.ConfigValue<String> submissionTarget;
-    public final ForgeConfigSpec.ConfigValue<String> cloudflareEndpoint;
-    public final ForgeConfigSpec.BooleanValue fallbackToLocal;
-    public final ForgeConfigSpec.BooleanValue askFirstTime;
-    public final ForgeConfigSpec.BooleanValue askEveryTime;
-    public final ForgeConfigSpec.ConfigValue<String> githubIssueUrl;
-    public final ForgeConfigSpec.BooleanValue copyIssueBodyToClipboard;
-    public final ForgeConfigSpec.BooleanValue openIssueUrlOnClient;
-    public final ForgeConfigSpec.BooleanValue enableGistUpload;
-    public final ForgeConfigSpec.BooleanValue enableTokenUpload;
-    public final ForgeConfigSpec.BooleanValue anonymizeReports;
-    public final ForgeConfigSpec.BooleanValue redactUsernames;
-    public final ForgeConfigSpec.BooleanValue redactFilePaths;
-    public final ForgeConfigSpec.BooleanValue redactIpAddresses;
-    public final ForgeConfigSpec.BooleanValue submissionIncludeModList;
-    public final ForgeConfigSpec.BooleanValue submissionIncludeSystemInfo;
-    public final ForgeConfigSpec.BooleanValue submissionIncludeRecentEvents;
-    public final ForgeConfigSpec.BooleanValue askBeforeEveryUpload;
-    public final ForgeConfigSpec.IntValue submitCommandCooldownSeconds;
-    public final ForgeConfigSpec.IntValue uploadTimeoutSeconds;
-    public final ForgeConfigSpec.ConfigValue<String> httpTransport;
-    public final ForgeConfigSpec.BooleanValue includeLogExcerpt;
-    public final ForgeConfigSpec.IntValue logExcerptMaxLines;
-    public final ForgeConfigSpec.IntValue logExcerptContextSeconds;
-    public final ForgeConfigSpec.BooleanValue includeFullLatestLog;
-    public final ForgeConfigSpec.IntValue maxLogExcerptChars;
-    public final ForgeConfigSpec.BooleanValue includeDebugLog;
-    public final ForgeConfigSpec.IntValue maxFullLogChars;
-    public final ForgeConfigSpec.IntValue maxIssueBodyChars;
-    public final ForgeConfigSpec.BooleanValue storeOversizedLogsInWorkerStorage;
-    public final ForgeConfigSpec.BooleanValue includeStutterAnalyzerLogEvents;
-    public final ForgeConfigSpec.BooleanValue includeUnknownFreezeContext;
-    public final ForgeConfigSpec.BooleanValue includeSuspiciousLogSignals;
-    public final ForgeConfigSpec.IntValue maxLogEventLines;
-    public final ForgeConfigSpec.IntValue maxLogContextEvents;
-    public final ForgeConfigSpec.IntValue logContextLinesBefore;
-    public final ForgeConfigSpec.IntValue logContextLinesAfter;
-    public final ForgeConfigSpec.IntValue maxSuspiciousLogLines;
+    // â”€â”€ [submission] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue enableManualSubmission;
+    public final ModConfigSpec.BooleanValue enableAutomaticUnknownFreezeUpload;
+    public final ModConfigSpec.ConfigValue<String> submissionTarget;
+    public final ModConfigSpec.ConfigValue<String> cloudflareEndpoint;
+    public final ModConfigSpec.BooleanValue fallbackToLocal;
+    public final ModConfigSpec.BooleanValue askFirstTime;
+    public final ModConfigSpec.BooleanValue askEveryTime;
+    public final ModConfigSpec.ConfigValue<String> githubIssueUrl;
+    public final ModConfigSpec.BooleanValue copyIssueBodyToClipboard;
+    public final ModConfigSpec.BooleanValue openIssueUrlOnClient;
+    public final ModConfigSpec.BooleanValue enableGistUpload;
+    public final ModConfigSpec.BooleanValue enableTokenUpload;
+    public final ModConfigSpec.BooleanValue anonymizeReports;
+    public final ModConfigSpec.BooleanValue redactUsernames;
+    public final ModConfigSpec.BooleanValue redactFilePaths;
+    public final ModConfigSpec.BooleanValue redactIpAddresses;
+    public final ModConfigSpec.BooleanValue submissionIncludeModList;
+    public final ModConfigSpec.BooleanValue submissionIncludeSystemInfo;
+    public final ModConfigSpec.BooleanValue submissionIncludeRecentEvents;
+    public final ModConfigSpec.BooleanValue askBeforeEveryUpload;
+    public final ModConfigSpec.IntValue submitCommandCooldownSeconds;
+    public final ModConfigSpec.IntValue uploadTimeoutSeconds;
+    public final ModConfigSpec.ConfigValue<String> httpTransport;
+    public final ModConfigSpec.BooleanValue includeLogExcerpt;
+    public final ModConfigSpec.IntValue logExcerptMaxLines;
+    public final ModConfigSpec.IntValue logExcerptContextSeconds;
+    public final ModConfigSpec.BooleanValue includeFullLatestLog;
+    public final ModConfigSpec.IntValue maxLogExcerptChars;
+    public final ModConfigSpec.BooleanValue includeDebugLog;
+    public final ModConfigSpec.IntValue maxFullLogChars;
+    public final ModConfigSpec.IntValue maxIssueBodyChars;
+    public final ModConfigSpec.BooleanValue storeOversizedLogsInWorkerStorage;
+    public final ModConfigSpec.BooleanValue includeStutterAnalyzerLogEvents;
+    public final ModConfigSpec.BooleanValue includeUnknownFreezeContext;
+    public final ModConfigSpec.BooleanValue includeSuspiciousLogSignals;
+    public final ModConfigSpec.IntValue maxLogEventLines;
+    public final ModConfigSpec.IntValue maxLogContextEvents;
+    public final ModConfigSpec.IntValue logContextLinesBefore;
+    public final ModConfigSpec.IntValue logContextLinesAfter;
+    public final ModConfigSpec.IntValue maxSuspiciousLogLines;
 
-    // ── [submission.debug] ────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue showPayloadSummary;
+    // â”€â”€ [submission.debug] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue showPayloadSummary;
 
-    // ── [compatibility_guard] ─────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue guardEnabled;
-    public final ForgeConfigSpec.BooleanValue guardEmergencyMode;
-    public final ForgeConfigSpec.BooleanValue automaticSafeGuards;
-    public final ForgeConfigSpec.BooleanValue warnOnlyForUnsafePatterns;
-    public final ForgeConfigSpec.BooleanValue writeCrashHints;
-    public final ForgeConfigSpec.BooleanValue writeLatestLogHints;
-    public final ForgeConfigSpec.BooleanValue writeSeparateHintReports;
-    public final ForgeConfigSpec.BooleanValue rateLimitGuardTriggers;
-    public final ForgeConfigSpec.IntValue maxGuardTriggersPerSession;
-    public final ForgeConfigSpec.DoubleValue minimumAutoGuardConfidence;
-    public final ForgeConfigSpec.DoubleValue minimumWarnConfidence;
+    // â”€â”€ [compatibility_guard] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue guardEnabled;
+    public final ModConfigSpec.BooleanValue guardEmergencyMode;
+    public final ModConfigSpec.BooleanValue automaticSafeGuards;
+    public final ModConfigSpec.BooleanValue warnOnlyForUnsafePatterns;
+    public final ModConfigSpec.BooleanValue writeCrashHints;
+    public final ModConfigSpec.BooleanValue writeLatestLogHints;
+    public final ModConfigSpec.BooleanValue writeSeparateHintReports;
+    public final ModConfigSpec.BooleanValue rateLimitGuardTriggers;
+    public final ModConfigSpec.IntValue maxGuardTriggersPerSession;
+    public final ModConfigSpec.DoubleValue minimumAutoGuardConfidence;
+    public final ModConfigSpec.DoubleValue minimumWarnConfidence;
 
-    // ── [updates] ─────────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue checkForUpdates;
-    public final ForgeConfigSpec.BooleanValue checkOnStartup;
-    public final ForgeConfigSpec.IntValue startupCheckDelaySeconds;
-    public final ForgeConfigSpec.IntValue checkIntervalHours;
-    public final ForgeConfigSpec.BooleanValue notifyOnlyOncePerVersion;
-    public final ForgeConfigSpec.BooleanValue notifyWhenUpToDate;
-    public final ForgeConfigSpec.ConfigValue<String> updateVersionUrl;
-    public final ForgeConfigSpec.ConfigValue<String> updateGithubPage;
-    public final ForgeConfigSpec.ConfigValue<String> updateCurseforgeUrl;
-    public final ForgeConfigSpec.BooleanValue openLinksOnClick;
+    // â”€â”€ [updates] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue checkForUpdates;
+    public final ModConfigSpec.BooleanValue checkOnStartup;
+    public final ModConfigSpec.IntValue startupCheckDelaySeconds;
+    public final ModConfigSpec.IntValue checkIntervalHours;
+    public final ModConfigSpec.BooleanValue notifyOnlyOncePerVersion;
+    public final ModConfigSpec.BooleanValue notifyWhenUpToDate;
+    public final ModConfigSpec.ConfigValue<String> updateVersionUrl;
+    public final ModConfigSpec.ConfigValue<String> updateGithubPage;
+    public final ModConfigSpec.ConfigValue<String> updateCurseforgeUrl;
+    public final ModConfigSpec.BooleanValue openLinksOnClick;
 
-    // ── [debug_hud] ───────────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue debugHudEnabled;
-    public final ForgeConfigSpec.BooleanValue debugHudShowColored;
-    public final ForgeConfigSpec.BooleanValue debugHudShowLastFreeze;
-    public final ForgeConfigSpec.BooleanValue debugHudShowEmergencyMode;
-    public final ForgeConfigSpec.BooleanValue debugHudShowReportCount;
-    public final ForgeConfigSpec.BooleanValue debugHudShowSubsystemWarnings;
-    public final ForgeConfigSpec.BooleanValue debugHudCompactMode;
+    // â”€â”€ [debug_hud] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue debugHudEnabled;
+    public final ModConfigSpec.BooleanValue debugHudShowColored;
+    public final ModConfigSpec.BooleanValue debugHudShowLastFreeze;
+    public final ModConfigSpec.BooleanValue debugHudShowEmergencyMode;
+    public final ModConfigSpec.BooleanValue debugHudShowReportCount;
+    public final ModConfigSpec.BooleanValue debugHudShowSubsystemWarnings;
+    public final ModConfigSpec.BooleanValue debugHudCompactMode;
 
-    // ── [startup_message] ─────────────────────────────────────────────────
-    public final ForgeConfigSpec.BooleanValue showStartupMessage;
-    public final ForgeConfigSpec.BooleanValue showStartupMessageOncePerSession;
-    public final ForgeConfigSpec.BooleanValue mentionSilentMinorTracking;
+    // â”€â”€ [startup_message] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.BooleanValue showStartupMessage;
+    public final ModConfigSpec.BooleanValue showStartupMessageOncePerSession;
+    public final ModConfigSpec.BooleanValue mentionSilentMinorTracking;
 
-    // ── [compatibility_guard.guards] ──────────────────────────────────────
-    public final ForgeConfigSpec.ConfigValue<String> guardRubidiumLava;
-    public final ForgeConfigSpec.ConfigValue<String> guardDynamicFps;
-    public final ForgeConfigSpec.ConfigValue<String> guardC2meCorruptedChunk;
-    public final ForgeConfigSpec.ConfigValue<String> guardC2meDeadlock;
-    public final ForgeConfigSpec.ConfigValue<String> guardDistantHorizons;
-    public final ForgeConfigSpec.ConfigValue<String> guardIrisOculus;
-    public final ForgeConfigSpec.ConfigValue<String> guardStarlightScalableLux;
-    public final ForgeConfigSpec.ConfigValue<String> guardEmbeddiumOculus;
-    public final ForgeConfigSpec.ConfigValue<String> guardChunkAnimator;
+    // â”€â”€ [compatibility_guard.guards] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public final ModConfigSpec.ConfigValue<String> guardRubidiumLava;
+    public final ModConfigSpec.ConfigValue<String> guardDynamicFps;
+    public final ModConfigSpec.ConfigValue<String> guardC2meCorruptedChunk;
+    public final ModConfigSpec.ConfigValue<String> guardC2meDeadlock;
+    public final ModConfigSpec.ConfigValue<String> guardDistantHorizons;
+    public final ModConfigSpec.ConfigValue<String> guardIrisOculus;
+    public final ModConfigSpec.ConfigValue<String> guardStarlightScalableLux;
+    public final ModConfigSpec.ConfigValue<String> guardEmbeddiumOculus;
+    public final ModConfigSpec.ConfigValue<String> guardChunkAnimator;
 
-    private SAConfig(ForgeConfigSpec.Builder b) {
+    private SAConfig(ModConfigSpec.Builder b) {
         b.comment("StutterAnalyzer - Watches Minecraft suffer and writes down what happened.").push("general");
         enabled = b.comment("Enable the analyzer. Disabling this means flying blind into lag spikes.").define("enabled", true);
         debug = b.comment("Enable debug mode. Heavier than a fully-loaded chunk column - use only when hunting freezes, not flexing FPS.").define("debug", false);
@@ -431,7 +431,8 @@ public class SAConfig {
         b.pop();
     }
 
-    public static void register(ModLoadingContext ctx) {
-        ctx.registerConfig(ModConfig.Type.COMMON, SPEC, "stutteranalyzer-common.toml");
+    public static void register(ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, SPEC, "stutteranalyzer-common.toml");
     }
 }
+

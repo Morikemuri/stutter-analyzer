@@ -1,9 +1,9 @@
 package com.stutteranalyzer.classifier;
 
 import com.stutteranalyzer.events.RecentEventBuffer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -118,3 +118,4 @@ public class HighLevelClassifier {
         return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
     }
 }
+

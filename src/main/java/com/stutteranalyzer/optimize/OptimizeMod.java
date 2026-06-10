@@ -22,6 +22,11 @@ public class OptimizeMod {
     public String reason;
     public int priority;
     public boolean safeDefault;
+    public boolean primarySuggestion; // false for dep-only entries (priority 0)
+    public List<String> installRequires = new ArrayList<>();
+
+    public transient String depForMod;
+    public transient String skipReason;
 
     // resolved from Modrinth API at plan-build time
     public transient String resolvedUrl;

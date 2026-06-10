@@ -1,6 +1,6 @@
 package com.stutteranalyzer.crash;
 
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.pattern.KnownPatternDetector;
@@ -44,7 +44,7 @@ public class PreviousCrashImporter {
             try {
                 scan(gameDir);
             } catch (Throwable t) {
-                StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] CrashReportImporter failed: {}", t.getMessage(), t);
+                StutterAnalyzerNeo.LOGGER.error("[StutterAnalyzer] CrashReportImporter failed: {}", t.getMessage(), t);
                 SubsystemHealth.setStatus("CrashReportImporter", SubsystemHealth.Status.DEGRADED, t.getMessage());
             }
         });
@@ -71,11 +71,11 @@ public class PreviousCrashImporter {
         }
 
         if (!imported.isEmpty()) {
-            StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Imported {} previous crash report(s).", imported.size());
+            StutterAnalyzerNeo.LOGGER.info("[StutterAnalyzer] Imported {} previous crash report(s).", imported.size());
             for (CrashEvent ce : imported) {
                 if (ce.hasKnownPattern()) {
                     KnownPatternDetector.PatternMatch m = ce.bestMatch();
-                    StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Previous crash matches known pattern: {} ({}% confidence).",
+                    StutterAnalyzerNeo.LOGGER.warn("[StutterAnalyzer] Previous crash matches known pattern: {} ({}% confidence).",
                         m.patternId, m.confidencePct());
                 }
             }
@@ -100,7 +100,7 @@ public class PreviousCrashImporter {
     private static String safeRead(Path file) {
         try {
             if (Files.size(file) > MAX_FILE_SIZE_BYTES) {
-                StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Skipping large file: {}", file);
+                StutterAnalyzerNeo.LOGGER.warn("[StutterAnalyzer] Skipping large file: {}", file);
                 return "";
             }
             return Files.readString(file, StandardCharsets.UTF_8);
@@ -130,3 +130,4 @@ public class PreviousCrashImporter {
         return imported.isEmpty() ? null : imported.get(imported.size() - 1);
     }
 }
+

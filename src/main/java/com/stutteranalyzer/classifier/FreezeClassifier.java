@@ -6,9 +6,9 @@ import com.stutteranalyzer.metrics.FrameTimeTracker;
 import com.stutteranalyzer.metrics.MemoryGcTracker;
 import com.stutteranalyzer.metrics.ServerTickTracker;
 import com.stutteranalyzer.report.FreezeEvent;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -280,3 +280,4 @@ public class FreezeClassifier {
         return String.join(". ", recs) + ".";
     }
 }
+

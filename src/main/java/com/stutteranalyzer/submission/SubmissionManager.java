@@ -1,6 +1,6 @@
 package com.stutteranalyzer.submission;
 
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.classifier.HighLevelCategory;
 import com.stutteranalyzer.classifier.HighLevelClassifier;
@@ -20,9 +20,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -88,7 +88,7 @@ public class SubmissionManager {
         pendingMigrationNotice = true;
     }
 
-    // ── Public entry points ───────────────────────────────────────────────────
+    // â”€â”€ Public entry points â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int submitLast(CommandSourceStack src) {
         if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
@@ -371,7 +371,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(healthUrl))
                     .GET()
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                     .timeout(Duration.ofSeconds(5))
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
@@ -386,17 +386,17 @@ public class SubmissionManager {
                     if (fwd != null) src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.forwarding", fwd)), false);
                     if (storage != null) src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.storage", storage)), false);
                 } else {
-                    StutterAnalyzerMod.LOGGER.warn("[SA] Submit health check failed: HTTP {} from report server", status);
+                    StutterAnalyzerNeo.LOGGER.warn("[SA] Submit health check failed: HTTP {} from report server", status);
                     src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.invalid_response")), false);
                 }
             } catch (java.net.http.HttpTimeoutException e) {
-                StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check timed out");
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Worker health check timed out");
                 src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.timeout")), false);
             } catch (java.io.IOException e) {
-                StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check network error: {}", e.getMessage());
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Worker health check network error: {}", e.getMessage());
                 src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.network_error")), false);
             } catch (Exception e) {
-                StutterAnalyzerMod.LOGGER.warn("[SA] Worker health check failed: {}", e.getMessage());
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Worker health check failed: {}", e.getMessage());
                 src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.health.unavailable")), false);
             }
         }, UPLOAD_EXECUTOR);
@@ -421,7 +421,7 @@ public class SubmissionManager {
         return submitLocalRaw(src, rep.guardId, rep.toMarkdown(), "{}", buildGuardIssueBody(rep));
     }
 
-    // ── Cloudflare submission ─────────────────────────────────────────────────
+    // â”€â”€ Cloudflare submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static boolean isCloudflareEnabled() {
         String target = SAConfig.INSTANCE.submissionTarget.get();
@@ -523,7 +523,7 @@ public class SubmissionManager {
     private static final int MAX_PAYLOAD_CHARS = 480 * 1024;
 
     private static void submitToCloudflare(CommandSourceStack src, FreezeReport report, String markdown, String reportHash) {
-        // ── Command thread: lock + first message only ─────────────────────────
+        // â”€â”€ Command thread: lock + first message only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (!submissionInProgress.compareAndSet(false, true)) {
             src.sendSuccess(() -> CommandFeedback.warn("[SA] A report upload is already in progress. Please wait."), false);
             return;
@@ -549,7 +549,7 @@ public class SubmissionManager {
                     String shortErr = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
                     lastSubmissionStatus = "failure";
                     lastSubmissionError = "internal: " + shortErr;
-                    StutterAnalyzerMod.LOGGER.error("[SA] Unexpected submit error (upload_id={}) - {}: {}", uploadId, errClass, errMsg, t);
+                    StutterAnalyzerNeo.LOGGER.error("[SA] Unexpected submit error (upload_id={}) - {}: {}", uploadId, errClass, errMsg, t);
                     src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.upload_failed")), false);
                     if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                         saveLocalFallback(src, report, markdown);
@@ -563,7 +563,7 @@ public class SubmissionManager {
             submissionInProgress.set(false);
             lastSubmissionStatus = "failure";
             lastSubmissionError = "executor: " + t.getClass().getSimpleName();
-            StutterAnalyzerMod.LOGGER.error("[SA] Failed to queue upload task: {}", t.getMessage(), t);
+            StutterAnalyzerNeo.LOGGER.error("[SA] Failed to queue upload task: {}", t.getMessage(), t);
             src.sendSuccess(() -> CommandFeedback.warn("[SA] Failed to start upload: " + t.getClass().getSimpleName()), false);
         }
     }
@@ -605,7 +605,7 @@ public class SubmissionManager {
             int spLines  = isMeaningfulLogContent(suspiciousSignals) ? countLogLines(suspiciousSignals)  : 0;
             int lLines   = (logExcerpt != null && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked"))
                            ? countLogLines(logExcerpt) : 0;
-            StutterAnalyzerMod.LOGGER.info("[SA] Payload summary - md={}chars stutter={}lines({}chars) freeze={}evts({}chars) susp={}lines({}chars) excerpt={}lines({}chars) fullLog={}",
+            StutterAnalyzerNeo.LOGGER.info("[SA] Payload summary - md={}chars stutter={}lines({}chars) freeze={}evts({}chars) susp={}lines({}chars) excerpt={}lines({}chars) fullLog={}",
                 mdChars, sLines, sChars, fEvts, fChars, spLines, spChars, lLines, lChars,
                 flChars > 0 ? flChars + "chars" : "disabled/unavailable");
         }
@@ -621,7 +621,7 @@ public class SubmissionManager {
         } catch (Exception parseEx) {
             lastSubmissionStatus = "failure";
             lastSubmissionError = "local JSON invalid: " + parseEx.getMessage();
-            StutterAnalyzerMod.LOGGER.error("[SA] Submit blocked: generated JSON is invalid - {}", parseEx.getMessage());
+            StutterAnalyzerNeo.LOGGER.error("[SA] Submit blocked: generated JSON is invalid - {}", parseEx.getMessage());
             src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.upload_failed")), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             return;
@@ -641,8 +641,8 @@ public class SubmissionManager {
         // Log submit debug info to latest.log only (not shown in chat for release)
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-        StutterAnalyzerMod.LOGGER.info("[SA] Submit debug - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
-            StutterAnalyzerMod.BUILD_ID, endpoint, timeoutSec, payloadKb, uploadId);
+        StutterAnalyzerNeo.LOGGER.info("[SA] Submit debug - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
+            StutterAnalyzerNeo.BUILD_ID, endpoint, timeoutSec, payloadKb, uploadId);
 
         src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.cloudflare_uploading")), false);
 
@@ -652,10 +652,10 @@ public class SubmissionManager {
         String[] transports;
         if ("java_http_client".equals(configuredTransport)) {
             transports = new String[]{"java_http_client"};
-            StutterAnalyzerMod.LOGGER.info("[SA] HTTP transport: Java HttpClient");
+            StutterAnalyzerNeo.LOGGER.info("[SA] HTTP transport: Java HttpClient");
         } else {
             transports = new String[]{"http_url_connection"};
-            StutterAnalyzerMod.LOGGER.info("[SA] HTTP transport: HttpURLConnection");
+            StutterAnalyzerNeo.LOGGER.info("[SA] HTTP transport: HttpURLConnection");
         }
 
         boolean sent = false;
@@ -675,7 +675,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                         .timeout(Duration.ofSeconds(timeoutSec))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -688,7 +688,7 @@ public class SubmissionManager {
                 lastUploadStage = "response_received:" + transport;
                 lastUploadTiming = "http_send=" + roundTripMs + "ms transport=" + transport;
                 sessionTransport = transport;
-                StutterAnalyzerMod.LOGGER.info("[SA] Upload HTTP round-trip {}ms transport={} upload_id={}", roundTripMs, transport, uploadId);
+                StutterAnalyzerNeo.LOGGER.info("[SA] Upload HTTP round-trip {}ms transport={} upload_id={}", roundTripMs, transport, uploadId);
                 lastUploadStage = "parse_response";
                 handleCloudflareResponse(src, report, markdown, statusHolder[0], bodyHolder[0]);
                 lastUploadStage = "done";
@@ -696,7 +696,7 @@ public class SubmissionManager {
             } catch (java.net.http.HttpTimeoutException e) {
                 long ms = System.currentTimeMillis() - tSend;
                 lastUploadStage = "timeout:" + transport;
-                StutterAnalyzerMod.LOGGER.warn("[SA] Upload timed out after {}ms transport={} upload_id={}", ms, transport, uploadId);
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Upload timed out after {}ms transport={} upload_id={}", ms, transport, uploadId);
                 if (ti + 1 >= transports.length) {
                     // Both transports failed
                     lastSubmissionStatus = "timeout";
@@ -708,7 +708,7 @@ public class SubmissionManager {
             } catch (java.net.SocketTimeoutException e) {
                 long ms = System.currentTimeMillis() - tSend;
                 lastUploadStage = "timeout:" + transport;
-                StutterAnalyzerMod.LOGGER.warn("[SA] Upload socket timeout {}ms transport={} upload_id={}", ms, transport, uploadId);
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Upload socket timeout {}ms transport={} upload_id={}", ms, transport, uploadId);
                 if (ti + 1 >= transports.length) {
                     lastSubmissionStatus = "timeout";
                     lastSubmissionError = "socket timeout after " + timeoutSec + "s (both transports)";
@@ -720,7 +720,7 @@ public class SubmissionManager {
                 String errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
                 String shortErr = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
                 lastUploadStage = "error:" + transport;
-                StutterAnalyzerMod.LOGGER.warn("[SA] Upload error transport={} upload_id={}: {}", transport, uploadId, errMsg);
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Upload error transport={} upload_id={}: {}", transport, uploadId, errMsg);
                 if (ti + 1 >= transports.length) {
                     lastSubmissionStatus = "failure";
                     lastSubmissionError = shortErr;
@@ -738,7 +738,7 @@ public class SubmissionManager {
         try {
             return supplier.get();
         } catch (Exception e) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] Log section read failed: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Log section read failed: {}", e.getMessage());
             return fallback;
         }
     }
@@ -817,19 +817,19 @@ public class SubmissionManager {
                 || SAConfig.INSTANCE.includeSuspiciousLogSignals.get()
                 || SAConfig.INSTANCE.includeLogExcerpt.get();
             if (totalReceivedLogChars == 0 && logConfigEnabled) {
-                StutterAnalyzerMod.LOGGER.warn("[SA] Worker received 0 log chars despite log config being enabled - use /sa submit preview to diagnose");
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Worker received 0 log chars despite log config being enabled - use /sa submit preview to diagnose");
             }
 
             src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.thankyou")), false);
             markConsentGiven();
         } else {
-            StutterAnalyzerMod.LOGGER.warn("[SA] Cloudflare submit failed: {} {}", status, body);
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Cloudflare submit failed: {} {}", status, body);
             lastSubmissionStatus = "failure";
             String errorCode = extractJsonField(body, "error_code");
             if ("MALFORMED_JSON".equals(errorCode)) {
                 lastSubmissionStatus = "malformed_json";
                 lastSubmissionError = "MALFORMED_JSON";
-                StutterAnalyzerMod.LOGGER.error("[SA] Submit rejected: MALFORMED_JSON - the Worker said our JSON is a crime against data structures");
+                StutterAnalyzerNeo.LOGGER.error("[SA] Submit rejected: MALFORMED_JSON - the Worker said our JSON is a crime against data structures");
                 src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.upload_failed")), false);
                 showWorkerDetails(src, body);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
@@ -889,11 +889,11 @@ public class SubmissionManager {
             String rid = report.reportId;
             src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.local_fallback_saved", rid)), false);
         } catch (Exception ex) {
-            StutterAnalyzerMod.LOGGER.error("[SA] Failed to save local fallback: {}", ex.getMessage());
+            StutterAnalyzerNeo.LOGGER.error("[SA] Failed to save local fallback: {}", ex.getMessage());
         }
     }
 
-    // ── Local submission ──────────────────────────────────────────────────────
+    // â”€â”€ Local submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static int submitLocalReport(CommandSourceStack src, FreezeReport report) {
         String markdown = report.toMarkdown();
@@ -933,14 +933,14 @@ public class SubmissionManager {
                 if (SAConfig.INSTANCE.openIssueUrlOnClient.get()) openBrowser(src, issueUrl);
             }
         } catch (Exception e) {
-            StutterAnalyzerMod.LOGGER.error("[SA] Failed to write submission files: {}", e.getMessage(), e);
+            StutterAnalyzerNeo.LOGGER.error("[SA] Failed to write submission files: {}", e.getMessage(), e);
             src.sendFailure(CommandFeedback.error(Component.literal("Failed to write submission files: " + e.getMessage())));
             return 0;
         }
         return 1;
     }
 
-    // ── Client extras ─────────────────────────────────────────────────────────
+    // â”€â”€ Client extras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static void copyToClipboard(CommandSourceStack src, String text) {
         try {
@@ -949,12 +949,12 @@ public class SubmissionManager {
                 try {
                     org.lwjgl.glfw.GLFW.glfwSetClipboardString(mc.getWindow().getWindow(), text);
                 } catch (Exception ex) {
-                    StutterAnalyzerMod.LOGGER.warn("[SA] GLFW clipboard failed: {}", ex.getMessage());
+                    StutterAnalyzerNeo.LOGGER.warn("[SA] GLFW clipboard failed: {}", ex.getMessage());
                 }
             });
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.copied_to_clipboard")), false);
         } catch (Exception e) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] Clipboard copy failed: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Clipboard copy failed: {}", e.getMessage());
         }
     }
 
@@ -964,16 +964,16 @@ public class SubmissionManager {
                 try {
                     net.minecraft.Util.getPlatform().openUri(new URI(url));
                 } catch (Exception e) {
-                    StutterAnalyzerMod.LOGGER.warn("[SA] Failed to open browser: {}", e.getMessage());
+                    StutterAnalyzerNeo.LOGGER.warn("[SA] Failed to open browser: {}", e.getMessage());
                 }
             });
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.opening_issue_url")), false);
         } catch (Exception e) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] Failed to schedule browser open: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Failed to schedule browser open: {}", e.getMessage());
         }
     }
 
-    // ── Migration notice ──────────────────────────────────────────────────────
+    // â”€â”€ Migration notice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static void checkMigrationNotice(CommandSourceStack src) {
         if (pendingMigrationNotice) {
@@ -982,7 +982,7 @@ public class SubmissionManager {
         }
     }
 
-    // ── Path resolution ───────────────────────────────────────────────────────
+    // â”€â”€ Path resolution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static Path resolveSubmissionsDir() {
         try {
@@ -1004,7 +1004,7 @@ public class SubmissionManager {
         return FMLPaths.GAMEDIR.get().resolve("config/stutter-analyzer/submission-consent.txt");
     }
 
-    // ── Payload builder ───────────────────────────────────────────────────────
+    // â”€â”€ Payload builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static JsonObject buildRuntimeSnapshotObject() {
         boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
@@ -1186,9 +1186,9 @@ public class SubmissionManager {
         root.addProperty("schema_version", 1);
         root.addProperty("project", "stutter-analyzer");
         root.addProperty("source", "real_mod_submit");
-        root.addProperty("mod_version", StutterAnalyzerMod.MOD_VERSION);
-        root.addProperty("minecraft_version", "1.20.1");
-        root.addProperty("loader", "forge");
+        root.addProperty("mod_version", StutterAnalyzerNeo.MOD_VERSION);
+        root.addProperty("minecraft_version", "1.21.1");
+        root.addProperty("loader", "neoforge");
         root.addProperty("loader_version", "49.x");
         root.addProperty("report_type", category);
         root.addProperty("category", category);
@@ -1235,7 +1235,7 @@ public class SubmissionManager {
         return new PreparedUploadPayload(root, jsonString, bodyBytes, sha256Hex(jsonString));
     }
 
-    // ── Submit preview ────────────────────────────────────────────────────────
+    // â”€â”€ Submit preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int submitPreview(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
@@ -1378,7 +1378,7 @@ public class SubmissionManager {
         try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
     }
 
-    // ── Issue body builders ───────────────────────────────────────────────────
+    // â”€â”€ Issue body builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static String buildFreezeIssueBody(FreezeReport report) {
         return "## StutterAnalyzer Freeze Report\n\n" +
@@ -1447,7 +1447,7 @@ public class SubmissionManager {
             "*Prepared via StutterAnalyzer /sa submit guard last*\n";
     }
 
-    // ── Utilities ─────────────────────────────────────────────────────────────
+    // â”€â”€ Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static String sha256Hex(String input) {
         try {
@@ -1468,7 +1468,7 @@ public class SubmissionManager {
         return "UP-" + ts + "-" + rand;
     }
 
-    // ── HTTP transport helpers ────────────────────────────────────────────────
+    // â”€â”€ HTTP transport helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     // Returns "<statusCode>|<body>" or throws on error/timeout
     private static String postWithUrlConn(String endpoint, String body, int timeoutMs) throws Exception {
@@ -1479,7 +1479,7 @@ public class SubmissionManager {
         conn.setDoOutput(true);
         conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1");
+        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1");
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         conn.setFixedLengthStreamingMode(bytes.length);
         try (OutputStream os = conn.getOutputStream()) {
@@ -1498,7 +1498,7 @@ public class SubmissionManager {
         conn.setConnectTimeout(timeoutMs);
         conn.setReadTimeout(timeoutMs);
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1");
+        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1");
         int code = conn.getResponseCode();
         InputStream stream = (code >= 200 && code < 400) ? conn.getInputStream() : conn.getErrorStream();
         String responseBody = readStreamUtf8(stream);
@@ -1521,21 +1521,21 @@ public class SubmissionManager {
             String rawMsg = t.getMessage() != null ? t.getMessage() : "no message";
             String shortMsg = rawMsg.length() > 60 ? rawMsg.substring(0, 60) : rawMsg;
             lastSubmissionError = errClass + ": " + shortMsg;
-            StutterAnalyzerMod.LOGGER.error("[SA] Submit command crash ({}): {}", errClass, rawMsg, t);
+            StutterAnalyzerNeo.LOGGER.error("[SA] Submit command crash ({}): {}", errClass, rawMsg, t);
             try {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Submit failed before upload could complete."), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + errClass + ": " + shortMsg), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Upload lock cleared."), false);
                 src.sendSuccess(() -> CommandFeedback.info("[SA] Full stacktrace was written to latest.log."), false);
             } catch (Throwable chatErr) {
-                StutterAnalyzerMod.LOGGER.error("[SA] Submit crash handler: failed to send chat message", chatErr);
+                StutterAnalyzerNeo.LOGGER.error("[SA] Submit crash handler: failed to send chat message", chatErr);
             }
         } catch (Throwable handlerErr) {
-            StutterAnalyzerMod.LOGGER.error("[SA] Submit crash handler itself failed", handlerErr);
+            StutterAnalyzerNeo.LOGGER.error("[SA] Submit crash handler itself failed", handlerErr);
         }
     }
 
-    // ── Config reset ──────────────────────────────────────────────────────────
+    // â”€â”€ Config reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int submitConfigReset(CommandSourceStack src) {
         String defaultEndpoint = "https://stutter-analyzer-reports.morikemuri.workers.dev/api/report";
@@ -1553,7 +1553,7 @@ public class SubmissionManager {
         return 1;
     }
 
-    // ── Export payload ────────────────────────────────────────────────────────
+    // â”€â”€ Export payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int submitExportPayload(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
@@ -1604,7 +1604,7 @@ public class SubmissionManager {
         return 1;
     }
 
-    // ── Validate payload ─────────────────────────────────────────────────────
+    // â”€â”€ Validate payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int submitValidatePayload(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
@@ -1658,7 +1658,7 @@ public class SubmissionManager {
                 conn.setReadTimeout(15000);
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
                 conn.setRequestProperty("Content-Length", String.valueOf(body.length));
-                conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1");
+                conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1");
                 try (java.io.OutputStream os = conn.getOutputStream()) { os.write(body); }
                 int status = conn.getResponseCode();
                 java.io.InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
@@ -1687,7 +1687,7 @@ public class SubmissionManager {
         return FMLPaths.GAMEDIR.get().resolve("config/stutter-analyzer/debug");
     }
 
-    // ── Network diagnostic commands ───────────────────────────────────────────
+    // â”€â”€ Network diagnostic commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static volatile String lastNetHealthResult = "not tested";
     private static volatile String lastNetEchoResult   = "not tested";
@@ -1710,7 +1710,7 @@ public class SubmissionManager {
                     .uri(URI.create(healthUrl))
                     .GET()
                     .timeout(Duration.ofSeconds(10))
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
                 long ms = System.currentTimeMillis() - t0;
@@ -1760,7 +1760,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(echoUrl))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                     .timeout(Duration.ofSeconds(10))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
@@ -1806,8 +1806,8 @@ public class SubmissionManager {
             "  \"schema_version\": 1,\n" +
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"source\": \"minecraft_net_test\",\n" +
-            "  \"mod_version\": " + esc(StutterAnalyzerMod.MOD_VERSION) + ",\n" +
-            "  \"minecraft_version\": \"1.20.1\",\n" +
+            "  \"mod_version\": " + esc(StutterAnalyzerNeo.MOD_VERSION) + ",\n" +
+            "  \"minecraft_version\": \"1.21.1\",\n" +
             "  \"loader\": \"forge\",\n" +
             "  \"loader_version\": \"49.x\",\n" +
             "  \"report_type\": \"TEST\",\n" +
@@ -1838,7 +1838,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                     .timeout(Duration.ofSeconds(timeoutSec))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
@@ -1919,7 +1919,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(echoUrl))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                         .timeout(Duration.ofSeconds(10))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -1963,8 +1963,8 @@ public class SubmissionManager {
             "  \"schema_version\": 1,\n" +
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"source\": \"minecraft_net_test\",\n" +
-            "  \"mod_version\": " + esc(StutterAnalyzerMod.MOD_VERSION) + ",\n" +
-            "  \"minecraft_version\": \"1.20.1\",\n" +
+            "  \"mod_version\": " + esc(StutterAnalyzerNeo.MOD_VERSION) + ",\n" +
+            "  \"minecraft_version\": \"1.21.1\",\n" +
             "  \"loader\": \"forge\",\n" +
             "  \"loader_version\": \"49.x\",\n" +
             "  \"report_type\": \"TEST\",\n" +
@@ -2000,7 +2000,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " Minecraft/1.20.1")
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " Minecraft/1.21.1")
                         .timeout(Duration.ofSeconds(timeoutSec))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -2064,3 +2064,4 @@ public class SubmissionManager {
         return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
     }
 }
+

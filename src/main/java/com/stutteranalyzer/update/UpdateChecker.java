@@ -3,9 +3,9 @@ package com.stutteranalyzer.update;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.config.SAConfig;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.net.URI;
@@ -63,7 +63,7 @@ public class UpdateChecker {
 
     private static void performCheck() {
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            StutterAnalyzerMod.LOGGER.info("[SA] Update checks disabled by config.");
+            StutterAnalyzerNeo.LOGGER.info("[SA] Update checks disabled by config.");
             return;
         }
         String url = SAConfig.INSTANCE.updateVersionUrl.get();
@@ -84,13 +84,13 @@ public class UpdateChecker {
             UpdateCheckResult result = parseJson(response.body());
             cached.set(result);
             saveCacheToDisk(result);
-            StutterAnalyzerMod.LOGGER.info("[SA] Update check complete. Latest: {} updateAvailable: {}",
+            StutterAnalyzerNeo.LOGGER.info("[SA] Update check complete. Latest: {} updateAvailable: {}",
                 result.latestVersion(), result.updateAvailable());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             cached.set(UpdateCheckResult.error("interrupted"));
         } catch (Exception e) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] Update check failed: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Update check failed: {}", e.getMessage());
             cached.set(UpdateCheckResult.error("could not reach GitHub"));
         }
     }
@@ -105,7 +105,7 @@ public class UpdateChecker {
             String message = str(obj, "message", "");
             boolean critical = obj.has("critical") && !obj.get("critical").isJsonNull()
                 && obj.get("critical").getAsBoolean();
-            boolean updateAvailable = SemanticVersion.isNewer(latestVersion, StutterAnalyzerMod.MOD_VERSION);
+            boolean updateAvailable = SemanticVersion.isNewer(latestVersion, StutterAnalyzerNeo.MOD_VERSION);
             return new UpdateCheckResult(true, latestVersion, updateAvailable,
                 githubPage, curseforgeUrl, changelogUrl, message, critical, null,
                 System.currentTimeMillis());
@@ -133,7 +133,7 @@ public class UpdateChecker {
             cached.set(new UpdateCheckResult(true, latestVersion, updateAvailable,
                 githubPage, curseforgeUrl, "", "", false, null, checkedAt));
         } catch (Exception e) {
-            StutterAnalyzerMod.LOGGER.debug("[SA] Could not load update cache: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.debug("[SA] Could not load update cache: {}", e.getMessage());
         }
     }
 
@@ -152,7 +152,7 @@ public class UpdateChecker {
                 + "}\n";
             Files.writeString(p, json);
         } catch (IOException e) {
-            StutterAnalyzerMod.LOGGER.debug("[SA] Could not save update cache: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.debug("[SA] Could not save update cache: {}", e.getMessage());
         }
     }
 
@@ -169,3 +169,4 @@ public class UpdateChecker {
         return s == null ? "null" : "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 }
+

@@ -1,6 +1,6 @@
 package com.stutteranalyzer.client;
 
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
@@ -17,11 +17,10 @@ import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.event.TickEvent.ClientTickEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 public class ClientSetup {
 
@@ -33,14 +32,12 @@ public class ClientSetup {
     private static long lastAggregateShownWorstMs = 0;
 
     public static void onClientSetup(FMLClientSetupEvent event) {
-        StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Client setup complete.");
+        StutterAnalyzerNeo.LOGGER.info("[StutterAnalyzer] NeoForge client setup complete.");
         SubsystemHealth.setStatus("F3StatusLineRenderer", SubsystemHealth.Status.OK, null);
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-
+    public static void onClientTick(ClientTickEvent.Post event) {
         MetricsCollector.onClientTick();
         long frameMs = (long) MetricsCollector.frameTime().currentFrameMs();
         // Strictly above threshold: a tick of exactly minorFrameMs is normal, not a stutter
@@ -115,7 +112,7 @@ public class ClientSetup {
         try {
             DebugHudStatusProvider.refresh();
         } catch (Throwable t) {
-            StutterAnalyzerMod.LOGGER.error("[SA] F3 refresh failed: {}", t.getMessage(), t);
+            StutterAnalyzerNeo.LOGGER.error("[SA] F3 refresh failed: {}", t.getMessage(), t);
         }
     }
 

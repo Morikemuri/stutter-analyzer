@@ -1,6 +1,6 @@
 package com.stutteranalyzer.command;
 
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
@@ -24,8 +24,8 @@ import com.stutteranalyzer.update.UpdateCheckResult;
 import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.api.distmarker.Dist;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 import com.stutteranalyzer.events.RecentEventBuffer;
 import java.io.IOException;
@@ -344,11 +344,11 @@ public class CommonCommandLogic {
         try { javaMajor = Integer.parseInt(javaVersion.contains(".") ? javaVersion.split("[._-]")[0].equals("1") ? javaVersion.split("[._-]")[1] : javaVersion.split("[._-]")[0] : javaVersion); } catch (Exception ignored) {}
         final String javaDisplay = javaMajor > 0 ? String.valueOf(javaMajor) : javaVersion;
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.version.header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.version"), Component.literal(StutterAnalyzerMod.MOD_VERSION)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal("1.20.1")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.forge")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.version"), Component.literal(StutterAnalyzerNeo.MOD_VERSION)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal("1.21.1")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.neoforge")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.java"), Component.literal(javaDisplay)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.build"), Component.literal(StutterAnalyzerMod.BUILD_ID)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.build"), Component.literal(StutterAnalyzerNeo.BUILD_ID)), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.submit"), submitDisplay), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.upload"), uploadDisplay), false);
         // Update status (cached only - non-blocking)
@@ -395,7 +395,7 @@ public class CommonCommandLogic {
         return 1;
     }
 
-    // ── Alerts ────────────────────────────────────────────────────────────
+    // â”€â”€ Alerts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int alertsSetMode(CommandSourceStack src, String modeName) {
         AlertMode mode = AlertMode.fromString(modeName);
@@ -566,7 +566,7 @@ public class CommonCommandLogic {
         return SubmissionManager.submitLast(src);
     }
 
-    // ── Crash commands ─────────────────────────────────────────────────────
+    // â”€â”€ Crash commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int crashLast(CommandSourceStack src) {
         CrashEvent ce = PreviousCrashImporter.last();
@@ -621,7 +621,7 @@ public class CommonCommandLogic {
         return 1;
     }
 
-    // ── Guard commands ─────────────────────────────────────────────────────
+    // â”€â”€ Guard commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public static int guardStatus(CommandSourceStack src) {
         boolean em = com.stutteranalyzer.config.SAConfig.INSTANCE.guardEmergencyMode.get();
@@ -812,7 +812,7 @@ public class CommonCommandLogic {
         return SubmissionManager.submitHealth(src);
     }
 
-    // ── F3 commands (server-side stub: client-only features fail gracefully) ─
+    // â”€â”€ F3 commands (server-side stub: client-only features fail gracefully) â”€
 
     public static int f3Status(CommandSourceStack src) {
         if (FMLEnvironment.dist != Dist.CLIENT) {
@@ -824,7 +824,7 @@ public class CommonCommandLogic {
             Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
         ), false);
         if (enabled) {
-            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("§.", "");
+            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("Â§.", "");
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
         }
         return 1;
@@ -849,11 +849,11 @@ public class CommonCommandLogic {
         // Fast synchronous state collection
         java.util.Set<String> installedIds = new java.util.HashSet<>();
         try {
-            net.minecraftforge.fml.ModList.get().forEachModContainer((id, c) -> installedIds.add(id));
+            net.neoforged.fml.ModList.get().forEachModContainer((id, c) -> installedIds.add(id));
         } catch (Throwable t) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
         }
-        java.nio.file.Path gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get();
+        java.nio.file.Path gameDir = net.neoforged.fml.loading.FMLPaths.GAMEDIR.get();
         String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
         boolean isServer = !(FMLEnvironment.dist == Dist.CLIENT);
 
@@ -863,18 +863,18 @@ public class CommonCommandLogic {
             try {
                 com.stutteranalyzer.optimize.OptimizePlan plan =
                     com.stutteranalyzer.optimize.OptimizeAssistant.buildPlan(
-                        installedIds, gameDir, "forge", mcVersion, isServer);
+                        installedIds, gameDir, "neoforge", mcVersion, isServer);
                 com.stutteranalyzer.optimize.OptimizeInstaller.setPlan(plan, gameDir.resolve("mods"));
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(buildPlanDisplay(plan, isServer));
             } catch (Throwable t) {
-                StutterAnalyzerMod.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
+                StutterAnalyzerNeo.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(
                     java.util.List.of(CommandFeedback.info(
                         Component.translatable("stutteranalyzer.optimize.scan.failed", t.getMessage()))));
             } finally {
                 long elapsed = System.currentTimeMillis() - start;
                 if (elapsed > 2000) {
-                    StutterAnalyzerMod.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
+                    StutterAnalyzerNeo.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
                 }
             }
         }, "SA-OptimizeScan");
@@ -888,7 +888,7 @@ public class CommonCommandLogic {
             com.stutteranalyzer.optimize.OptimizeInstaller.handleInstall(src);
             return 1;
         } catch (Throwable t) {
-            StutterAnalyzerMod.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
+            StutterAnalyzerNeo.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
             src.sendSuccess(() -> CommandFeedback.info(
             Component.translatable("stutteranalyzer.optimize.install_failed_cmd", t.getMessage())), false);
             return 0;
@@ -965,10 +965,10 @@ public class CommonCommandLogic {
                 .withUnderlined(true)
                 .withColor(net.minecraft.ChatFormatting.GREEN));
         out.add(CommandFeedback.info(installBtn));
-        StutterAnalyzerMod.LOGGER.info("[SA] Full optimization plan: {}",
+        StutterAnalyzerNeo.LOGGER.info("[SA] Full optimization plan: {}",
             plan.recommended.stream().map(m -> m.displayName).collect(Collectors.joining(", ")));
         if (!plan.skippedCandidates.isEmpty()) {
-            StutterAnalyzerMod.LOGGER.info("[SA] Skipped candidates (no file): {}",
+            StutterAnalyzerNeo.LOGGER.info("[SA] Skipped candidates (no file): {}",
                 plan.skippedCandidates.stream().map(m -> m.id).collect(Collectors.joining(", ")));
         }
         return out;
@@ -1059,7 +1059,7 @@ public class CommonCommandLogic {
         try { return FreezeCategory.valueOf(name); } catch (Exception e) { return null; }
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static List<CrashEvent> PreviousCrashImported(String crashId) {
         return PreviousCrashImporter.allImported().stream()
@@ -1084,3 +1084,4 @@ public class CommonCommandLogic {
         };
     }
 }
+

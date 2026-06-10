@@ -14,56 +14,51 @@ import com.stutteranalyzer.knowledge.OptimizationModKnowledgeBase;
 import com.stutteranalyzer.update.UpdateChecker;
 
 import java.nio.file.Files;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @Mod("stutteranalyzer")
-public class StutterAnalyzerMod {
+public class StutterAnalyzerNeo {
 
-    public static final String MOD_ID        = "stutteranalyzer";
-    public static final String MOD_VERSION   = "0.4.0";
-    public static final String BUILD_ID      = "release";
-    public static final String BUILD_DATE    = "2026-06-10-b3-1201";
+    public static final String MOD_ID         = "stutteranalyzer";
+    public static final String MOD_VERSION    = "0.4.0";
+    public static final String BUILD_ID       = "release";
+    public static final String BUILD_DATE     = "2026-06-11-b4-1211";
     public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,submit-cloudflare-v2,config-migration,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-    public StutterAnalyzerMod() {
-        SAConfig.register(ModLoadingContext.get());
+    public StutterAnalyzerNeo(IEventBus modEventBus, ModContainer modContainer) {
+        SAConfig.register(modContainer);
 
-        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
-
-        modBus.addListener(this::onCommonSetup);
+        modEventBus.addListener(this::onCommonSetup);
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            modBus.addListener(ClientSetup::onClientSetup);
+            modEventBus.addListener(ClientSetup::onClientSetup);
 
-            // Forge bus - client tick and player login
-            MinecraftForge.EVENT_BUS.addListener(ClientSetup::onClientTick);
-            MinecraftForge.EVENT_BUS.addListener(ClientSetup::onPlayerLoggedIn);
+            NeoForge.EVENT_BUS.addListener(ClientSetup::onClientTick);
+            NeoForge.EVENT_BUS.addListener(ClientSetup::onPlayerLoggedIn);
 
-            // F3 debug screen line
-            MinecraftForge.EVENT_BUS.addListener(F3StatusLineRenderer::onDebugText);
+            NeoForge.EVENT_BUS.addListener(F3StatusLineRenderer::onDebugText);
         }
 
-        // Server tick - tracks MSPT and fires FreezeDetector on both client and dedicated server
-        MinecraftForge.EVENT_BUS.addListener(StutterAnalyzerMod::onServerTick);
+        NeoForge.EVENT_BUS.addListener(StutterAnalyzerNeo::onServerTickPre);
+        NeoForge.EVENT_BUS.addListener(StutterAnalyzerNeo::onServerTickPost);
 
-        // Server commands - registered on Forge bus explicitly (works on both client and dedicated server)
-        MinecraftForge.EVENT_BUS.addListener(ServerCommandRegistrar::onRegisterCommands);
+        NeoForge.EVENT_BUS.addListener(ServerCommandRegistrar::onRegisterCommands);
 
-        // Client commands - only on client
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            MinecraftForge.EVENT_BUS.addListener(ClientCommandRegistrar::onRegisterClientCommands);
+            NeoForge.EVENT_BUS.addListener(ClientCommandRegistrar::onRegisterClientCommands);
         }
 
         LOGGER.info("[StutterAnalyzer] Loaded StutterAnalyzer {} build={} id=[{}]",
@@ -87,11 +82,11 @@ public class StutterAnalyzerMod {
 
     private static volatile long serverTickStart = 0;
 
-    private static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.START) {
-            serverTickStart = System.nanoTime();
-            return;
-        }
+    private static void onServerTickPre(ServerTickEvent.Pre event) {
+        serverTickStart = System.nanoTime();
+    }
+
+    private static void onServerTickPost(ServerTickEvent.Post event) {
         if (serverTickStart == 0) return;
         long elapsed = System.nanoTime() - serverTickStart;
         MetricsCollector.onServerTick(elapsed);
@@ -109,7 +104,6 @@ public class StutterAnalyzerMod {
                 SubsystemHealth.setStatus("F3StatusLineRenderer", SubsystemHealth.Status.UNAVAILABLE, "dedicated server has no debug screen");
             }
 
-            // Migrate legacy submission config (old defaults: submission_target=local, browser/clipboard=true)
             try {
                 String target = SAConfig.INSTANCE.submissionTarget.get();
                 boolean browserOpen = SAConfig.INSTANCE.openIssueUrlOnClient.get();
@@ -121,7 +115,6 @@ public class StutterAnalyzerMod {
                     LOGGER.info("[StutterAnalyzer] Submission config migrated: default submit now uses Cloudflare Worker. Manual GitHub browser flow is disabled.");
                     SubmissionManager.setPendingMigrationNotice();
                 }
-                // Always disable ask_first_time - submit goes directly to Cloudflare without manual consent step
                 if (SAConfig.INSTANCE.askFirstTime.get()) {
                     SAConfig.INSTANCE.askFirstTime.set(false);
                     LOGGER.info("[StutterAnalyzer] Submission config: ask_first_time disabled, submit no longer requires manual confirmation.");
