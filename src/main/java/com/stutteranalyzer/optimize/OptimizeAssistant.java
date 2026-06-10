@@ -47,9 +47,14 @@ public class OptimizeAssistant {
 
         List<OptimizeMod> database = loadDatabase();
 
-        Set<String> normalizedInstalled = installedModIds.stream()
-            .map(String::toLowerCase)
-            .collect(Collectors.toCollection(HashSet::new));
+        // Include both lowercase and fully-stripped (no hyphens/underscores) forms for fuzzy matching
+        Set<String> normalizedInstalled = new HashSet<>();
+        for (String modId : installedModIds) {
+            String lower = modId.toLowerCase();
+            normalizedInstalled.add(lower);
+            String stripped = lower.replaceAll("[\\s_\\-]", "");
+            if (!stripped.equals(lower)) normalizedInstalled.add(stripped);
+        }
 
         // Find already installed optimization mods from our database
         List<String> alreadyInstalled = new ArrayList<>();
@@ -74,14 +79,19 @@ public class OptimizeAssistant {
 
         for (OptimizeMod dbMod : database) {
             if (dbMod.alreadyInstalled(normalizedInstalled)) continue; // already loaded
-            boolean inFolder = physicalJarIds.containsKey(dbMod.id.toLowerCase());
+            boolean inFolder = physicalJarIds.containsKey(dbMod.id.toLowerCase())
+                || physicalJarIds.containsKey(OptimizeMod.normalize(dbMod.id));
             if (!inFolder && dbMod.aliases != null) {
                 for (String alias : dbMod.aliases) {
-                    if (physicalJarIds.containsKey(alias.toLowerCase())) { inFolder = true; break; }
+                    if (physicalJarIds.containsKey(alias.toLowerCase())
+                            || physicalJarIds.containsKey(OptimizeMod.normalize(alias))) {
+                        inFolder = true; break;
+                    }
                 }
             }
             if (!inFolder && dbMod.modrinthSlug != null) {
-                inFolder = physicalJarIds.containsKey(dbMod.modrinthSlug.toLowerCase());
+                inFolder = physicalJarIds.containsKey(dbMod.modrinthSlug.toLowerCase())
+                    || physicalJarIds.containsKey(OptimizeMod.normalize(dbMod.modrinthSlug));
             }
             if (inFolder) {
                 pendingIds.add(dbMod.id.toLowerCase());

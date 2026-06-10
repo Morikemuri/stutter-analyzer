@@ -6,6 +6,12 @@ import java.util.Set;
 
 public class OptimizeMod {
 
+    /** Strip hyphens, underscores and spaces, then lowercase - for fuzzy ID matching */
+    public static String normalize(String s) {
+        if (s == null) return "";
+        return s.toLowerCase().replaceAll("[\\s_\\-]", "");
+    }
+
     public String id;
     public String displayName;
     public List<String> loaders = new ArrayList<>();
@@ -47,10 +53,23 @@ public class OptimizeMod {
     }
 
     public boolean alreadyInstalled(Set<String> normalizedInstalled) {
+        // Exact lowercase match
         if (normalizedInstalled.contains(id.toLowerCase())) return true;
+        // Modrinth slug exact match
+        if (modrinthSlug != null && normalizedInstalled.contains(modrinthSlug.toLowerCase())) return true;
+        // Aliases exact match
         if (aliases != null) {
             for (String alias : aliases) {
                 if (normalizedInstalled.contains(alias.toLowerCase())) return true;
+            }
+        }
+        // Normalized match: strip hyphens/underscores/spaces
+        String idNorm = normalize(id);
+        if (normalizedInstalled.contains(idNorm)) return true;
+        if (modrinthSlug != null && normalizedInstalled.contains(normalize(modrinthSlug))) return true;
+        if (aliases != null) {
+            for (String alias : aliases) {
+                if (normalizedInstalled.contains(normalize(alias))) return true;
             }
         }
         return false;

@@ -29,7 +29,12 @@ public class ModsFolderScanner {
                      try {
                          String id = extractModId(jar);
                          if (id != null && !id.isBlank()) {
-                             result.put(id.toLowerCase(), guessDisplayName(jar.getFileName().toString()));
+                             String lower = id.toLowerCase();
+                             String displayName = guessDisplayName(jar.getFileName().toString());
+                             result.put(lower, displayName);
+                             // Also store normalized form (no hyphens/underscores) for fuzzy matching
+                             String stripped = lower.replaceAll("[\\s_\\-]", "");
+                             if (!stripped.equals(lower)) result.put(stripped, displayName);
                          }
                      } catch (Exception e) {
                          LOGGER.debug("[SA] ModScan: could not read {}: {}", jar.getFileName(), e.getMessage());
