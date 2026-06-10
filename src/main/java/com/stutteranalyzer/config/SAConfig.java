@@ -387,7 +387,7 @@ public class SAConfig {
 
         b.comment("Emergency Compatibility Guard").push("compatibility_guard");
         b.comment("F3 debug screen status line").push("debug_hud");
-        debugHudEnabled = b.comment("Show a tiny SA line on the F3 screen so you know the mod is alive and not just pretending.").define("enable_f3_status_line", true);
+        debugHudEnabled = b.comment("Show SA status in the F3 debug screen. OFF by default - use /sa f3 on to enable.").define("enable_f3_status_line", false);
         debugHudShowColored = b.comment("Use colored text in F3 status line. Green is good, yellow is suspicious, red means look at /sa health.").define("show_colored_status", true);
         debugHudShowLastFreeze = b.comment("Show last freeze on F3 line").define("show_last_freeze_on_f3", true);
         debugHudShowEmergencyMode = b.comment("Show emergency mode state on F3 line").define("show_emergency_mode_on_f3", true);
