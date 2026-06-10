@@ -92,7 +92,7 @@ public class SAConfig {
     public final ForgeConfigSpec.IntValue episodeMinDurationMs;
     public final ForgeConfigSpec.BooleanValue showRawFrameSpikeCount;
 
-    // ── [notifications] verbose mode + quiet mode ─────────────────────────
+    // ── [notifications] chat alert settings ──────────────────────────────
     public final ForgeConfigSpec.BooleanValue quietMode;
     public final ForgeConfigSpec.BooleanValue minorAggregateChatEnabled;
     public final ForgeConfigSpec.IntValue minorAggregateChatCooldownSeconds;
@@ -229,11 +229,11 @@ public class SAConfig {
         enableAliasSa = b.comment("Enable short alias /sa. /stutteranalyzer is for people with a lot of spare keystrokes.").define("enable_alias_sa", true);
         allowPlayersBasicStatus = b.comment("Allow all players to use /sa status and /sa health").define("allow_players_to_view_basic_status", true);
         allowPlayersExportOwnClientReports = b.comment("Allow players to export their own client reports").define("allow_players_to_export_own_client_reports", true);
-        serverReportPermissionLevel = b.comment("Permission level for /sa server report/list/show").defineInRange("server_report_permission_level", 2, 0, 4);
-        configReloadPermissionLevel = b.comment("Permission level for /sa config reload").defineInRange("config_reload_permission_level", 3, 0, 4);
+        serverReportPermissionLevel = b.comment("Permission level for server report access").defineInRange("server_report_permission_level", 2, 0, 4);
+        configReloadPermissionLevel = b.comment("Permission level for config reload actions").defineInRange("config_reload_permission_level", 3, 0, 4);
         debugPermissionLevel = b.comment("Permission level for restricted diagnostic actions").defineInRange("debug_permission_level", 4, 0, 4);
         submitReportPermissionLevel = b.comment("Permission level to submit reports").defineInRange("submit_report_permission_level", 3, 0, 4);
-        guardPermissionLevel = b.comment("Permission level for /sa guard enable/disable").defineInRange("guard_permission_level", 4, 0, 4);
+        guardPermissionLevel = b.comment("Permission level for guard enable/disable").defineInRange("guard_permission_level", 4, 0, 4);
         b.pop();
 
         b.comment("Client stutter detection").push("client");
@@ -299,18 +299,18 @@ public class SAConfig {
         showRawFrameSpikeCount = b.comment("Show raw frame spike count in /sa status alongside episode count.").define("show_raw_frame_spike_count", false);
         b.pop();
 
-        b.comment("Chat notification and quiet mode").push("notifications");
-        quietMode = b.comment("Quiet mode ON: minor/medium stutters shown in F3 and /sa status only. Severe/extreme still notify in chat. Use /sa quiet on/off to toggle.").define("quiet_mode", true);
-        minorAggregateChatEnabled = b.comment("Show aggregate minor stutter summary in chat (subject to quiet mode and cooldown).").define("minor_aggregate_chat_enabled", true);
+        b.comment("Chat notification settings").push("notifications");
+        quietMode = b.comment("Minimum alert level for chat notifications. When true, minor/medium stutters are tracked silently in F3 and /sa status only.").define("quiet_mode", true);
+        minorAggregateChatEnabled = b.comment("Show aggregate minor stutter summary in chat (subject to alert mode and cooldown).").define("minor_aggregate_chat_enabled", true);
         minorAggregateChatCooldownSeconds = b.comment("Minimum seconds between aggregate minor stutter chat messages.").defineInRange("minor_aggregate_chat_cooldown_seconds", 120, 5, 3600);
         minorAggregateShowOnlyIfWorse = b.comment("Only show another aggregate message if things got significantly worse since the last one.").define("minor_aggregate_show_only_if_worse", true);
         minorAggregateMinCountIncrease = b.comment("Minimum stutter count increase since last message to trigger another.").defineInRange("minor_aggregate_min_count_increase", 25, 1, 500);
         minorAggregateMinWorstIncreaseMs = b.comment("Minimum worst spike increase (ms) since last message to trigger another.").defineInRange("minor_aggregate_min_worst_increase_ms", 15, 1, 1000);
         verboseMode = b.comment("Temporarily show minor/medium stutters in chat. Off by default. Use /sa alerts minor to control chat notifications.").define("verbose_mode", false);
-        verboseModeSessionOnly = b.comment("Verbose mode resets when the game exits. Prevents accidental permanent spam.").define("verbose_mode_session_only", true);
-        minorChatInVerbose = b.comment("Show minor (50-99ms) stutters in chat when verbose mode is on.").define("minor_chat_in_verbose", true);
-        mediumChatInVerbose = b.comment("Show medium (100-249ms) stutters in chat when verbose mode is on.").define("medium_chat_in_verbose", true);
-        verboseChatCooldownSeconds = b.comment("Seconds between verbose chat messages. Prevents spam even in verbose mode.").defineInRange("verbose_chat_cooldown_seconds", 5, 1, 60);
+        verboseModeSessionOnly = b.comment("Chat alert mode resets when the game exits. Prevents accidental permanent spam.").define("verbose_mode_session_only", true);
+        minorChatInVerbose = b.comment("Show minor (50-99ms) stutters in chat when chat alerts are on.").define("minor_chat_in_verbose", true);
+        mediumChatInVerbose = b.comment("Show medium (100-249ms) stutters in chat when chat alerts are on.").define("medium_chat_in_verbose", true);
+        verboseChatCooldownSeconds = b.comment("Seconds between chat alert messages. Prevents spam.").defineInRange("verbose_chat_cooldown_seconds", 5, 1, 60);
         b.comment("Preset-based chat alert system").push("alerts");
         alertMode = b.comment("Alert mode: OFF, MINOR, MEDIUM, SEVERE, EXTREME. SEVERE = notify only for severe/extreme freezes.").define("alert_mode", "SEVERE");
         alertCooldownSeconds = b.comment("Global cooldown in seconds between any two chat alerts.").defineInRange("alert_cooldown_seconds", 30, 5, 600);

@@ -150,7 +150,6 @@
   "stutteranalyzer.startup.loaded_silent": "[SA] Loaded. Minor stutters are tracked silently. Press F3 or use /sa status.",
   "stutteranalyzer.unknown_freeze.notify": "Unclassified freeze detected. Report saved. Use /sa submit to send it.",
   "stutteranalyzer.unknown_freeze.notify_duration": "Unclassified freeze detected (%s ms). Report saved. Use /sa submit to send it.",
-  "stutteranalyzer.verbose.aggregate": "[SA] Repeated small stutters: %s in %ss, worst %sms. Tracking silently. Use /sa status.",
   "stutteranalyzer.cmd.status.last_stutter": "Last stutter",
   "stutteranalyzer.cmd.status.last_minor": "Last minor stutter",
   "stutteranalyzer.cmd.status.minor_count": "Minor stutters",
@@ -405,7 +404,6 @@
   "stutteranalyzer.alerts.status.max_per_min": "Max alerts/minute",
   "stutteranalyzer.alerts.status.sched_cooldown": "Scheduled micro-hitch cooldown",
   "stutteranalyzer.alerts.status.aggregate": "Small stutter aggregate",
-  "stutteranalyzer.alerts.status.quiet": "Quiet mode",
   "stutteranalyzer.alerts.status.on": "ON",
   "stutteranalyzer.alerts.status.off_val": "OFF",
   "stutteranalyzer.alerts.status.modes": "Available modes:",
@@ -518,5 +516,6 @@
   "stutteranalyzer.version.updates.failed": "check failed",
   "stutteranalyzer.version.updates.checking": "checking in background",
   "stutteranalyzer.version.updates.download": "Download: %s",
-  "stutteranalyzer.submit.validate_failed": "[SA] Submit validation failed: %s"
+  "stutteranalyzer.submit.validate_failed": "[SA] Submit validation failed: %s",
+  "stutteranalyzer.alerts.aggregate.small": "[SA] Repeated small stutters: %s in %ss, worst %sms. Tracking silently. Use /sa status."
 }

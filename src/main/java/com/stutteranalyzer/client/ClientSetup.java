@@ -11,7 +11,6 @@ import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.QuietMode;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
-import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.update.UpdateCheckResult;
 import com.stutteranalyzer.update.UpdateChecker;
@@ -77,21 +76,6 @@ public class ClientSetup {
             }
         }
 
-        // Verbose mode: show minor/medium stutters in chat (suppressed by quiet mode)
-        long verboseMs = FreezeDetector.consumeVerboseNotification();
-        if (verboseMs > 0 && VerboseMode.isEnabled() && !QuietMode.isEnabled()) {
-            int severe = SAConfig.INSTANCE.severeFrameMs.get();
-            int medium = SAConfig.INSTANCE.mediumFrameMs.get();
-            boolean showMinor  = verboseMs < medium && SAConfig.INSTANCE.minorChatInVerbose.get();
-            boolean showMedium = verboseMs >= medium && verboseMs < severe && SAConfig.INSTANCE.mediumChatInVerbose.get();
-            if ((showMinor || showMedium) && VerboseMode.tryNotify(SAConfig.INSTANCE.verboseChatCooldownSeconds.get())) {
-                Minecraft mc = Minecraft.getInstance();
-                if (mc.player != null) {
-                    mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.verbose.stutter_detected", verboseMs).withStyle(ChatFormatting.GREEN));
-                }
-            }
-        }
-
         // Aggregate minor stutter notification - smart suppression (gated on alert mode)
         long[] aggregate = FreezeDetector.consumeAggregateNotification();
         if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()
@@ -117,7 +101,7 @@ public class ClientSetup {
                     if (mc.player != null) {
                         int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
                         mc.player.sendSystemMessage(Component.translatable(
-                            "stutteranalyzer.verbose.aggregate", count, window, worst).withStyle(ChatFormatting.GREEN));
+                            "stutteranalyzer.alerts.aggregate.small", count, window, worst).withStyle(ChatFormatting.GREEN));
                         lastAggregateChatShownTime = now;
                         lastAggregateShownCount = count;
                         lastAggregateShownWorstMs = worst;

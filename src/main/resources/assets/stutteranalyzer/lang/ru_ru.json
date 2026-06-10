@@ -150,7 +150,6 @@
   "stutteranalyzer.startup.loaded_silent": "[SA] Загружен. Мелкие фризы отслеживаются без уведомлений. Нажмите F3 или /sa status.",
   "stutteranalyzer.unknown_freeze.notify": "Обнаружено неклассифицированное зависание. Отчёт сохранён. Используйте /sa submit для отправки.",
   "stutteranalyzer.unknown_freeze.notify_duration": "Обнаружено неклассифицированное зависание (%s мс). Отчёт сохранён. Используйте /sa submit для отправки.",
-  "stutteranalyzer.verbose.aggregate": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status.",
   "stutteranalyzer.cmd.status.last_stutter": "Последний фриз",
   "stutteranalyzer.cmd.status.last_minor": "Последний мелкий фриз",
   "stutteranalyzer.cmd.status.minor_count": "Мелкие фризы",
@@ -405,7 +404,6 @@
   "stutteranalyzer.alerts.status.max_per_min": "Макс. оповещений/мин",
   "stutteranalyzer.alerts.status.sched_cooldown": "Кулдаун плановых микрофризов",
   "stutteranalyzer.alerts.status.aggregate": "Агрегат мелких фризов",
-  "stutteranalyzer.alerts.status.quiet": "Тихий режим",
   "stutteranalyzer.alerts.status.on": "ВКЛ",
   "stutteranalyzer.alerts.status.off_val": "ВЫКЛ",
   "stutteranalyzer.alerts.status.modes": "Доступные режимы:",
@@ -518,5 +516,6 @@
   "stutteranalyzer.version.updates.failed": "проверка не удалась",
   "stutteranalyzer.version.updates.checking": "проверка в фоне",
   "stutteranalyzer.version.updates.download": "Скачать: %s",
-  "stutteranalyzer.submit.validate_failed": "[SA] Проверка отправки не удалась: %s"
+  "stutteranalyzer.submit.validate_failed": "[SA] Проверка отправки не удалась: %s",
+  "stutteranalyzer.alerts.aggregate.small": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status."
 }
