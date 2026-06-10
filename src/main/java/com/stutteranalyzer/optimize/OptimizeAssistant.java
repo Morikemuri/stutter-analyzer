@@ -32,9 +32,8 @@ public class OptimizeAssistant {
     private static final int READ_TIMEOUT = 10000;
 
     private static int maxSuggestions(int installedCount) {
-        if (installedCount > 160) return 2;
         if (installedCount > 80)  return 3;
-        if (installedCount > 20)  return 5;
+        if (installedCount > 5)   return 5;
         return 7;
     }
 
@@ -93,8 +92,8 @@ public class OptimizeAssistant {
             }
         }
 
-        // Filter candidates (exclude loaded, pending, and conflicting mods)
-        List<OptimizeMod> candidates = database.stream()
+        // Filter candidates (exclude loaded, pending, and conflicting mods) - no limit yet
+        List<OptimizeMod> allCandidates = database.stream()
             .filter(m -> m.priority > 0)
             .filter(m -> m.safeDefault)
             .filter(m -> m.supportsLoader(loader))
@@ -103,15 +102,14 @@ public class OptimizeAssistant {
             .filter(m -> !pendingIds.contains(m.id.toLowerCase()))
             .filter(m -> !m.conflictsWith(expandedInstalled))
             .sorted((a, b) -> Integer.compare(b.priority, a.priority))
-            .limit(maxSuggestions(installedModIds.size()))
             .collect(Collectors.toList());
 
-        // Resolve Modrinth download URLs
+        // Resolve Modrinth download URLs for all candidates before applying limit
         Path cacheFile = gameDir.resolve("config/stutteranalyzer/optimization_cache.json");
         Map<String, JsonObject> cache = loadCache(cacheFile);
         boolean cacheUpdated = false;
 
-        for (OptimizeMod mod : candidates) {
+        for (OptimizeMod mod : allCandidates) {
             if (mod.modrinthSlug != null && !mod.modrinthSlug.isEmpty()) {
                 boolean before = mod.resolvedOnline;
                 resolveModrinth(mod, loader, mcVersion, cache);
@@ -123,12 +121,15 @@ public class OptimizeAssistant {
             saveCache(cacheFile, cache);
         }
 
+        // Apply limit only to resolved mods so the full quota is always filled
+        int limit = maxSuggestions(installedModIds.size());
         List<OptimizeMod> ready = new ArrayList<>();
         List<OptimizeMod> skipped = new ArrayList<>();
-        for (OptimizeMod mod : candidates) {
-            if (mod.resolvedUrl != null && !mod.resolvedUrl.isEmpty()) {
+        for (OptimizeMod mod : allCandidates) {
+            boolean isReady = mod.resolvedUrl != null && !mod.resolvedUrl.isEmpty();
+            if (isReady && ready.size() < limit) {
                 ready.add(mod);
-            } else {
+            } else if (!isReady) {
                 LOGGER.info("[SA] Skipping {} - no compatible file on Modrinth for {} {}", mod.id, loader, mcVersion);
                 skipped.add(mod);
             }

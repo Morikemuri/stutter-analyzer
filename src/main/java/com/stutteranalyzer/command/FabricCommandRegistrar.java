@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.stutteranalyzer.submission.SubmissionManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 
 public class FabricCommandRegistrar {
 
@@ -86,15 +87,17 @@ public class FabricCommandRegistrar {
                 .then(Commands.literal("status")
                     .executes(c -> CommonCommandLogic.f3Status(c.getSource()))))
 
-            // ── overlay (client-only) ─────────────────────────────────────────
+            // ── overlay (placeholder: not implemented in this build) ──────────
             .then(Commands.literal("overlay")
-                .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })
-                .then(Commands.literal("on")    .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
-                .then(Commands.literal("off")   .executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; }))
-                .then(Commands.literal("status").executes(c -> { c.getSource().sendFailure(CommandFeedback.clientOnly()); return 0; })))
+                .executes(c -> CommonCommandLogic.overlayUnavailable(c.getSource()))
+                .then(Commands.literal("on")    .executes(c -> { c.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.not_available")), false); return 1; }))
+                .then(Commands.literal("off")   .executes(c -> { c.getSource().sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.already_off")), false); return 1; }))
+                .then(Commands.literal("status").executes(c -> CommonCommandLogic.overlayUnavailable(c.getSource()))))
 
             // ── show <time> ───────────────────────────────────────────────────
             .then(Commands.literal("show")
+                .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.showRecentEvents(
+                    c.getSource(), "15m")))
                 .then(Commands.argument("time", StringArgumentType.word())
                     .executes(c -> safe(c.getSource(), () -> CommonCommandLogic.showRecentEvents(
                         c.getSource(), StringArgumentType.getString(c, "time"))))))

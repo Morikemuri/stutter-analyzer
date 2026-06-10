@@ -799,6 +799,13 @@ public class CommonCommandLogic {
         return 1;
     }
 
+    public static int overlayUnavailable(CommandSourceStack src) {
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.not_available")), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.future")), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.use_f3")), false);
+        return 1;
+    }
+
     public static int f3Toggle(CommandSourceStack src) {
         if (!SAFabricPlatform.isClient()) {
             src.sendFailure(CommandFeedback.clientOnly()); return 0;
@@ -905,7 +912,7 @@ public class CommonCommandLogic {
             "stutteranalyzer.optimize.risk." + plan.risk.name().toLowerCase());
         out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.plan_risk",
             plan.recommended.size(), riskLabel)));
-        int shown = Math.min(plan.recommended.size(), 5);
+        int shown = plan.recommended.size();
         for (int i = 0; i < shown; i++) {
             com.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
             int num = i + 1;
@@ -913,7 +920,7 @@ public class CommonCommandLogic {
                 num, mod.displayName,
                 Component.translatable("stutteranalyzer.optimize.reason." + mod.id))));
         }
-        int remaining = plan.recommended.size() - shown;
+        int remaining = 0;
         if (remaining > 0) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.more", remaining)));
         }
