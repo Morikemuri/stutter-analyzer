@@ -325,7 +325,7 @@ public class CommonCommandLogic {
         final String javaDisplay = javaMajor > 0 ? String.valueOf(javaMajor) : javaVersion;
         src.sendSuccess(() -> CommandFeedback.header(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.header")), false);
         src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.version"), net.minecraft.network.chat.Component.literal(StutterAnalyzerFabric.MOD_VERSION)), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.minecraft"), net.minecraft.network.chat.Component.literal("1.20.4")), false);
+        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.minecraft"), net.minecraft.network.chat.Component.literal("1.20.1")), false);
         src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.loader"), net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.loader.fabric")), false);
         src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.java"), net.minecraft.network.chat.Component.literal(javaDisplay)), false);
         src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.build"), net.minecraft.network.chat.Component.literal(StutterAnalyzerFabric.BUILD_ID)), false);
