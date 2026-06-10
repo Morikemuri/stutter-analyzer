@@ -349,15 +349,29 @@ public class CommonCommandLogic {
             updateStatus = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.current");
         }
         src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates"), updateStatus), false);
-        if (updateResult != null && updateResult.success() && updateResult.updateAvailable()) {
-            String curseforge = (updateResult.curseforgeUrl() != null && !updateResult.curseforgeUrl().isEmpty())
-                ? updateResult.curseforgeUrl()
-                : SAConfig.INSTANCE.updateCurseforgeUrl.get();
-            if (!curseforge.isEmpty()) {
-                final String cfUrl = curseforge;
-                src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.download", cfUrl)), false);
-            }
-        }
+        // Always show project links - /sa update is gone, this is now the one stop shop
+        net.minecraft.network.chat.Component cfLink = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.open_page")
+            .withStyle(s -> s
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.OPEN_URL,
+                    "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer/"))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.hover.curseforge")))
+                .withColor(net.minecraft.ChatFormatting.AQUA)
+                .withUnderlined(true));
+        net.minecraft.network.chat.Component ghLink = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.open_repo")
+            .withStyle(s -> s
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.OPEN_URL,
+                    "https://github.com/Morikemuri/stutter-analyzer"))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.hover.github")))
+                .withColor(net.minecraft.ChatFormatting.AQUA)
+                .withUnderlined(true));
+        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.curseforge"), cfLink), false);
+        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.github"), ghLink), false);
         return 1;
     }
 

@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.stutteranalyzer.StutterAnalyzerFabric;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -288,7 +289,7 @@ public class OptimizeAssistant {
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent",
-                "StutterAnalyzer/0.3.0 (github.com/Morikemuri/stutter-analyzer)");
+                "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
             conn.setConnectTimeout(CONNECT_TIMEOUT);
             conn.setReadTimeout(READ_TIMEOUT);
             conn.setRequestMethod("GET");

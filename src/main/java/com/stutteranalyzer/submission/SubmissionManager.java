@@ -547,10 +547,8 @@ public class SubmissionManager {
                     String shortErr = errMsg.length() > 80 ? errMsg.substring(0, 80) : errMsg;
                     lastSubmissionStatus = "failure";
                     lastSubmissionError = "internal: " + shortErr;
-                    StutterAnalyzerFabric.LOGGER.error("[SA] Unexpected submit error (upload_id={}): {}", uploadId, errMsg, t);
+                    StutterAnalyzerFabric.LOGGER.error("[SA] Unexpected submit error (upload_id={}) - {}: {}", uploadId, errClass, errMsg, t);
                     src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.upload_failed")), false);
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + errClass + " - " + shortErr), false);
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] Upload lock cleared."), false);
                     if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                         saveLocalFallback(src, report, markdown);
                     }
@@ -592,7 +590,7 @@ public class SubmissionManager {
         String freezeContext    = safeGet(() -> LogExcerpter.extractUnknownFreezeContext(),                    "No Unknown Freeze context was found in latest.log.");
         String suspiciousSignals = safeGet(() -> LogExcerpter.extractSuspiciousSignals(),                      "No suspicious log signals were found.");
 
-        // Payload debug summary
+        // Payload summary goes to latest.log only - players don't need to watch us do our homework
         if (SAConfig.INSTANCE.showPayloadSummary.get()) {
             int mdChars  = sanitizedMarkdown.length();
             int sChars   = stutterLogEvts   != null ? stutterLogEvts.length()    : 0;
@@ -605,15 +603,9 @@ public class SubmissionManager {
             int spLines  = isMeaningfulLogContent(suspiciousSignals) ? countLogLines(suspiciousSignals)  : 0;
             int lLines   = (logExcerpt != null && !logExcerpt.startsWith("No relevant") && !logExcerpt.startsWith("Log excerpt was blocked"))
                            ? countLogLines(logExcerpt) : 0;
-            src.sendSuccess(() -> CommandFeedback.header("[SA] Upload payload"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- markdown_report: " + mdChars + " chars"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- json_report: included"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- runtime_status_snapshot: included"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- stutter_log_events: " + sLines + " lines (" + sChars + " chars)"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- unknown_freeze_context: " + fEvts + " events (" + fChars + " chars)"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- suspicious_log_signals: " + spLines + " lines (" + spChars + " chars)"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- latest_log_excerpt: " + lLines + " lines (" + lChars + " chars)"), false);
-            src.sendSuccess(() -> CommandFeedback.info("- full_latest_log: " + (flChars > 0 ? flChars + " chars" : "disabled/unavailable")), false);
+            StutterAnalyzerFabric.LOGGER.info("[SA] Payload summary - md={}chars stutter={}lines({}chars) freeze={}evts({}chars) susp={}lines({}chars) excerpt={}lines({}chars) fullLog={}",
+                mdChars, sLines, sChars, fEvts, fChars, spLines, spChars, lLines, lChars,
+                flChars > 0 ? flChars + "chars" : "disabled/unavailable");
         }
 
         // Build payload with Gson (proper JSON encoding, no string concatenation)
@@ -627,9 +619,8 @@ public class SubmissionManager {
         } catch (Exception parseEx) {
             lastSubmissionStatus = "failure";
             lastSubmissionError = "local JSON invalid: " + parseEx.getMessage();
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Submit blocked: generated JSON is invalid."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + parseEx.getMessage()), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Local fallback saved."), false);
+            StutterAnalyzerFabric.LOGGER.error("[SA] Submit blocked: generated JSON is invalid - {}", parseEx.getMessage());
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.upload_failed")), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             return;
         }
@@ -824,7 +815,7 @@ public class SubmissionManager {
                 || SAConfig.INSTANCE.includeSuspiciousLogSignals.get()
                 || SAConfig.INSTANCE.includeLogExcerpt.get();
             if (totalReceivedLogChars == 0 && logConfigEnabled) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: Worker received 0 log chars. Use /sa submit preview to diagnose."), false);
+                StutterAnalyzerFabric.LOGGER.warn("[SA] Worker received 0 log chars despite log config being enabled - use /sa submit preview to diagnose");
             }
 
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.thankyou")), false);
@@ -836,7 +827,8 @@ public class SubmissionManager {
             if ("MALFORMED_JSON".equals(errorCode)) {
                 lastSubmissionStatus = "malformed_json";
                 lastSubmissionError = "MALFORMED_JSON";
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: MALFORMED_JSON"), false);
+                StutterAnalyzerFabric.LOGGER.error("[SA] Submit rejected: MALFORMED_JSON - the Worker said our JSON is a crime against data structures");
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.upload_failed")), false);
                 showWorkerDetails(src, body);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             } else if ("RATE_LIMITED".equals(errorCode) || status == 429) {
