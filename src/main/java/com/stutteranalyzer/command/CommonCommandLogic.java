@@ -773,11 +773,10 @@ public class CommonCommandLogic {
     }
 
     public static int showPrivacy(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Privacy"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit sends a sanitized report to the Stutter Analyzer report server."), false);
-        src.sendSuccess(() -> CommandFeedback.info("It may include mod list, Minecraft version, Java version, system info, recent performance events, and sanitized log excerpts."), false);
-        src.sendSuccess(() -> CommandFeedback.info("It does not include tokens, passwords, auth data, session data, or full unredacted file paths."), false);
-        src.sendSuccess(() -> CommandFeedback.info("GitHub issue creation happens server-side. You do not need a GitHub account."), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.privacy.header")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.privacy.line1")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.privacy.line2")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.privacy.line3")), false);
         return 1;
     }
 
