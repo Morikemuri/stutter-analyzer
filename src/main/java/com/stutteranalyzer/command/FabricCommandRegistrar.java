@@ -104,6 +104,7 @@ public class FabricCommandRegistrar {
 
             // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
+                .executes(c -> CommonCommandLogic.optimizeSuggest(c.getSource()))
                 .then(Commands.literal("suggest")
                     .executes(c -> CommonCommandLogic.optimizeSuggest(c.getSource())))
                 .then(Commands.literal("install")
