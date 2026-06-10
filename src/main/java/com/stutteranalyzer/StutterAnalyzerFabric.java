@@ -25,7 +25,7 @@ public class StutterAnalyzerFabric implements ModInitializer {
     public static final String MOD_ID        = "stutteranalyzer";
     public static final String MOD_VERSION   = "0.4.0";
     public static final String BUILD_ID      = "release";
-    public static final String BUILD_DATE    = "2026-06-10-b3-1201";
+    public static final String BUILD_DATE    = "2026-06-10-b4-1211";
     public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,submit-cloudflare-v2,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response,fabric-port";
     public static final Logger LOGGER        = LogManager.getLogger(MOD_ID);
 

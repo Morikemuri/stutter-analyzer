@@ -130,10 +130,15 @@ public class OptimizeAssistant {
             return earlyPlan;
         }
 
-        // Filter candidates (exclude loaded, pending, and conflicting mods) - no limit yet
+        // Build lookup map for dep resolution
+        Map<String, OptimizeMod> dbById = new HashMap<>();
+        for (OptimizeMod m : database) {
+            dbById.put(m.id.toLowerCase(), m);
+        }
+
+        // Filter primary candidates (exclude loaded, pending, and conflicting mods) - no limit yet
         List<OptimizeMod> allCandidates = database.stream()
-            .filter(m -> m.priority > 0)
-            .filter(m -> m.safeDefault)
+            .filter(m -> m.primarySuggestion)
             .filter(m -> m.supportsLoader(loader))
             .filter(m -> m.supportsEnvironment(isServer))
             .filter(m -> !m.alreadyInstalled(normalizedInstalled))
@@ -155,10 +160,6 @@ public class OptimizeAssistant {
             }
         }
 
-        if (cacheUpdated) {
-            saveCache(cacheFile, cache);
-        }
-
         // Apply limit only to resolved mods so the full quota is always filled
         int limit = maxSuggestions(installedModIds.size());
         List<OptimizeMod> ready = new ArrayList<>();
@@ -172,6 +173,47 @@ public class OptimizeAssistant {
                 skipped.add(mod);
             }
         }
+
+        // Dependency resolution
+        List<OptimizeMod> depsToAdd = new ArrayList<>();
+        List<OptimizeMod> failedDeps = new ArrayList<>();
+        for (OptimizeMod candidate : new ArrayList<>(ready)) {
+            if (candidate.installRequires == null || candidate.installRequires.isEmpty()) continue;
+            boolean allDepsOk = true;
+            for (String depId : candidate.installRequires) {
+                String depNorm = depId.toLowerCase();
+                if (expandedInstalled.contains(depNorm)) continue;
+                boolean inPlan = ready.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId))
+                    || depsToAdd.stream().anyMatch(m -> m.id.equalsIgnoreCase(depId));
+                if (inPlan) continue;
+                OptimizeMod depMod = dbById.get(depNorm);
+                if (depMod == null) {
+                    candidate.skipReason = "required dependency " + depId + " not in database";
+                    allDepsOk = false; break;
+                }
+                if (!depMod.supportsLoader(loader)) {
+                    candidate.skipReason = "required dependency " + depMod.displayName + " not available for " + loader;
+                    allDepsOk = false; break;
+                }
+                if (depMod.modrinthSlug != null && !depMod.resolvedOnline) {
+                    resolveModrinth(depMod, loader, mcVersion, cache);
+                    cacheUpdated = true;
+                }
+                if (depMod.resolvedUrl == null || depMod.resolvedUrl.isEmpty()) {
+                    candidate.skipReason = "required dependency " + depMod.displayName + " could not be resolved for " + loader + " " + mcVersion;
+                    allDepsOk = false; break;
+                }
+                depMod.depForMod = candidate.displayName;
+                depsToAdd.add(depMod);
+            }
+            if (!allDepsOk) {
+                ready.remove(candidate);
+                failedDeps.add(candidate);
+            }
+        }
+        if (cacheUpdated) saveCache(cacheFile, cache);
+        skipped.addAll(failedDeps);
+        ready.addAll(depsToAdd);
 
         OptimizePlan plan = new OptimizePlan();
         plan.recommended = ready;
@@ -205,6 +247,7 @@ public class OptimizeAssistant {
                 obj.addProperty("id", m.id);
                 obj.addProperty("name", m.displayName);
                 obj.addProperty("url", m.resolvedUrl != null ? m.resolvedUrl : "");
+                if (m.depForMod != null) obj.addProperty("required_dep_for", m.depForMod);
                 readyArr.add(obj);
             }
             root.add("ready_to_install", readyArr);
@@ -218,6 +261,7 @@ public class OptimizeAssistant {
                 JsonObject obj = new JsonObject();
                 obj.addProperty("id", m.id);
                 obj.addProperty("name", m.displayName);
+                obj.addProperty("reason", m.skipReason != null ? m.skipReason : "no compatible file on Modrinth");
                 skippedArr.add(obj);
             }
             root.add("skipped_candidates", skippedArr);
@@ -246,15 +290,14 @@ public class OptimizeAssistant {
 
                     int priority = obj.has("install_priority")
                         ? obj.get("install_priority").getAsInt() : 0;
-                    if (priority <= 0) continue;
 
                     boolean safe = !obj.has("install_safe") || obj.get("install_safe").getAsBoolean();
-                    if (!safe) continue;
 
                     OptimizeMod mod = new OptimizeMod();
                     mod.id = modKey;
                     mod.priority = priority;
-                    mod.safeDefault = true;
+                    mod.safeDefault = safe;
+                    mod.primarySuggestion = priority > 0 && safe;
 
                     if (obj.has("display_names") && obj.get("display_names").isJsonArray()) {
                         JsonArray names = obj.getAsJsonArray("display_names");
@@ -290,6 +333,13 @@ public class OptimizeAssistant {
                     if (obj.has("install_conflicts") && obj.get("install_conflicts").isJsonArray()) {
                         for (JsonElement ce : obj.getAsJsonArray("install_conflicts")) {
                             mod.conflicts.add(ce.getAsString());
+                        }
+                    }
+
+                    mod.installRequires = new ArrayList<>();
+                    if (obj.has("install_requires") && obj.get("install_requires").isJsonArray()) {
+                        for (JsonElement re : obj.getAsJsonArray("install_requires")) {
+                            mod.installRequires.add(re.getAsString());
                         }
                     }
 

@@ -10,7 +10,7 @@ public final class PlatformInfo {
 
     public static String loaderVersion() { return SAEnvironment.getLoaderVersion(); }
 
-    public static String minecraftVersion() { return "1.20.1"; }
+    public static String minecraftVersion() { return "1.21.1"; }
 
     public static boolean isForge() { return "forge".equalsIgnoreCase(SAEnvironment.getLoaderName()); }
 
