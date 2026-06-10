@@ -25,13 +25,11 @@ import java.util.List;
 public class OptimizeInstaller {
 
     private static final Logger LOGGER = LogManager.getLogger("StutterAnalyzer-Install");
-    private static final long CONFIRM_WINDOW_MS = 60_000L;
     private static final long PLAN_MAX_AGE_MS   = 5L * 60_000L;
     private static final long MAX_FILE_SIZE      = 50L * 1024L * 1024L;
 
     private static volatile OptimizePlan currentPlan;
     private static volatile Path currentModsDir;
-    private static volatile long confirmRequestedAt = 0;
 
     // Async scan state
     private static volatile boolean scanning = false;
@@ -58,7 +56,6 @@ public class OptimizeInstaller {
     public static void setPlan(OptimizePlan plan, Path modsDir) {
         currentPlan = plan;
         currentModsDir = modsDir;
-        confirmRequestedAt = 0;
         LOGGER.info("[SA] Optimization install target: {}", modsDir.toAbsolutePath());
     }
 
@@ -73,7 +70,6 @@ public class OptimizeInstaller {
         }
         if (plan.isExpired(PLAN_MAX_AGE_MS)) {
             currentPlan = null;
-            confirmRequestedAt = 0;
             src.sendSuccess(() -> CommandFeedback.info(
                 net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.plan_expired")), false);
             return;
@@ -89,16 +85,8 @@ public class OptimizeInstaller {
             return;
         }
 
-        long now = System.currentTimeMillis();
-        long warned = confirmRequestedAt;
-
-        if (warned == 0 || (now - warned) > CONFIRM_WINDOW_MS) {
-            confirmRequestedAt = now;
-            showInstallWarning(src, plan, modsDir);
-        } else {
-            confirmRequestedAt = 0;
-            executeInstall(src, plan, modsDir);
-        }
+        showInstallWarning(src, plan, modsDir);
+        executeInstall(src, plan, modsDir);
     }
 
     private static void showInstallWarning(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
@@ -112,15 +100,6 @@ public class OptimizeInstaller {
         int remaining = plan.recommended.size() - shown;
         String plannedLine = remaining > 0 ? nameList + " +" + remaining : nameList;
         send(src, Component.translatable("stutteranalyzer.optimize.warning.planned", plannedLine));
-        send(src, Component.translatable("stutteranalyzer.optimize.warning.confirm"));
-
-        Component confirmBtn = Component.translatable("stutteranalyzer.optimize.btn.confirm")
-            .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                    net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/sa optimize install"))
-                .withUnderlined(true)
-                .withColor(net.minecraft.ChatFormatting.GOLD));
-        send(src, confirmBtn);
     }
 
     private static void executeInstall(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
@@ -172,9 +151,7 @@ public class OptimizeInstaller {
 
         writeManifest(plan, installedList, failedList, modsDir.getParent());
 
-        // Invalidate plan so stale suggestions don't reappear before restart
         currentPlan = null;
-        confirmRequestedAt = 0;
 
         if (successCount > 0) {
             send(src, Component.translatable("stutteranalyzer.optimize.install.done", successCount, alreadyCount, failCount));
