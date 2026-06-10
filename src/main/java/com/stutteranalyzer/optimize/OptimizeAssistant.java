@@ -104,6 +104,16 @@ public class OptimizeAssistant {
             }
         }
 
+        // Count physical .jar files for the user-visible counter (loader entries inflate to 100+)
+        int modsJarCount = 0;
+        try {
+            modsJarCount = (int) Files.list(gameDir.resolve("mods"))
+                .filter(p -> Files.isRegularFile(p) && p.getFileName().toString().endsWith(".jar"))
+                .count();
+        } catch (Exception e) {
+            LOGGER.warn("[SA] Could not count mods folder jars: {}", e.getMessage());
+        }
+
         // Don't drip-feed a second install wave while restart is still required
         if (!pendingRestartNames.isEmpty()) {
             OptimizePlan earlyPlan = new OptimizePlan();
@@ -114,7 +124,7 @@ public class OptimizeAssistant {
             earlyPlan.loader      = loader;
             earlyPlan.mcVersion   = mcVersion;
             earlyPlan.serverOnly  = isServer;
-            earlyPlan.totalInstalledCount = normalizedInstalled.size();
+            earlyPlan.totalInstalledCount = modsJarCount;
             earlyPlan.risk        = OptimizePlan.RiskLevel.LOW;
             earlyPlan.riskReason  = "Restart required before next wave.";
             writePlanJson(earlyPlan, gameDir);
@@ -172,7 +182,7 @@ public class OptimizeAssistant {
         plan.loader = loader;
         plan.mcVersion = mcVersion;
         plan.serverOnly = isServer;
-        plan.totalInstalledCount = normalizedInstalled.size();
+        plan.totalInstalledCount = modsJarCount;
         scoreRisk(plan);
         writePlanJson(plan, gameDir);
         return plan;

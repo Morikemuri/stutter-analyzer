@@ -913,7 +913,7 @@ public class CommonCommandLogic {
         if (isServer) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.scan.server_mode")));
         }
-        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.loaded_mods",
+        out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_folder_jars",
             plan.totalInstalledCount)));
         out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.optimization_active_count",
             plan.alreadyInstalled.size())));

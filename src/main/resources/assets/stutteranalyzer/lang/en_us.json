@@ -288,6 +288,7 @@
   "stutteranalyzer.optimize.mods_line_pending_only": "Mods: %s | Optimization mods pending restart: %s",
   "stutteranalyzer.optimize.pending_restart": "Pending restart: %s",
   "stutteranalyzer.optimize.loaded_mods": "Loaded mods: %s",
+  "stutteranalyzer.optimize.mods_folder_jars": "Mods folder jars: %s",
   "stutteranalyzer.optimize.optimization_active_count": "Optimization mods active: %s",
   "stutteranalyzer.optimize.optimization_pending_count": "Optimization mods pending restart: %s",
   "stutteranalyzer.optimize.already_active": "Already active: %s",

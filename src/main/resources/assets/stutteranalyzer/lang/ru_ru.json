@@ -288,6 +288,7 @@
   "stutteranalyzer.optimize.mods_line_pending_only": "Модов: %s | Оптимизационных ожидает перезапуска: %s",
   "stutteranalyzer.optimize.pending_restart": "Ожидают перезапуска: %s",
   "stutteranalyzer.optimize.loaded_mods": "Загружено модов: %s",
+  "stutteranalyzer.optimize.mods_folder_jars": "JAR-файлов в mods: %s",
   "stutteranalyzer.optimize.optimization_active_count": "Оптимизационных модов активно: %s",
   "stutteranalyzer.optimize.optimization_pending_count": "Оптимизационных модов ожидает перезапуска: %s",
   "stutteranalyzer.optimize.already_active": "Уже работают: %s",
