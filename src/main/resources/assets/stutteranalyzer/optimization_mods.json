@@ -111,7 +111,7 @@
   },
   "immediatelyfast": {
     "display_names": ["ImmediatelyFast"],
-    "known_aliases": ["immediatelyfast"],
+    "known_aliases": ["immediatelyfast", "immediately-fast", "immediately_fast"],
     "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client",
     "category_tags": ["IMMEDIATE_MODE_RENDERING", "GUI_RENDERING", "TEXT_RENDERING", "BUFFER_BATCHING"],
@@ -127,7 +127,7 @@
   },
   "entity_culling": {
     "display_names": ["Entity Culling"],
-    "known_aliases": ["entity_culling", "entityculling"],
+    "known_aliases": ["entity_culling", "entityculling", "entity-culling"],
     "loader_support": ["fabric", "forge"],
     "side": "client",
     "category_tags": ["ENTITY_RENDERING", "BLOCK_ENTITY_RENDERING", "CULLING", "ASYNC_VISIBILITY"],
@@ -143,7 +143,7 @@
   },
   "moreculling": {
     "display_names": ["More Culling"],
-    "known_aliases": ["moreculling"],
+    "known_aliases": ["moreculling", "more-culling", "more_culling"],
     "loader_support": ["fabric", "forge"],
     "side": "client",
     "category_tags": ["CULLING", "BLOCK_RENDERING", "BLOCK_FACE_CULLING", "LEAVES_RENDERING"],
@@ -191,7 +191,7 @@
   },
   "ferritecore": {
     "display_names": ["FerriteCore"],
-    "known_aliases": ["ferritecore"],
+    "known_aliases": ["ferritecore", "ferrite-core", "ferrite_core"],
     "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client_server",
     "category_tags": ["MEMORY_OPTIMIZATION"],
@@ -207,7 +207,7 @@
   },
   "modernfix": {
     "display_names": ["ModernFix"],
-    "known_aliases": ["modernfix"],
+    "known_aliases": ["modernfix", "modern-fix", "modern_fix"],
     "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client_server",
     "category_tags": ["MEMORY_OPTIMIZATION", "STARTUP_OPTIMIZATION", "RESOURCE_LOADING", "BUG_FIX"],
@@ -223,7 +223,7 @@
   },
   "memoryleakfix": {
     "display_names": ["Memory Leak Fix", "MemoryLeakFix"],
-    "known_aliases": ["memoryleakfix", "memory_leak_fix"],
+    "known_aliases": ["memoryleakfix", "memory_leak_fix", "memory-leak-fix"],
     "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client_server",
     "category_tags": ["MEMORY_LEAK_FIX", "MEMORY_OPTIMIZATION"],
@@ -310,7 +310,7 @@
   },
   "vmp": {
     "display_names": ["Very Many Players", "VMP"],
-    "known_aliases": ["vmp", "verymanyplayers"],
+    "known_aliases": ["vmp", "verymanyplayers", "very-many-players", "very_many_players"],
     "loader_support": ["fabric"],
     "side": "client_server",
     "category_tags": ["NETWORKING", "SERVER_TICK", "PLAYER_COUNT"],
@@ -352,7 +352,7 @@
   },
   "dynamic_fps": {
     "display_names": ["Dynamic FPS", "Dynamic FPS Reforged", "FPS Reducer"],
-    "known_aliases": ["dynamic_fps", "dynamicfps", "fps_reducer", "fpsreducer"],
+    "known_aliases": ["dynamic_fps", "dynamicfps", "fps_reducer", "fpsreducer", "dynamic-fps", "fps-reducer"],
     "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client",
     "category_tags": ["BACKGROUND_THROTTLING", "CLIENT_BEHAVIOR"],
@@ -426,7 +426,7 @@
   },
   "ebe": {
     "display_names": ["Enhanced Block Entities"],
-    "known_aliases": ["ebe", "enhanced_block_entities", "enhancedblockentities"],
+    "known_aliases": ["ebe", "enhanced_block_entities", "enhancedblockentities", "enhanced-block-entities"],
     "loader_support": ["fabric"],
     "side": "client",
     "category_tags": ["BLOCK_ENTITY_RENDERING", "CLIENT_RENDER_STUTTER"],
@@ -474,7 +474,7 @@
   },
   "ai_improvements": {
     "display_names": ["AI Improvements"],
-    "known_aliases": ["ai_improvements", "aiimprovements"],
+    "known_aliases": ["ai_improvements", "aiimprovements", "ai-improvements"],
     "loader_support": ["forge", "neoforge"],
     "side": "client_server",
     "category_tags": ["ENTITY_TICK_OVERLOAD", "SERVER_TICK_SPIKE"],
@@ -506,7 +506,7 @@
   },
   "packet_fixer": {
     "display_names": ["Packet Fixer"],
-    "known_aliases": ["packet_fixer", "packetfixer"],
+    "known_aliases": ["packet_fixer", "packetfixer", "packet-fixer"],
     "loader_support": ["forge", "neoforge"],
     "side": "client",
     "category_tags": ["NETWORK_OR_PACKET_SPIKE"],

@@ -21,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class OptimizeInstaller {
 
@@ -196,9 +197,32 @@ public class OptimizeInstaller {
         Files.createDirectories(modsDir);
         Path finalPath = modsDir.resolve(filename);
 
-        // Skip if already present and non-empty
+        // Skip if already present and non-empty (exact filename match)
         if (Files.exists(finalPath) && Files.size(finalPath) > 0) {
             return new DownloadResult(filename, true);
+        }
+
+        // Pre-install guard: re-scan for any existing jar with the same mod ID
+        Map<String, String> freshScan = ModsFolderScanner.scan(modsDir);
+        String modNorm = OptimizeMod.normalize(mod.id);
+        if (freshScan.containsKey(mod.id.toLowerCase()) || freshScan.containsKey(modNorm)) {
+            LOGGER.info("[SA] Pre-install guard: {} already present by id", mod.displayName);
+            return new DownloadResult(filename, true);
+        }
+        if (mod.modrinthSlug != null) {
+            String slugNorm = OptimizeMod.normalize(mod.modrinthSlug);
+            if (freshScan.containsKey(mod.modrinthSlug.toLowerCase()) || freshScan.containsKey(slugNorm)) {
+                LOGGER.info("[SA] Pre-install guard: {} already present by modrinth slug", mod.displayName);
+                return new DownloadResult(filename, true);
+            }
+        }
+        if (mod.aliases != null) {
+            for (String alias : mod.aliases) {
+                if (freshScan.containsKey(alias.toLowerCase()) || freshScan.containsKey(OptimizeMod.normalize(alias))) {
+                    LOGGER.info("[SA] Pre-install guard: {} already present by alias {}", mod.displayName, alias);
+                    return new DownloadResult(filename, true);
+                }
+            }
         }
 
         // Temp file in config/stutteranalyzer/downloads/
