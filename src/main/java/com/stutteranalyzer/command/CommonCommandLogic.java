@@ -742,11 +742,10 @@ public class CommonCommandLogic {
     }
 
     public static int showPrivacy(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Privacy"), false);
-        src.sendSuccess(() -> CommandFeedback.info("/sa submit sends a sanitized report to the Stutter Analyzer report server."), false);
-        src.sendSuccess(() -> CommandFeedback.info("It may include mod list, Minecraft version, Java version, system info, recent performance events, and sanitized log excerpts."), false);
-        src.sendSuccess(() -> CommandFeedback.info("It does not include tokens, passwords, auth data, session data, or full unredacted file paths."), false);
-        src.sendSuccess(() -> CommandFeedback.info("GitHub issue creation happens server-side. You do not need a GitHub account."), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.privacy.header")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.privacy.line1")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.privacy.line2")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.privacy.line3")), false);
         return 1;
     }
 
@@ -787,9 +786,14 @@ public class CommonCommandLogic {
             src.sendFailure(CommandFeedback.clientOnly()); return 0;
         }
         boolean enabled = com.stutteranalyzer.client.DebugHudStatusProvider.isF3Enabled();
-        String pos = SAConfig.INSTANCE.f3LinePosition.get();
-        src.sendSuccess(() -> CommandFeedback.row("F3 status line", enabled ? "ON" : "OFF"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Position", pos), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            Component.translatable("stutteranalyzer.row.f3_status_line"),
+            Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
+        ), false);
+        if (enabled) {
+            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("§.", "");
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
+        }
         return 1;
     }
 
@@ -799,7 +803,7 @@ public class CommonCommandLogic {
         }
         com.stutteranalyzer.client.DebugHudStatusProvider.setF3Enabled(true);
         SAConfig.INSTANCE.debugHudEnabled.set(true);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] F3 status line: ON"), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.f3.enabled_session")), false);
         return 1;
     }
 
@@ -809,7 +813,7 @@ public class CommonCommandLogic {
         }
         com.stutteranalyzer.client.DebugHudStatusProvider.setF3Enabled(false);
         SAConfig.INSTANCE.debugHudEnabled.set(false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] F3 status line: OFF"), false);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.f3.disabled_session")), false);
         return 1;
     }
 
