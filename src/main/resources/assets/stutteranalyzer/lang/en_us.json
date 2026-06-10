@@ -2,7 +2,6 @@
   "stutteranalyzer.cmd.no_permission": "You do not have permission to use this command.",
   "stutteranalyzer.cmd.client_only": "This command is only available on the client side.",
   "stutteranalyzer.cmd.debug_disabled": "Diagnostic access is not enabled. Check the mod config to enable it.",
-
   "stutteranalyzer.cmd.status.header": "Stutter Analyzer Status",
   "stutteranalyzer.cmd.status.degraded": "One or more subsystems are degraded. Use /sa status for details.",
   "stutteranalyzer.cmd.status.state": "State",
@@ -19,16 +18,14 @@
   "stutteranalyzer.cmd.status.emergency_on": "ON",
   "stutteranalyzer.cmd.status.emergency_off": "OFF",
   "stutteranalyzer.cmd.status.submission": "Submission",
-  "stutteranalyzer.cmd.status.submission_local": "local-only",
+  "stutteranalyzer.cmd.status.submission_local": "local",
   "stutteranalyzer.cmd.status.submission_upload": "upload enabled",
   "stutteranalyzer.cmd.status.side.dedicated": "Dedicated Server",
   "stutteranalyzer.cmd.status.side.integrated": "Integrated Server",
   "stutteranalyzer.cmd.status.side.client_integrated": "Client + Integrated Server",
   "stutteranalyzer.cmd.status.monitoring": "server tick, memory, GC, chunk events",
   "stutteranalyzer.cmd.status.no_freeze": "none",
-
   "stutteranalyzer.cmd.health.header": "Subsystem Health",
-
   "stutteranalyzer.cmd.last.header": "Last Freeze",
   "stutteranalyzer.cmd.last.none": "No freeze events recorded yet.",
   "stutteranalyzer.cmd.report.generating": "Generating report from current data...",
@@ -43,11 +40,9 @@
   "stutteranalyzer.cmd.report.no_unknown": "No unclassified freeze reports in current session.",
   "stutteranalyzer.cmd.report.not_found": "Report not found in memory: %s. Check config/stutter-analyzer/reports/",
   "stutteranalyzer.cmd.report.header": "Report: %s",
-
   "stutteranalyzer.cmd.config.reloaded": "Config reloaded. Some values require restart.",
   "stutteranalyzer.cmd.config.debug_enable": "Set debug = true in stutteranalyzer-common.toml and reload config.",
   "stutteranalyzer.cmd.config.debug_disable": "Set debug = false in stutteranalyzer-common.toml and reload config.",
-
   "stutteranalyzer.cmd.crash.none": "No imported crash reports from this session.",
   "stutteranalyzer.cmd.crash.last_header": "Last Imported Crash",
   "stutteranalyzer.cmd.crash.list_header": "Imported Crashes (%s)",
@@ -55,7 +50,6 @@
   "stutteranalyzer.cmd.crash.not_found": "Crash not found: %s",
   "stutteranalyzer.cmd.crash.export_hint": "Crash export: check config/stutter-analyzer/reports/ and crash-reports/ for hint files related to: %s",
   "stutteranalyzer.cmd.crash.header": "Crash: %s",
-
   "stutteranalyzer.cmd.guard.status_header": "Emergency Guard Status",
   "stutteranalyzer.cmd.guard.emergency_warning": "Emergency mode is ON. Safe guards may activate automatically.",
   "stutteranalyzer.cmd.guard.list_header": "Emergency Guards (%s)",
@@ -65,18 +59,14 @@
   "stutteranalyzer.cmd.guard.no_reports": "No guard reports from this session.",
   "stutteranalyzer.cmd.guard.last_header": "Last Guard Report",
   "stutteranalyzer.cmd.guard.header": "Guard: %s",
-
   "stutteranalyzer.cmd.help.header": "StutterAnalyzer Help",
   "stutteranalyzer.cmd.help.status": "/sa status            - Analyzer status and current freeze count",
-
   "stutteranalyzer.cmd.help.last": "/sa last              - Last detected freeze, if Minecraft recently had a dramatic pause",
   "stutteranalyzer.cmd.help.overlay": "/sa overlay ...       - Overlay (client only)",
-
   "stutteranalyzer.cmd.selfcheck.header": "StutterAnalyzer Self-Check",
   "stutteranalyzer.cmd.selfcheck.overall_ok": "Result: %s",
   "stutteranalyzer.cmd.selfcheck.overall_warn": "Result: %s. Use /sa status for details.",
   "stutteranalyzer.cmd.selfcheck.unknown_freeze_hint": "Unclassified freeze in last report! Use /sa submit to report it.",
-
   "stutteranalyzer.cmd.f3.enabled": "enabled",
   "stutteranalyzer.cmd.f3.disabled": "disabled",
   "stutteranalyzer.cmd.f3.enabled_session": "F3 status line enabled for this session.",
@@ -84,14 +74,11 @@
   "stutteranalyzer.cmd.f3.toggled_on": "F3 status line enabled.",
   "stutteranalyzer.cmd.f3.toggled_off": "F3 status line disabled.",
   "stutteranalyzer.cmd.f3.current": "Current F3 text: %s",
-
   "stutteranalyzer.cmd.overlay.enabled": "Overlay enabled.",
   "stutteranalyzer.cmd.overlay.disabled": "Overlay disabled.",
   "stutteranalyzer.cmd.overlay.toggled": "Overlay toggled.",
   "stutteranalyzer.cmd.overlay.status_off": "Overlay: disabled",
-
   "stutteranalyzer.cmd.client.no_data": "No client-side freeze events recorded yet.",
-
   "stutteranalyzer.submit.disabled": "Manual submission is disabled in config.",
   "stutteranalyzer.submit.no_report": "No freeze report available to submit.",
   "stutteranalyzer.submit.not_found": "Report not found in memory: %s. Try /sa export to find the file path.",
@@ -117,7 +104,6 @@
   "stutteranalyzer.submit.cloudflare_failed": "Upload failed (HTTP %s). Saving locally.",
   "stutteranalyzer.submit.cloudflare_error": "Upload error. Check your internet connection.",
   "stutteranalyzer.submit.cloudflare_fallback": "Falling back to local submission.",
-
   "stutteranalyzer.submit.privacy_blocked": "Submission blocked: sensitive data detected.",
   "stutteranalyzer.submit.privacy_fallback": "Local fallback saved.",
   "stutteranalyzer.submit.received": "Report received by server.",
@@ -137,7 +123,6 @@
   "stutteranalyzer.submit.network_error": "Could not reach report server.",
   "stutteranalyzer.submit.local_fallback_saved": "Local fallback: config/stutter-analyzer/submissions/%s.md",
   "stutteranalyzer.submit.no_data_lost": "No data was lost.",
-
   "stutteranalyzer.submit.preview.report_id": "- Report ID: %s",
   "stutteranalyzer.submit.preview.category": "- Category: %s",
   "stutteranalyzer.submit.preview.duration": "- Duration: %s ms",
@@ -161,27 +146,11 @@
   "stutteranalyzer.submit.preview.full_log_unavailable": "- Full latest.log: unavailable",
   "stutteranalyzer.submit.preview.hash": "- Report hash: %s...",
   "stutteranalyzer.submit.preview.sensitivity": "- Sensitive data scan: ",
-
   "stutteranalyzer.startup.loaded": "Loaded. Press F3 to see SA status or use /sa status.",
   "stutteranalyzer.startup.loaded_silent": "[SA] Loaded. Minor stutters are tracked silently. Press F3 or use /sa status.",
   "stutteranalyzer.unknown_freeze.notify": "Unclassified freeze detected. Report saved. Use /sa submit to send it.",
   "stutteranalyzer.unknown_freeze.notify_duration": "Unclassified freeze detected (%s ms). Report saved. Use /sa submit to send it.",
-
-  "stutteranalyzer.verbose.enabled": "[SA] Verbose mode enabled for this session.",
-  "stutteranalyzer.verbose.enabled_hint": "[SA] Minor and medium stutters will be shown in chat with cooldown.",
-  "stutteranalyzer.verbose.reports_unaffected": "[SA] Reports are still only saved according to report thresholds.",
-  "stutteranalyzer.verbose.disabled": "[SA] Verbose mode disabled. Minor stutters will be tracked silently.",
-  "stutteranalyzer.verbose.status_header": "[SA] Verbose / Notification Status",
-  "stutteranalyzer.verbose.mode": "Verbose mode",
-  "stutteranalyzer.verbose.minor_chat": "Minor chat notifications",
-  "stutteranalyzer.verbose.medium_chat": "Medium chat notifications",
-  "stutteranalyzer.verbose.severe_chat": "Severe chat notifications",
-  "stutteranalyzer.verbose.on": "ON",
-  "stutteranalyzer.verbose.off": "OFF",
-  "stutteranalyzer.verbose.stutter_detected": "[SA] Stutter: %s ms (verbose mode)",
   "stutteranalyzer.verbose.aggregate": "[SA] Repeated small stutters: %s in %ss, worst %sms. Tracking silently. Use /sa status.",
-  "stutteranalyzer.verbose.test_minor_hint": "Use /sa alerts minor to show minor stutters in chat.",
-
   "stutteranalyzer.cmd.status.last_stutter": "Last stutter",
   "stutteranalyzer.cmd.status.last_minor": "Last minor stutter",
   "stutteranalyzer.cmd.status.minor_count": "Minor stutters",
@@ -191,9 +160,7 @@
   "stutteranalyzer.cmd.status.chat_minor": "Minor chat",
   "stutteranalyzer.cmd.status.chat_medium": "Medium chat",
   "stutteranalyzer.cmd.status.chat_severe": "Severe chat",
-  "stutteranalyzer.cmd.status.verbose_mode": "Verbose mode",
   "stutteranalyzer.cmd.status.minor_silent_hint": "[SA] Minor stutters are being tracked silently. Use /sa alerts minor to show them in chat.",
-
   "stutteranalyzer.f3.active": "SA: ACTIVE",
   "stutteranalyzer.f3.status_warn": "SA: WARNING | %s | /sa status",
   "stutteranalyzer.f3.status_error": "SA: ERROR | %s | /sa status",
@@ -210,7 +177,6 @@
   "stutteranalyzer.f3.emergency_on": "Emergency Mode: ON | Safe Guards: %s",
   "stutteranalyzer.f3.active_full_last": "SA: ACTIVE | Last: %s %s ms | Report saved",
   "stutteranalyzer.f3.active_full_no_freeze": "SA: ACTIVE | FPS watch: ON | Last freeze: none | Reports: %s",
-
   "stutteranalyzer.row.enabled": "Enabled",
   "stutteranalyzer.row.side": "Side",
   "stutteranalyzer.row.monitoring": "Monitoring",
@@ -240,7 +206,6 @@
   "stutteranalyzer.row.outcome": "Outcome",
   "stutteranalyzer.row.action": "Action",
   "stutteranalyzer.row.f3_status_line": "F3 status line",
-
   "stutteranalyzer.selfcheck.item.core": "Core",
   "stutteranalyzer.selfcheck.item.config": "Config",
   "stutteranalyzer.selfcheck.item.commands": "Commands",
@@ -252,21 +217,17 @@
   "stutteranalyzer.selfcheck.item.pattern_detector": "Known pattern detector",
   "stutteranalyzer.selfcheck.item.emergency_guard": "Emergency Guard",
   "stutteranalyzer.selfcheck.item.submission": "Submission manager",
-
   "stutteranalyzer.selfcheck.status.ok": "OK",
   "stutteranalyzer.selfcheck.status.warn": "WARN",
   "stutteranalyzer.selfcheck.status.error": "ERROR",
   "stutteranalyzer.selfcheck.status.unavailable": "unavailable",
-
   "stutteranalyzer.health.status.ok": "OK",
   "stutteranalyzer.health.status.degraded": "DEGRADED",
   "stutteranalyzer.health.status.disabled": "DISABLED",
   "stutteranalyzer.health.status.failed": "FAILED",
   "stutteranalyzer.health.status.unavailable": "unavailable",
-
   "stutteranalyzer.guard.list.enabled": "enabled",
   "stutteranalyzer.guard.list.disabled": "disabled",
-
   "category.stutteranalyzer.world_join_load_spike": "World join load spike",
   "category.stutteranalyzer.world_join_render_stall": "World join render stall",
   "category.stutteranalyzer.resource_reload_stall": "Resource reload stall",
@@ -274,7 +235,6 @@
   "category.stutteranalyzer.modpack_startup_stall": "Modpack startup stall",
   "category.stutteranalyzer.periodic_scheduled_micro_hitch": "Periodic scheduled micro-hitch",
   "category.stutteranalyzer.unknown_extreme_freeze": "Unclassified extreme freeze",
-
   "stutteranalyzer.hover.client_render_stutter": "Client render stutter, %sms.\n\nMeaning:\nThe renderer had a short pause.\n\nCommon causes:\n- chunk mesh rebuild\n- entity rendering spike\n- texture or resource loading\n\nTry:\n- Sodium/Embeddium or Entity Culling\n- reduce render distance\n- /sa optimize suggest",
   "stutteranalyzer.hover.server_tick_spike": "Server tick spike, %sms.\n\nMeaning:\nServer took too long on one tick.\n\nCommon causes:\n- too many entities\n- heavy mod logic\n- world save or chunk loading\n\nTry:\n- /sa status\n- reduce entity load\n- /sa submit if repeated",
   "stutteranalyzer.hover.chunk_generation": "Chunk generation, %sms.\n\nMeaning:\nNew terrain chunks were generated.\n\nCommon causes:\n- exploring new areas\n- worldgen mods with complex structures\n\nTry:\n- pre-generate the world\n- Noisium or C2ME",
@@ -310,7 +270,6 @@
   "stutteranalyzer.hover.unclassified_frame_hitch": "Medium frame hitch, %sms.\n\nMeaning:\nNoticeable short pause, usually client-side.\n\nCommon causes:\n- rendering spike\n- chunk rebuild\n- entity or resource loading\n\nTry:\n- check if it happens while loading chunks\n- try renderer mods\n- /sa preview after bigger freeze",
   "stutteranalyzer.hover.unknown_extreme_freeze": "Extreme freeze, %sms.\n\nMeaning:\nGame paused for over a second.\n\nCommon causes:\n- world loading or resource reload\n- heavy mod or GC\n- server tick spike or disk stall\n\nTry:\n- /sa preview\n- /sa submit\n- check latest.log",
   "stutteranalyzer.hover.unknown_freeze": "Freeze, %sms.\n\nMeaning:\nGame paused for a noticeable duration.\n\nCommon causes:\n- chunk generation or loading\n- resource reload or heavy mod logic\n- server tick spike or disk pressure\n\nTry:\n- /sa preview\n- /sa submit if useful",
-
   "stutteranalyzer.optimize.scan.in_progress": "Optimization scan already in progress...",
   "stutteranalyzer.optimize.scan.started": "Optimization scan started in background...",
   "stutteranalyzer.optimize.scan.failed": "Optimization scan failed: %s",
@@ -374,7 +333,6 @@
   "stutteranalyzer.optimize.reason.brute_force_rendering_culling": "chunk culling",
   "stutteranalyzer.optimize.reason.connectivity": "network",
   "stutteranalyzer.optimize.reason.packet_fixer": "network fixes",
-
   "stutteranalyzer.alert.minor": "[SA] Minor stutter: %s %sms",
   "stutteranalyzer.alert.medium": "[SA] Medium stutter: %s %sms",
   "stutteranalyzer.alert.severe": "[SA] Freeze: %s %sms",
@@ -386,12 +344,10 @@
   "stutteranalyzer.alert.hint.extreme": "[SA] Report saved. Use /sa submit to send logs.",
   "stutteranalyzer.alert.hint.severe": "[SA] Report saved. Use /sa submit to send diagnostics.",
   "stutteranalyzer.alert.update": "[SA] Update available: %s. Use /sa update link for download info.",
-
   "stutteranalyzer.show.invalid_time": "Use /sa show 5m, 10m, 30m, or 1h.",
   "stutteranalyzer.show.none": "No medium/severe/extreme events in the last %s.",
   "stutteranalyzer.show.header": "Events in last %s, excluding minor:",
   "stutteranalyzer.show.truncated": "Showing %s of %s events. Use /sa preview for full report.",
-
   "stutteranalyzer.help.header": "Stutter Analyzer Help",
   "stutteranalyzer.help.section.main": "Main:",
   "stutteranalyzer.help.line.status": "  /sa status              - Show analyzer status",
@@ -420,7 +376,6 @@
   "stutteranalyzer.help.section.other": "Other:",
   "stutteranalyzer.help.line.optimize_suggest": "  /sa optimize suggest    - Scan optimization options in background",
   "stutteranalyzer.help.line.optimize_install": "  /sa optimize install    - Install latest plan after warning",
-
   "stutteranalyzer.cmd.status.status_ui": "Status UI",
   "stutteranalyzer.cmd.status.side": "Side",
   "stutteranalyzer.cmd.status.last_spike": "Last tracked spike",
@@ -438,14 +393,9 @@
   "stutteranalyzer.cmd.status.no_stutters": "No stutters recorded yet. Use /sa alerts test to inject a test event.",
   "stutteranalyzer.cmd.status.reports_warn": "Severe/extreme detected but no reports saved. Check game log for errors.",
   "stutteranalyzer.cmd.status.reports_silent": "Minor/medium tracked silently. Reports start at %sms.",
-  "stutteranalyzer.cmd.status.quiet_mode": "Quiet mode",
-  "stutteranalyzer.cmd.status.quiet_on": "ON (F3 only)",
-  "stutteranalyzer.cmd.status.quiet_off": "OFF",
   "stutteranalyzer.cmd.status.agg_cooldown": "Aggregate chat cooldown",
   "stutteranalyzer.cmd.status.agg_cooldown_val": "%ss remaining",
-  "stutteranalyzer.cmd.status.submission": "Submission",
   "stutteranalyzer.cmd.status.submission_cloudflare": "Cloudflare enabled",
-  "stutteranalyzer.cmd.status.submission_local": "local",
   "stutteranalyzer.cmd.status.update_check": "Update check",
   "stutteranalyzer.cmd.status.update.disabled": "disabled",
   "stutteranalyzer.cmd.status.update.not_checked": "not checked",
@@ -454,7 +404,6 @@
   "stutteranalyzer.cmd.status.update.up_to_date": "up to date",
   "stutteranalyzer.cmd.status.last_report": "Last saved report",
   "stutteranalyzer.cmd.status.last_report_none": "none",
-
   "stutteranalyzer.alerts.set.off": "Alerts disabled.",
   "stutteranalyzer.alerts.set.off_note": "Chat alerts disabled. F3, status, reports still work.",
   "stutteranalyzer.alerts.set.minor": "Alert mode: minor (noisy)",
@@ -495,7 +444,6 @@
   "stutteranalyzer.alerts.test.header": "Alert Test",
   "stutteranalyzer.alerts.test.shown": "%s %sms - shown",
   "stutteranalyzer.alerts.test.hidden": "%s %sms - hidden in this mode",
-
   "stutteranalyzer.submit.already_in_progress": "A report upload is already in progress. Please wait.",
   "stutteranalyzer.submit.wait_cooldown": "Please wait before submitting another report.",
   "stutteranalyzer.submit.no_report_yet": "No saved freeze report is available yet.",
@@ -532,7 +480,6 @@
   "stutteranalyzer.submit.preview.not_uploaded": "Nothing was uploaded. Run /sa submit to upload.",
   "stutteranalyzer.submit.preview.sensitivity.passed": "passed",
   "stutteranalyzer.submit.preview.sensitivity.blocked": "BLOCKED - sensitive data found",
-
   "stutteranalyzer.row.version": "Version",
   "stutteranalyzer.row.minecraft": "Minecraft",
   "stutteranalyzer.row.loader": "Loader",
@@ -541,7 +488,6 @@
   "stutteranalyzer.row.features": "Features",
   "stutteranalyzer.row.submit": "Submit",
   "stutteranalyzer.row.upload": "Upload",
-
   "stutteranalyzer.version.header": "Stutter Analyzer Version Info",
   "stutteranalyzer.version.loader.forge": "Forge",
   "stutteranalyzer.version.loader.fabric": "Fabric",
@@ -551,8 +497,23 @@
   "stutteranalyzer.version.upload_local": "local only",
   "stutteranalyzer.version.submit_cloudflare": "Cloudflare",
   "stutteranalyzer.version.submit_local": "local",
-
   "stutteranalyzer.cmd.dashboard.submit_hint": "Use /sa submit to send latest report.",
   "stutteranalyzer.cmd.dashboard.status_hint": "Use /sa status for details.",
-  "stutteranalyzer.cmd.dashboard.degraded_hint": "Analyzer is degraded. Use /sa status for details."
+  "stutteranalyzer.cmd.dashboard.degraded_hint": "Analyzer is degraded. Use /sa status for details.",
+  "stutteranalyzer.optimize.install.skip": "Skip: %s",
+  "stutteranalyzer.optimize.install.fail": "Fail: %s - %s",
+  "stutteranalyzer.optimize.install.fail.no_file": "not found for %s %s",
+  "stutteranalyzer.optimize.install.done_ok": "Done: %s installed. Restart required.",
+  "stutteranalyzer.optimize.install.done_partial": "Done: %s installed, %s failed. Restart required.",
+  "stutteranalyzer.optimize.install.done_skipped": "All planned mods were already installed.",
+  "stutteranalyzer.optimize.install.manifest_saved": "Install manifest saved.",
+  "stutteranalyzer.optimize.reason.immediatelyfast": "render/UI",
+  "stutteranalyzer.optimize.reason.moreculling": "block culling",
+  "stutteranalyzer.optimize.reason.radium": "game logic",
+  "stutteranalyzer.optimize.reason.ferritecore": "memory",
+  "stutteranalyzer.optimize.reason.vmp": "server",
+  "stutteranalyzer.optimize.reason.debugify": "bug fixes",
+  "stutteranalyzer.optimize.reason.exordium": "UI rendering",
+  "stutteranalyzer.optimize.reason.cull_less_leaves": "leaf rendering",
+  "stutteranalyzer.optimize.reason.ai_improvements": "mob AI"
 }

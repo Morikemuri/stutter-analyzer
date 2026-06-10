@@ -168,10 +168,6 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.row.crashes_imported"),
             String.valueOf(crashCount)), false);
 
-        boolean quiet = QuietMode.isEnabled();
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.quiet_mode"),
-            Component.translatable(quiet ? "stutteranalyzer.cmd.status.quiet_on" : "stutteranalyzer.cmd.status.quiet_off")), false);
         long aggRemaining = StutterCounter.aggregateCooldownRemainingSeconds();
         if (aggRemaining > 0) {
             src.sendSuccess(() -> CommandFeedback.row(
@@ -182,10 +178,7 @@ public class CommonCommandLogic {
         boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.chat_severe"),
-            Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.verbose_mode"),
-            Component.translatable(VerboseMode.isEnabled() ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
+            Component.translatable(chatSevere ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
 
         String subTarget = SAConfig.INSTANCE.submissionTarget.get();
         Component subDisplay = "cloudflare".equalsIgnoreCase(subTarget)
