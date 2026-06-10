@@ -450,12 +450,12 @@
     "risk_areas": ["leaf rendering appearance changes"],
     "safe_report_language": "installed context",
     "known_patterns": [],
-    "notes": "Culls hidden leaf blocks to reduce render overhead in forests.",
+    "notes": "Culls hidden leaf blocks to reduce render overhead in forests. Requires Sodium older than 0.6 - incompatible with Sodium 0.6+ used on 1.21.1.",
     "install_priority": 33,
     "install_safe": true,
     "install_reason": "Reduces leaf rendering overhead in forested areas.",
     "install_modrinth": "cull-less-leaves",
-    "install_conflicts": [],
+    "install_conflicts": ["sodium>=0.6"],
     "install_requires": ["yacl"]
   },
   "clumps": {

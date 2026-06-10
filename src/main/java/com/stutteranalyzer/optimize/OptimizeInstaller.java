@@ -100,6 +100,30 @@ public class OptimizeInstaller {
                 net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.install.already_running")), false);
             return;
         }
+
+        // Last line of defense: re-validate the whole plan against the live
+        // mod list before a single byte is downloaded. Fabric Loader's
+        // "Incompatible mods found!" screen is not our idea of a changelog.
+        List<OptimizeMod> evicted = OptimizeAssistant.finalValidatePlan(plan);
+        for (OptimizeMod m : evicted) {
+            if (m.skipConflictWith != null) {
+                send(src, Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    m.displayName, m.skipConflictWith));
+            } else if (m.skipMissingDep != null) {
+                send(src, Component.translatable("stutteranalyzer.optimize.skipped_missing_dep",
+                    m.displayName, m.skipMissingDep));
+            } else {
+                send(src, Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    m.displayName, m.skipReason != null ? m.skipReason : "incompatible"));
+            }
+        }
+        if (plan.recommended.isEmpty()) {
+            currentPlan = null;
+            installRunning.set(false);
+            send(src, Component.translatable("stutteranalyzer.optimize.install.none_safe"));
+            return;
+        }
+
         currentPlan = null;
         showInstallWarning(src, plan, modsDir);
         executeInstall(src, plan, modsDir);

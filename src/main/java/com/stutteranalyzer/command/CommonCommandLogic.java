@@ -951,11 +951,29 @@ public class CommonCommandLogic {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.more", remaining)));
         }
         if (!plan.skippedCandidates.isEmpty()) {
-            String skippedNames = plan.skippedCandidates.stream()
-                .map(m -> m.displayName).collect(Collectors.joining(", "));
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
-                skippedNames, plan.loader, plan.mcVersion)));
-            StutterAnalyzerFabric.LOGGER.info("[SA] Skipped candidates (no Modrinth file): {}", skippedNames);
+            // Incompatible and dep-less mods get a personal goodbye; the rest share one line
+            List<com.stutteranalyzer.optimize.OptimizeMod> noFile = new ArrayList<>();
+            for (com.stutteranalyzer.optimize.OptimizeMod m : plan.skippedCandidates) {
+                if (m.skipConflictWith != null) {
+                    out.add(CommandFeedback.info(Component.translatable(
+                        "stutteranalyzer.optimize.skipped_conflict", m.displayName, m.skipConflictWith)));
+                } else if (m.skipMissingDep != null) {
+                    out.add(CommandFeedback.info(Component.translatable(
+                        "stutteranalyzer.optimize.skipped_missing_dep", m.displayName, m.skipMissingDep)));
+                } else {
+                    noFile.add(m);
+                }
+            }
+            if (!noFile.isEmpty()) {
+                String skippedNames = noFile.stream()
+                    .map(m -> m.displayName).collect(Collectors.joining(", "));
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
+                    skippedNames, plan.loader, plan.mcVersion)));
+            }
+            StutterAnalyzerFabric.LOGGER.info("[SA] Skipped candidates: {}",
+                plan.skippedCandidates.stream()
+                    .map(m -> m.displayName + (m.skipReason != null ? " (" + m.skipReason + ")" : ""))
+                    .collect(Collectors.joining(", ")));
         }
         Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
             .withStyle(s -> s
