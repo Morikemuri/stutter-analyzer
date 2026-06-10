@@ -105,6 +105,7 @@ public class ServerCommandRegistrar {
 
             // ── optimize ──────────────────────────────────────────────────────
             .then(Commands.literal("optimize")
+                .executes(ctx -> CommonCommandLogic.optimizeSuggest(ctx.getSource()))
                 .then(Commands.literal("suggest")
                     .executes(ctx -> CommonCommandLogic.optimizeSuggest(ctx.getSource())))
                 .then(Commands.literal("install")

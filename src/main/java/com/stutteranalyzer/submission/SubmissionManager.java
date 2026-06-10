@@ -637,29 +637,22 @@ public class SubmissionManager {
         }
 
         int payloadKb = Math.max(1, payload.length() / 1024);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Upload payload size: " + payloadKb + " KB"), false);
 
         // Guard against oversized payload before sending
         if (payload.length() > MAX_PAYLOAD_CHARS) {
             lastSubmissionStatus = "too-large";
             lastSubmissionError = "payload " + payloadKb + " KB exceeds limit";
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report payload is too large for upload."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.upload_failed")), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             return;
         }
 
-        // Submit debug info - always shown so user can confirm correct build/endpoint/timeout
+        // Log submit debug info to latest.log only (not shown in chat for release)
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Submit debug"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Build ID: " + StutterAnalyzerMod.BUILD_ID), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Endpoint: " + endpoint), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Timeout: " + timeoutSec + "s"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Method: POST"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Content-Type: application/json"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Payload size: " + Math.max(1, payload.length() / 1024) + " KB"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- client_upload_id: " + uploadId), false);
-        src.sendSuccess(() -> CommandFeedback.info("- HTTP client: AsyncQueuedSubmitClient v2"), false);
+        StutterAnalyzerMod.LOGGER.info("[SA] Submit debug - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
+            StutterAnalyzerMod.BUILD_ID, endpoint, timeoutSec, payloadKb, uploadId);
+
         src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.cloudflare_uploading")), false);
 
         // Transport: use http_url_connection unless explicitly configured to java_http_client
@@ -668,10 +661,10 @@ public class SubmissionManager {
         String[] transports;
         if ("java_http_client".equals(configuredTransport)) {
             transports = new String[]{"java_http_client"};
-            src.sendSuccess(() -> CommandFeedback.info("[SA] HTTP transport: Java HttpClient"), false);
+            StutterAnalyzerMod.LOGGER.info("[SA] HTTP transport: Java HttpClient");
         } else {
             transports = new String[]{"http_url_connection"};
-            src.sendSuccess(() -> CommandFeedback.info("[SA] HTTP transport: HttpURLConnection"), false);
+            StutterAnalyzerMod.LOGGER.info("[SA] HTTP transport: HttpURLConnection");
         }
 
         boolean sent = false;
