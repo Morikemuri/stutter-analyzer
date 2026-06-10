@@ -78,8 +78,15 @@ public class OptimizeInstaller {
             return;
         }
         if (plan.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.info(
-                net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.nothing_to_install")), false);
+            if (!plan.pendingRestart.isEmpty()) {
+                src.sendSuccess(() -> CommandFeedback.info(
+                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.install.pending_restart")), false);
+                src.sendSuccess(() -> CommandFeedback.info(
+                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.install.restart_first")), false);
+            } else {
+                src.sendSuccess(() -> CommandFeedback.info(
+                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.nothing_to_install")), false);
+            }
             return;
         }
         if (modsDir == null) {
