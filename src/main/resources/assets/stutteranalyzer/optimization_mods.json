@@ -128,7 +128,7 @@
   "entity_culling": {
     "display_names": ["Entity Culling"],
     "known_aliases": ["entity_culling", "entityculling", "entity-culling"],
-    "loader_support": ["fabric", "forge"],
+    "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client",
     "category_tags": ["ENTITY_RENDERING", "BLOCK_ENTITY_RENDERING", "CULLING", "ASYNC_VISIBILITY"],
     "risk_areas": ["entity visibility calculation spikes", "block entity render stutter", "entity-heavy area FPS drops"],
@@ -144,7 +144,7 @@
   "moreculling": {
     "display_names": ["More Culling"],
     "known_aliases": ["moreculling", "more-culling", "more_culling"],
-    "loader_support": ["fabric", "forge"],
+    "loader_support": ["fabric", "forge", "neoforge"],
     "side": "client",
     "category_tags": ["CULLING", "BLOCK_RENDERING", "BLOCK_FACE_CULLING", "LEAVES_RENDERING"],
     "risk_areas": ["block face culling", "leaves/transparent rendering"],
@@ -155,7 +155,8 @@
     "install_safe": true,
     "install_reason": "Additional block face culling optimization.",
     "install_modrinth": "moreculling",
-    "install_conflicts": []
+    "install_conflicts": [],
+    "install_requires": ["clothconfig"]
   },
   "lithium": {
     "display_names": ["Lithium"],
@@ -454,7 +455,8 @@
     "install_safe": true,
     "install_reason": "Reduces leaf rendering overhead in forested areas.",
     "install_modrinth": "cull-less-leaves",
-    "install_conflicts": []
+    "install_conflicts": [],
+    "install_requires": ["yacl"]
   },
   "clumps": {
     "display_names": ["Clumps"],
@@ -518,6 +520,68 @@
     "install_safe": true,
     "install_reason": "Fixes oversized packet issues that cause network stutters or disconnects.",
     "install_modrinth": "packet-fixer",
+    "install_conflicts": []
+  },
+  "fast_paintings": {
+    "display_names": ["Fast Paintings"],
+    "known_aliases": ["fast_paintings", "fastpaintings", "fast-paintings"],
+    "loader_support": ["forge", "neoforge"],
+    "side": "client",
+    "category_tags": ["RENDER_ENGINE", "CLIENT_RENDER_STUTTER"],
+    "risk_areas": ["painting rendering changes"],
+    "safe_report_language": "installed context",
+    "known_patterns": [],
+    "notes": "Speeds up painting rendering on Forge/NeoForge.",
+    "install_priority": 25,
+    "install_safe": true,
+    "install_reason": "Faster painting entity rendering on Forge/NeoForge.",
+    "install_modrinth": "fast-paintings",
+    "install_conflicts": []
+  },
+  "badoptimizations": {
+    "display_names": ["BadOptimizations"],
+    "known_aliases": ["badoptimizations", "bad-optimizations", "bad_optimizations"],
+    "loader_support": ["forge", "neoforge"],
+    "side": "client_server",
+    "category_tags": ["GENERAL_PERFORMANCE", "BUG_FIX"],
+    "risk_areas": ["misc game logic changes"],
+    "safe_report_language": "installed context",
+    "known_patterns": [],
+    "notes": "Various performance improvements for Forge/NeoForge.",
+    "install_priority": 30,
+    "install_safe": true,
+    "install_reason": "Miscellaneous performance optimizations for Forge/NeoForge.",
+    "install_modrinth": "badoptimizations",
+    "install_conflicts": []
+  },
+  "clothconfig": {
+    "display_names": ["Cloth Config"],
+    "known_aliases": ["clothconfig", "cloth-config", "cloth_config"],
+    "loader_support": ["fabric", "forge", "neoforge"],
+    "side": "client",
+    "category_tags": [],
+    "risk_areas": [],
+    "safe_report_language": "installed context",
+    "known_patterns": [],
+    "notes": "Required dependency library for some optimization mods.",
+    "install_priority": 0,
+    "install_safe": true,
+    "install_modrinth": "cloth-config",
+    "install_conflicts": []
+  },
+  "yacl": {
+    "display_names": ["YACL", "Yet Another Config Lib"],
+    "known_aliases": ["yacl", "yet-another-config-lib", "yetanotherconfiglib"],
+    "loader_support": ["fabric"],
+    "side": "client",
+    "category_tags": [],
+    "risk_areas": [],
+    "safe_report_language": "installed context",
+    "known_patterns": [],
+    "notes": "Required dependency library for some Fabric optimization mods.",
+    "install_priority": 0,
+    "install_safe": true,
+    "install_modrinth": "yacl",
     "install_conflicts": []
   }
 }

@@ -1,6 +1,6 @@
 # StutterAnalyzer
 
-**A Minecraft 1.20.4 mod** - available for **Forge** and **Fabric**
+**A Minecraft mod** - available for **Forge**, **NeoForge**, and **Fabric** - versions 1.20.1, 1.20.4, and 1.21.1
 
 Catch game freezes. Figure out why they happen. Fix them.
 
@@ -29,12 +29,17 @@ No setup needed. Install, launch, play.
 
 ## Versions
 
-| Loader | Minecraft | Status |
-|--------|-----------|--------|
-| Forge 49.x | 1.20.4 | Stable |
-| Fabric | 1.20.4 | Stable |
+| Loader | Minecraft | Loader Version | Status |
+|--------|-----------|----------------|--------|
+| Forge 36.x | 1.20.1 | Forge 36.x | Stable |
+| Fabric | 1.20.1 | Fabric Loader 0.16.x | Stable |
+| Forge 49.x | 1.20.4 | Forge 49.x | Stable |
+| Fabric | 1.20.4 | Fabric Loader 0.16.x | Stable |
+| Forge 52.x | 1.21.1 | Forge 52.x | Stable |
+| NeoForge | 1.21.1 | NeoForge 21.1.77 | Stable |
+| Fabric | 1.21.1 | Fabric Loader 0.16.x | Stable |
 
-Both versions share the same feature set and command interface.
+All versions share the same feature set and command interface.
 
 ---
 
@@ -55,13 +60,19 @@ Both versions share the same feature set and command interface.
 
 ### Forge
 
-1. Install [Forge 49.x for Minecraft 1.20.4](https://files.minecraftforge.net/)
+1. Install the matching Forge version for your Minecraft version (see table above)
 2. Put the StutterAnalyzer Forge `.jar` into your `.minecraft/mods/` folder
+3. Launch Minecraft
+
+### NeoForge (1.21.1)
+
+1. Install [NeoForge 21.1.77](https://neoforged.net/)
+2. Put the StutterAnalyzer NeoForge `.jar` into your `.minecraft/mods/` folder
 3. Launch Minecraft
 
 ### Fabric
 
-1. Install [Fabric Loader for Minecraft 1.20.4](https://fabricmc.net/)
+1. Install [Fabric Loader](https://fabricmc.net/) for your Minecraft version
 2. Put the StutterAnalyzer Fabric `.jar` into your `.minecraft/mods/` folder
 3. Launch Minecraft
 
@@ -180,8 +191,13 @@ See [PRIVACY.md](PRIVACY.md) for full details on what is collected and what is n
 
 | Loader | Minecraft | Java |
 |--------|-----------|------|
+| Forge 36.x | 1.20.1 | 17 |
+| Fabric | 1.20.1 | 17 |
 | Forge 49.x | 1.20.4 | 17 |
 | Fabric | 1.20.4 | 17 |
+| Forge 52.x | 1.21.1 | 21 |
+| NeoForge 21.1.77 | 1.21.1 | 21 |
+| Fabric | 1.21.1 | 21 |
 
 ---
 
@@ -200,4 +216,4 @@ When reporting a problem with a freeze, run `/sa preview` to see the report summ
 ---
 
 **Author:** [Morikemuri](https://github.com/Morikemuri)
-Minecraft 1.20.4 - Forge 49.x and Fabric
+Minecraft 1.20.1, 1.20.4, 1.21.1 - Forge, NeoForge, and Fabric
