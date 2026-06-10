@@ -380,8 +380,8 @@ public class SAConfig {
         notifyOnlyOncePerVersion = b.comment("Notify in chat only once per discovered new version.").define("notify_only_once_per_version", true);
         notifyWhenUpToDate = b.comment("Show a chat message when already up to date. Off by default.").define("notify_when_up_to_date", false);
         updateVersionUrl = b.comment("URL of the remote version.json to check. GET only, no authentication.").define("version_url", "https://raw.githubusercontent.com/Morikemuri/stutter-analyzer/main/version.json");
-        updateGithubPage = b.comment("GitHub page shown in /sa update link.").define("github_page", "https://github.com/Morikemuri/stutter-analyzer");
-        updateCurseforgeUrl = b.comment("CurseForge page shown in /sa update link.").define("curseforge_url", "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer");
+        updateGithubPage = b.comment("GitHub page shown in /sa version when an update is available.").define("github_page", "https://github.com/Morikemuri/stutter-analyzer");
+        updateCurseforgeUrl = b.comment("CurseForge page shown in /sa version when an update is available.").define("curseforge_url", "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer");
         openLinksOnClick = b.comment("Allow clickable chat links for update URLs on client.").define("open_links_on_click", true);
         b.pop();
 

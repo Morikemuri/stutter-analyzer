@@ -11,7 +11,6 @@ import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
 import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.core.QuietMode;
-import com.stutteranalyzer.core.VerboseMode;
 import com.stutteranalyzer.crash.CrashEvent;
 import com.stutteranalyzer.crash.PreviousCrashImporter;
 import com.stutteranalyzer.guard.EmergencyGuard;
@@ -207,23 +206,6 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.submission"), subDisplay), false);
 
-        // Update check status
-        UpdateCheckResult updateResult = UpdateChecker.getCached();
-        Component updateDisplay;
-        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.disabled");
-        } else if (updateResult == null) {
-            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.not_checked");
-        } else if (!updateResult.success()) {
-            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.unavailable");
-        } else if (updateResult.updateAvailable()) {
-            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.available", updateResult.latestVersion());
-        } else {
-            updateDisplay = Component.translatable("stutteranalyzer.cmd.status.update.up_to_date");
-        }
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.update_check"), updateDisplay), false);
-
         if (degraded) {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.status.degraded")), false);
         }
@@ -354,142 +336,6 @@ public class CommonCommandLogic {
         return 1;
     }
 
-    // ── Verbose mode ──────────────────────────────────────────────────────
-
-    public static int verboseOn(CommandSourceStack src) {
-        VerboseMode.setEnabled(true);
-        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.verbose.enabled")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.verbose.enabled_hint")), false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.verbose.reports_unaffected")), false);
-        return 1;
-    }
-
-    public static int verboseOff(CommandSourceStack src) {
-        VerboseMode.setEnabled(false);
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.verbose.disabled")), false);
-        return 1;
-    }
-
-    public static int verboseStatus(CommandSourceStack src) {
-        boolean on = VerboseMode.isEnabled();
-        boolean chatMinor  = SAConfig.INSTANCE.chatNotifyMinorStutters.get();
-        boolean chatMedium = SAConfig.INSTANCE.chatNotifyMediumStutters.get();
-        boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.verbose.status_header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.verbose.mode"),
-            Component.translatable(on ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.verbose.minor_chat"),
-            Component.translatable(chatMinor ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.verbose.medium_chat"),
-            Component.translatable(chatMedium ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.verbose.severe_chat"),
-            Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")
-        ), false);
-        return 1;
-    }
-
-    // ── Debug test commands ───────────────────────────────────────────────
-
-    public static int debugTestMinor(CommandSourceStack src) {
-        FreezeDetector.injectSilent(55);
-        // Request immediate F3 refresh so user sees the update without waiting
-        AnalyzerRuntimeState.requestF3Refresh();
-        int minorIn60 = StutterCounter.minorCountInSeconds(60);
-        long worstMinor = StutterCounter.worstMinorInSeconds(60);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected minor stutter 55ms."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status counters should now show Minor: " + minorIn60 + "/60s | Worst: " + worstMinor + "ms"), false);
-        if (!VerboseMode.isEnabled()) {
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.verbose.test_minor_hint")), false);
-        }
-        return 1;
-    }
-
-    public static int debugTestMedium(CommandSourceStack src) {
-        FreezeDetector.injectSilent(150);
-        AnalyzerRuntimeState.requestF3Refresh();
-        int mediumIn60 = StutterCounter.mediumCountInSeconds(60);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected medium stutter 150ms."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] F3/status counters should now show Medium: " + mediumIn60 + "/60s"), false);
-        return 1;
-    }
-
-    public static int debugTestSevere(CommandSourceStack src) {
-        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
-        FreezeEvent testEvent = new FreezeEvent(
-            FreezeCategory.UNKNOWN_FREEZE, 0.5,
-            "Synthetic severe test (300ms)",
-            "Artificially generated for testing",
-            isClient ? "client" : "dedicated-server", 300L,
-            MetricsCollector.eventBuffer().snapshot(),
-            "This is a test. Use /sa submit to test submission.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
-        );
-        FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
-        AnalyzerRuntimeState.requestF3Refresh();
-        int reports = ReportWriter.savedReports();
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected severe freeze 300ms. Report saved."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] F3 should now show: UNKNOWN_FREEZE 300ms | Reports: " + reports), false);
-        return 1;
-    }
-
-    public static int debugTestExtreme(CommandSourceStack src) {
-        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
-        FreezeEvent testEvent = new FreezeEvent(
-            FreezeCategory.UNKNOWN_FREEZE, 0.5,
-            "Synthetic extreme freeze test (1200ms)",
-            "Artificially generated for testing",
-            isClient ? "client" : "dedicated-server", 1200L,
-            MetricsCollector.eventBuffer().snapshot(),
-            "This is an extreme freeze test. Use /sa submit to test submission.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
-        );
-        FreezeDetector.injectForTesting(testEvent, MetricsCollector.eventBuffer());
-        AnalyzerRuntimeState.requestF3Refresh();
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Debug test: injected extreme freeze 1200ms. Report saved."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa last and /sa status to verify."), false);
-        return 1;
-    }
-
-    public static int debugVisibilityTest(CommandSourceStack src) {
-        // Step 1: inject minor
-        FreezeDetector.injectSilent(55);
-        // Step 2: inject medium
-        FreezeDetector.injectSilent(150);
-        // Step 3: inject severe (saves report)
-        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
-        FreezeEvent severeEvent = new FreezeEvent(
-            FreezeCategory.UNKNOWN_FREEZE, 0.5,
-            "Visibility test severe (300ms)",
-            "Generated by test",
-            isClient ? "client" : "dedicated-server", 300L,
-            MetricsCollector.eventBuffer().snapshot(),
-            "Visibility test event.",
-            com.stutteranalyzer.classifier.HighLevelClassifier.HighLevelResult.none(), null
-        );
-        FreezeDetector.injectForTesting(severeEvent, MetricsCollector.eventBuffer());
-        AnalyzerRuntimeState.requestF3Refresh();
-
-        int minorIn60  = StutterCounter.minorCountInSeconds(60);
-        int mediumIn60 = StutterCounter.mediumCountInSeconds(60);
-        int reports    = ReportWriter.savedReports();
-
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Visibility test complete."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Expected:"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Minor counter: " + minorIn60 + " (should be >= 1)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Medium counter: " + mediumIn60 + " (should be >= 1)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Severe report saved (Reports: " + reports + " should be >= 1)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- F3 should show UNKNOWN_FREEZE 300ms"), false);
-        src.sendSuccess(() -> CommandFeedback.info("Use /sa status to verify all counters."), false);
-        return 1;
-    }
-
     public static int showVersion(CommandSourceStack src) {
         boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
         Component submitDisplay = Component.translatable(cfEnabled ? "stutteranalyzer.version.submit_cloudflare" : "stutteranalyzer.version.submit_local");
@@ -503,100 +349,36 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal("1.20.4")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.forge")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.java"), Component.literal(javaDisplay)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.status"), Component.translatable("stutteranalyzer.version.status_rc")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.features"), Component.translatable("stutteranalyzer.version.features")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.build"), Component.literal(StutterAnalyzerMod.BUILD_ID)), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.submit"), submitDisplay), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.upload"), uploadDisplay), false);
-        return 1;
-    }
-
-    // ── Update commands ───────────────────────────────────────────────────
-
-    public static int updateCheck(CommandSourceStack src) {
-        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Update checks are disabled."), false);
-            return 1;
-        }
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Checking for updates asynchronously..."), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa update status in a moment to see the result."), false);
-        UpdateChecker.performCheckAsync();
-        return 1;
-    }
-
-    public static int updateStatus(CommandSourceStack src) {
-        if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Update checks are disabled."), false);
-            return 1;
-        }
-        UpdateCheckResult result = UpdateChecker.getCached();
-        if (result == null) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] No update check result yet. Use /sa update check."), false);
-            return 1;
-        }
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Update Status"), false);
-        if (!result.success()) {
-            src.sendSuccess(() -> CommandFeedback.row("Update check", "unavailable"), false);
-            String reason = result.errorReason() != null ? result.errorReason() : "unknown error";
-            src.sendSuccess(() -> CommandFeedback.row("Reason", reason), false);
-            return 1;
-        }
-        src.sendSuccess(() -> CommandFeedback.row("Current", StutterAnalyzerMod.MOD_VERSION), false);
-        src.sendSuccess(() -> CommandFeedback.row("Latest", result.latestVersion()), false);
-        if (result.updateAvailable()) {
-            src.sendSuccess(() -> CommandFeedback.row("Update", "available"), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa update link for download info."), false);
+        // Update status (cached only - non-blocking)
+        UpdateCheckResult updateResult = UpdateChecker.getCached();
+        boolean updatesEnabled = SAConfig.INSTANCE.checkForUpdates.get();
+        Component updateStatus;
+        if (!updatesEnabled) {
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.disabled");
+        } else if (updateResult == null) {
+            UpdateChecker.performCheckAsync();
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.checking");
+        } else if (!updateResult.success()) {
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.failed");
+        } else if (updateResult.updateAvailable()) {
+            final String latest = updateResult.latestVersion();
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.available", latest);
         } else {
-            src.sendSuccess(() -> CommandFeedback.row("Update", "up to date"), false);
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.current");
         }
-        return 1;
-    }
-
-    public static int updateLink(CommandSourceStack src) {
-        UpdateCheckResult result = UpdateChecker.getCached();
-        String github = (result != null && result.githubPage() != null && !result.githubPage().isEmpty())
-            ? result.githubPage()
-            : SAConfig.INSTANCE.updateGithubPage.get();
-        String curseforge = (result != null && result.curseforgeUrl() != null && !result.curseforgeUrl().isEmpty())
-            ? result.curseforgeUrl()
-            : SAConfig.INSTANCE.updateCurseforgeUrl.get();
-
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Download Info"), false);
-        if (result != null && result.success() && result.updateAvailable()) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Update available: " + result.latestVersion()), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Current: " + StutterAnalyzerMod.MOD_VERSION), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.version.updates"), updateStatus), false);
+        if (updateResult != null && updateResult.success() && updateResult.updateAvailable()) {
+            String curseforge = (updateResult.curseforgeUrl() != null && !updateResult.curseforgeUrl().isEmpty())
+                ? updateResult.curseforgeUrl()
+                : SAConfig.INSTANCE.updateCurseforgeUrl.get();
+            if (!curseforge.isEmpty()) {
+                final String cfUrl = curseforge;
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.version.updates.download", cfUrl)), false);
+            }
         }
-        src.sendSuccess(() -> CommandFeedback.row("GitHub", github), false);
-        if (!curseforge.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.row("CurseForge", curseforge), false);
-        }
-        return 1;
-    }
-
-    // ── Quiet mode ────────────────────────────────────────────────────────
-
-    public static int quietOn(CommandSourceStack src) {
-        QuietMode.setEnabled(true);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Quiet mode: ON"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Minor/medium stutters visible in F3 and /sa status, not in chat."), false);
-        return 1;
-    }
-
-    public static int quietOff(CommandSourceStack src) {
-        QuietMode.setEnabled(false);
-        src.sendSuccess(() -> CommandFeedback.success("[SA] Quiet mode: OFF"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Using normal notification rules. Use /sa alerts minor to show minor stutters in chat."), false);
-        return 1;
-    }
-
-    public static int quietStatus(CommandSourceStack src) {
-        boolean q = QuietMode.isEnabled();
-        src.sendSuccess(() -> CommandFeedback.header("[SA] Quiet Mode"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Quiet mode", q ? "ON" : "OFF"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Minor/medium chat", q ? "suppressed" : "per config"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Severe/extreme chat", "always ON"), false);
-        long aggCooldown = SAConfig.INSTANCE.minorAggregateChatCooldownSeconds.get();
-        long remaining = StutterCounter.aggregateCooldownRemainingSeconds();
-        src.sendSuccess(() -> CommandFeedback.row("Aggregate cooldown", aggCooldown + "s" + (remaining > 0 ? " (" + remaining + "s left)" : " (ready)")), false);
         return 1;
     }
 
@@ -987,11 +769,6 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.info("It may include mod list, Minecraft version, Java version, system info, recent performance events, and sanitized log excerpts."), false);
         src.sendSuccess(() -> CommandFeedback.info("It does not include tokens, passwords, auth data, session data, or full unredacted file paths."), false);
         src.sendSuccess(() -> CommandFeedback.info("GitHub issue creation happens server-side. You do not need a GitHub account."), false);
-        return 1;
-    }
-
-    public static int showDevHelp(CommandSourceStack src) {
-        src.sendSuccess(() -> CommandFeedback.info("Use /sa help for the public command list."), false);
         return 1;
     }
 
