@@ -66,13 +66,41 @@ public class OptimizeAssistant {
             }
         }
 
-        // Filter candidates
+        // Scan the physical mods folder to detect pending-restart mods
+        Map<String, String> physicalJarIds = ModsFolderScanner.scan(gameDir.resolve("mods"));
+        List<String> pendingRestartNames = new ArrayList<>();
+        Set<String> pendingIds = new java.util.HashSet<>();
+
+        for (OptimizeMod dbMod : database) {
+            if (dbMod.alreadyInstalled(normalizedInstalled)) continue;
+            boolean inFolder = physicalJarIds.containsKey(dbMod.id.toLowerCase());
+            if (!inFolder && dbMod.aliases != null) {
+                for (String alias : dbMod.aliases) {
+                    if (physicalJarIds.containsKey(alias.toLowerCase())) { inFolder = true; break; }
+                }
+            }
+            if (!inFolder && dbMod.modrinthSlug != null) {
+                inFolder = physicalJarIds.containsKey(dbMod.modrinthSlug.toLowerCase());
+            }
+            if (inFolder) {
+                pendingIds.add(dbMod.id.toLowerCase());
+                pendingRestartNames.add(dbMod.displayName);
+                expandedInstalled.add(dbMod.id.toLowerCase());
+                if (dbMod.aliases != null) {
+                    for (String alias : dbMod.aliases) expandedInstalled.add(alias.toLowerCase());
+                }
+                LOGGER.info("[SA] Pending restart (jar in mods folder, not loaded): {}", dbMod.displayName);
+            }
+        }
+
+        // Filter candidates (exclude loaded, pending, and conflicting mods)
         List<OptimizeMod> candidates = database.stream()
             .filter(m -> m.priority > 0)
             .filter(m -> m.safeDefault)
             .filter(m -> m.supportsLoader(loader))
             .filter(m -> m.supportsEnvironment(isServer))
             .filter(m -> !m.alreadyInstalled(normalizedInstalled))
+            .filter(m -> !pendingIds.contains(m.id.toLowerCase()))
             .filter(m -> !m.conflictsWith(expandedInstalled))
             .sorted((a, b) -> Integer.compare(b.priority, a.priority))
             .limit(maxSuggestions(installedModIds.size()))
@@ -110,6 +138,7 @@ public class OptimizeAssistant {
         plan.recommended = ready;
         plan.skippedCandidates = skipped;
         plan.alreadyInstalled = alreadyInstalled;
+        plan.pendingRestart = pendingRestartNames;
         plan.loader = loader;
         plan.mcVersion = mcVersion;
         plan.serverOnly = isServer;
@@ -258,7 +287,7 @@ public class OptimizeAssistant {
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent",
-                "StutterAnalyzer/0.2.0 (github.com/Morikemuri/stutter-analyzer)");
+                "StutterAnalyzer/0.3.0 (github.com/Morikemuri/stutter-analyzer)");
             conn.setConnectTimeout(CONNECT_TIMEOUT);
             conn.setReadTimeout(READ_TIMEOUT);
             conn.setRequestMethod("GET");
@@ -341,18 +370,15 @@ public class OptimizeAssistant {
         if (count == 0) {
             plan.risk = OptimizePlan.RiskLevel.LOW;
             plan.riskReason = "Nothing to install.";
-        } else if (installed > 100 && count >= 3) {
+        } else if (installed > 80) {
             plan.risk = OptimizePlan.RiskLevel.HIGH;
             plan.riskReason = installed + " mods detected. Large modpacks are more sensitive to changes.";
-        } else if (installed > 50 || count >= 4) {
+        } else if (installed > 20 || count >= 5) {
             plan.risk = OptimizePlan.RiskLevel.MEDIUM;
             plan.riskReason = count + " mods will be added to a " + installed + "-mod modpack.";
-        } else if (count == 1) {
-            plan.risk = OptimizePlan.RiskLevel.LOW;
-            plan.riskReason = "Single safe mod addition.";
         } else {
-            plan.risk = OptimizePlan.RiskLevel.MEDIUM;
-            plan.riskReason = count + " compatible mods will be added.";
+            plan.risk = OptimizePlan.RiskLevel.LOW;
+            plan.riskReason = count == 1 ? "Single safe mod addition." : count + " mods in a small modpack.";
         }
     }
 

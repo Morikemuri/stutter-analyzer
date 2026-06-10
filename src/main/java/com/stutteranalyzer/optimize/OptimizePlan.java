@@ -17,6 +17,7 @@ public class OptimizePlan {
     public List<OptimizeMod> recommended = new ArrayList<>();
     public List<OptimizeMod> skippedCandidates = new ArrayList<>();
     public List<String> alreadyInstalled = new ArrayList<>();
+    public List<String> pendingRestart = new ArrayList<>();
     public RiskLevel risk = RiskLevel.MEDIUM;
     public String riskReason = "";
     public String loader = "";

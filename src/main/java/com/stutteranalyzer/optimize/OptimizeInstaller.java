@@ -166,8 +166,13 @@ public class OptimizeInstaller {
 
         writeManifest(plan, installedList, failedList, modsDir.getParent());
 
+        // Invalidate plan so stale suggestions don't reappear before restart
+        currentPlan = null;
+        confirmRequestedAt = 0;
+
         if (successCount > 0) {
             send(src, Component.translatable("stutteranalyzer.optimize.install.done", successCount, alreadyCount, failCount));
+            send(src, Component.translatable("stutteranalyzer.optimize.plan_refreshed"));
         } else if (alreadyCount > 0 || failCount > 0) {
             send(src, Component.translatable("stutteranalyzer.optimize.install.done_no_new", alreadyCount, failCount));
         } else {
@@ -214,7 +219,7 @@ public class OptimizeInstaller {
         URL url = new URL(fileUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("User-Agent",
-            "StutterAnalyzer/0.2.0 (github.com/Morikemuri/stutter-analyzer)");
+            "StutterAnalyzer/0.3.0 (github.com/Morikemuri/stutter-analyzer)");
         conn.setConnectTimeout(10_000);
         conn.setReadTimeout(60_000);
         conn.setInstanceFollowRedirects(true);

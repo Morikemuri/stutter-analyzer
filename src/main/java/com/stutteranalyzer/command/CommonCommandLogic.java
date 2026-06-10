@@ -911,27 +911,37 @@ public class CommonCommandLogic {
         boolean degraded = SubsystemHealth.anyDegraded();
         boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
         int reports = ReportWriter.savedReports();
-        String spike = last != null
-            ? last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms"
-            : "none";
+        net.minecraft.network.chat.Component spikeComp = last != null
+            ? net.minecraft.network.chat.Component.literal(last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms")
+            : net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_spike_none");
         FreezeReport lastSavedRep = ReportWriter.lastReport();
-        String lastSavedStr = lastSavedRep != null
-            ? lastSavedRep.event.category().name() + " " + lastSavedRep.event.durationMs() + "ms"
-            : "none";
-        String uploadStr = cfEnabled ? "ready" : "local only";
+        net.minecraft.network.chat.Component reportComp = lastSavedRep != null
+            ? net.minecraft.network.chat.Component.literal(lastSavedRep.event.category().name() + " " + lastSavedRep.event.durationMs() + "ms")
+            : net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_report_none");
+        net.minecraft.network.chat.Component uploadComp = net.minecraft.network.chat.Component.translatable(cfEnabled ? "stutteranalyzer.version.upload_ready" : "stutteranalyzer.version.upload_local");
+        net.minecraft.network.chat.Component stateComp = net.minecraft.network.chat.Component.translatable(degraded ? "stutteranalyzer.cmd.status.state_degraded" : "stutteranalyzer.cmd.status.state_active");
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Status", degraded ? "DEGRADED" : "ACTIVE"), false);
-        src.sendSuccess(() -> CommandFeedback.row("Last tracked spike", spike), false);
-        src.sendSuccess(() -> CommandFeedback.row("Last saved report", lastSavedStr), false);
-        src.sendSuccess(() -> CommandFeedback.row("Reports saved", String.valueOf(reports)), false);
-        src.sendSuccess(() -> CommandFeedback.row("Upload", uploadStr), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.status"), stateComp), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_spike"), spikeComp), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_report"), reportComp), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.reports_saved"),
+            net.minecraft.network.chat.Component.literal(String.valueOf(reports))), false);
+        src.sendSuccess(() -> CommandFeedback.row(
+            net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.upload"), uploadComp), false);
         if (reports > 0) {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa submit to send latest report."), false);
+            src.sendSuccess(() -> CommandFeedback.info(
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.dashboard.submit_hint")), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Use /sa status for details."), false);
+            src.sendSuccess(() -> CommandFeedback.info(
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.dashboard.status_hint")), false);
         }
         if (degraded) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Analyzer is degraded. Use /sa status for details."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(
+                net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.dashboard.degraded_hint")), false);
         }
         return 1;
     }
@@ -1271,8 +1281,12 @@ public class CommonCommandLogic {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mods_line",
                 plan.totalInstalledCount, String.join(", ", plan.alreadyInstalled))));
         }
+        if (!plan.pendingRestart.isEmpty()) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.pending_restart",
+                String.join(", ", plan.pendingRestart))));
+        }
         if (plan.isEmpty()) {
-            out.add(CommandFeedback.info(Component.translatable(plan.alreadyInstalled.isEmpty()
+            out.add(CommandFeedback.info(Component.translatable(plan.alreadyInstalled.isEmpty() && plan.pendingRestart.isEmpty()
                 ? "stutteranalyzer.optimize.no_suggestions"
                 : "stutteranalyzer.optimize.already_optimized")));
             return out;

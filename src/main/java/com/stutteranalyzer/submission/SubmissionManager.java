@@ -566,10 +566,10 @@ public class SubmissionManager {
         ReportSanitizer.SanitizeResult mdResult = ReportSanitizer.sanitize(markdown);
         if (mdResult.hadSensitiveData()) {
             lastSubmissionStatus = "blocked-privacy";
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Submission blocked for privacy: sensitive data detected."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.privacy_blocked")), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                 saveLocalFallback(src, report, markdown);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Local sanitized fallback saved."), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.privacy_fallback")), false);
             }
             return;
         }
@@ -650,7 +650,7 @@ public class SubmissionManager {
         src.sendSuccess(() -> CommandFeedback.info("- Payload size: " + Math.max(1, payload.length() / 1024) + " KB"), false);
         src.sendSuccess(() -> CommandFeedback.info("- client_upload_id: " + uploadId), false);
         src.sendSuccess(() -> CommandFeedback.info("- HTTP client: AsyncQueuedSubmitClient v2"), false);
-        src.sendSuccess(() -> CommandFeedback.info("[SA] Uploading report to Stutter Analyzer report server..."), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.cloudflare_uploading")), false);
 
         // Transport: use http_url_connection unless explicitly configured to java_http_client
         // "auto" and any other value now maps to http_url_connection (Java HttpClient times out in Forge JVM)
@@ -708,7 +708,7 @@ public class SubmissionManager {
                     lastSubmissionStatus = "timeout";
                     lastSubmissionError = "timed out after " + timeoutSec + "s (both transports)";
                     lastUploadTiming = "timeout at " + ms + "ms";
-                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: both HTTP transports timed out."), false);
+                    src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.timeout")), false);
                     if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
                 }
             } catch (java.net.SocketTimeoutException e) {
@@ -719,7 +719,7 @@ public class SubmissionManager {
                     lastSubmissionStatus = "timeout";
                     lastSubmissionError = "socket timeout after " + timeoutSec + "s (both transports)";
                     lastUploadTiming = "socket timeout at " + ms + "ms";
-                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: both HTTP transports timed out."), false);
+                    src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.timeout")), false);
                     if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
                 }
             } catch (Exception e) {
@@ -730,8 +730,7 @@ public class SubmissionManager {
                 if (ti + 1 >= transports.length) {
                     lastSubmissionStatus = "failure";
                     lastSubmissionError = shortErr;
-                    src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: could not reach report server."), false);
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] Reason: " + shortErr), false);
+                    src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.network_error")), false);
                     if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
                 }
             }
@@ -754,12 +753,12 @@ public class SubmissionManager {
                                                   String markdown, int status, String body) {
         if (status == 409) {
             lastSubmissionStatus = "duplicate";
-            src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.duplicate")), false);
             return;
         }
         if (status == 429) {
             lastSubmissionStatus = "rate-limited";
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached. Local fallback saved."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.rate_limited")), false);
             if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             return;
         }
@@ -786,21 +785,21 @@ public class SubmissionManager {
 
             lastSubmissionStatus = "success";
 
-            src.sendSuccess(() -> CommandFeedback.success("[SA] Report received by server."), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Report ID: " + finalId), false);
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.submit.received")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.report_id_line", finalId)), false);
 
             if ("queued".equals(githubFwd)) {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue creation queued."), false);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Check status: use /sa submit status"), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.github_queued")), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.github_queued_hint")), false);
             } else if ("GITHUB_FORWARD_FAILED".equals(warning)) {
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] GitHub forwarding failed server-side, but no data was lost."), false);
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.github_fwd_failed")), false);
             } else if (issueNum != null && !issueNum.equals("null") && !issueNum.isBlank()) {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] GitHub issue created: #" + issueNum), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.github_issue", issueNum)), false);
                 if (issueUrl != null && !issueUrl.isBlank()) {
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] " + issueUrl), false);
+                    src.sendSuccess(() -> CommandFeedback.info(issueUrl), false);
                 }
             } else {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Stored for developer review."), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.stored_review")), false);
             }
 
             StringBuilder included = new StringBuilder();
@@ -811,10 +810,10 @@ public class SubmissionManager {
             if ("true".equals(incLogExcerpt))   included.append("latest.log excerpt, ");
             if (included.length() > 2) {
                 String inclStr = included.substring(0, included.length() - 2);
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Included: " + inclStr + "."), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.included", inclStr)), false);
             }
             if ("true".equals(storedFullLog)) {
-                src.sendSuccess(() -> CommandFeedback.info("[SA] Full latest.log stored server-side."), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.full_log_stored")), false);
             }
 
             // Warn if Worker received 0 log content despite log sections being configured
@@ -827,7 +826,7 @@ public class SubmissionManager {
                 src.sendSuccess(() -> CommandFeedback.warn("[SA] Warning: Worker received 0 log chars. Use /sa submit preview to diagnose."), false);
             }
 
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Thank you. This helps improve future versions."), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.thankyou")), false);
             markConsentGiven();
         } else {
             StutterAnalyzerFabric.LOGGER.warn("[SA] Cloudflare submit failed: {} {}", status, body);
@@ -841,24 +840,24 @@ public class SubmissionManager {
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             } else if ("RATE_LIMITED".equals(errorCode) || status == 429) {
                 lastSubmissionStatus = "rate-limited";
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report server rate limit reached."), false);
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.rate_limited")), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             } else if ("DUPLICATE_REPORT".equals(errorCode) || status == 409) {
                 lastSubmissionStatus = "duplicate";
-                src.sendSuccess(() -> CommandFeedback.info("[SA] This report was already submitted."), false);
+                src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.duplicate")), false);
             } else if ("PAYLOAD_TOO_LARGE".equals(errorCode) || status == 413) {
                 lastSubmissionStatus = "too-large";
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report was too large for upload."), false);
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.too_large")), false);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) saveLocalFallback(src, report, markdown);
             } else {
                 String desc = errorCode != null ? errorCode : ("HTTP " + status);
                 lastSubmissionError = desc;
-                src.sendSuccess(() -> CommandFeedback.warn("[SA] Report upload failed: " + desc), false);
+                src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.upload_failed")), false);
                 showWorkerDetails(src, body);
                 if (SAConfig.INSTANCE.fallbackToLocal.get()) {
                     saveLocalFallback(src, report, markdown);
                 } else {
-                    src.sendSuccess(() -> CommandFeedback.info("[SA] No data was lost."), false);
+                    src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.no_data_lost")), false);
                 }
             }
         }
@@ -892,8 +891,8 @@ public class SubmissionManager {
             Files.createDirectories(dir);
             Path mdFile = dir.resolve(report.reportId + ".md");
             Files.writeString(mdFile, markdown);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] Local fallback saved:"), false);
-            src.sendSuccess(() -> CommandFeedback.info("[SA] config/stutter-analyzer/submissions/" + report.reportId + ".md"), false);
+            String rid = report.reportId;
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.local_fallback_saved", rid)), false);
         } catch (Exception ex) {
             StutterAnalyzerFabric.LOGGER.error("[SA] Failed to save local fallback: {}", ex.getMessage());
         }
@@ -1234,7 +1233,7 @@ public class SubmissionManager {
     public static int submitPreview(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
         if (report == null) {
-            src.sendSuccess(() -> CommandFeedback.warn("[SA] No report available to preview."), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_report_yet")), false);
             return 1;
         }
 
@@ -1274,73 +1273,71 @@ public class SubmissionManager {
         String hash      = sha256Hex(markdown);
 
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.submit.preview.header")), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Report ID: " + report.reportId), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Category: " + category), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Duration: " + durationMs + " ms"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Report: included, " + mdKb + " KB"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- JSON: included (metrics, mods, timeline)"), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Runtime status: included"), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.report_id", report.reportId)), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.category", category)), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.duration", durationMs)), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.report_included", mdKb)), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.json_included")), false);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.runtime_included")), false);
 
         // Stutter log events
         if (stutterDisabled) {
-            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: disabled in config"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.stutter_log_disabled")), false);
         } else if (stutterMeaningful) {
             int sl = stutterLines; int sk = stutterKb;
-            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: " + sl + " lines, " + sk + " KB"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.stutter_log_lines", sl, sk)), false);
         } else {
-            String reason = stutterLogStr != null ? stutterLogStr : "latest.log could not be read";
-            src.sendSuccess(() -> CommandFeedback.info("- Stutter Analyzer log events: 0 lines, " + reason), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.stutter_log_none")), false);
         }
 
         // Unknown Freeze context
         if (freezeDisabled) {
-            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze context: disabled in config"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.freeze_ctx_disabled")), false);
         } else if (freezeMeaningful) {
             int fe = freezeEvts; int fk = freezeKb;
-            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze context: " + fe + " events, " + fk + " KB"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.freeze_ctx_events", fe, fk)), false);
         } else {
-            String reason = freezeCtxStr != null ? freezeCtxStr : "latest.log could not be read";
-            src.sendSuccess(() -> CommandFeedback.info("- Unknown Freeze context: 0 events, " + reason), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.freeze_ctx_none")), false);
         }
 
         // Suspicious signals
         if (suspDisabled) {
-            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: disabled in config"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.suspicious_disabled")), false);
         } else if (suspMeaningful) {
             int ss = suspLines; int sk = suspKb;
-            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: " + ss + " lines, " + sk + " KB"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.suspicious_lines", ss, sk)), false);
         } else {
-            String reason = suspiciousStr != null ? suspiciousStr : "latest.log could not be read";
-            src.sendSuccess(() -> CommandFeedback.info("- Suspicious log signals: 0 lines, " + reason), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.suspicious_none")), false);
         }
 
         // Log excerpt
         if (!SAConfig.INSTANCE.includeLogExcerpt.get()) {
-            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: disabled in config"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.log_excerpt_disabled")), false);
         } else if (logMeaningful) {
             int ll = logLines; int lk = logKb;
-            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: " + ll + " lines, " + lk + " KB"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.log_excerpt_lines", ll, lk)), false);
         } else {
-            String reason = logExcerptStr != null ? logExcerptStr : "latest.log could not be read";
-            src.sendSuccess(() -> CommandFeedback.info("- Latest log excerpt: unavailable, " + reason), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.log_excerpt_unavailable")), false);
         }
 
         // Full log
         if (!fullLogEnabled) {
-            src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: disabled in config"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.full_log_disabled")), false);
         } else if (fullLogStr != null) {
             int fk = fullLogKb;
-            src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: included, " + fk + " KB / stored server-side"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.full_log_included", fk)), false);
         } else {
-            src.sendSuccess(() -> CommandFeedback.info("- Full latest.log: unavailable or sanitizer blocked it"), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.full_log_unavailable")), false);
         }
 
-        Component sensitivityComp = Component.literal("- Sensitive data scan: ")
-            .append(mdResult.hadSensitiveData()
-                ? Component.translatable("stutteranalyzer.submit.preview.sensitivity.blocked")
-                : Component.translatable("stutteranalyzer.submit.preview.sensitivity.passed"));
+        Component sensitivityComp =
+            Component.translatable("stutteranalyzer.submit.preview.sensitivity")
+                .append(mdResult.hadSensitiveData()
+                    ? Component.translatable("stutteranalyzer.submit.preview.sensitivity.blocked")
+                    : Component.translatable("stutteranalyzer.submit.preview.sensitivity.passed"));
         src.sendSuccess(() -> CommandFeedback.info(sensitivityComp), false);
-        src.sendSuccess(() -> CommandFeedback.info("- Report hash: " + hash.substring(0, 16) + "..."), false);
+        String hashShort = hash.substring(0, 16);
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.hash", hashShort)), false);
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.preview.not_uploaded")), false);
         return 1;
     }
