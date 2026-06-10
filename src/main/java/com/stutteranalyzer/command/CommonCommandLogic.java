@@ -185,11 +185,7 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.row.crashes_imported"),
             String.valueOf(crashCount)), false);
 
-        // Quiet mode and aggregate cooldown
-        boolean quiet = QuietMode.isEnabled();
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.quiet_mode"),
-            Component.translatable(quiet ? "stutteranalyzer.cmd.status.quiet_on" : "stutteranalyzer.cmd.status.quiet_off")), false);
+        // Aggregate cooldown
         long aggRemaining = StutterCounter.aggregateCooldownRemainingSeconds();
         if (aggRemaining > 0) {
             src.sendSuccess(() -> CommandFeedback.row(
@@ -197,14 +193,11 @@ public class CommonCommandLogic {
                 Component.translatable("stutteranalyzer.cmd.status.agg_cooldown_val", aggRemaining)), false);
         }
 
-        // Verbose mode and severe chat
+        // Chat notifications
         boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.chat_severe"),
-            Component.translatable(chatSevere ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
-        src.sendSuccess(() -> CommandFeedback.row(
-            Component.translatable("stutteranalyzer.cmd.status.verbose_mode"),
-            Component.translatable(VerboseMode.isEnabled() ? "stutteranalyzer.verbose.on" : "stutteranalyzer.verbose.off")), false);
+            Component.translatable(chatSevere ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
 
         // Submission target
         String subTarget = SAConfig.INSTANCE.submissionTarget.get();

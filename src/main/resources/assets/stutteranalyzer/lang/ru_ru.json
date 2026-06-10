@@ -2,7 +2,6 @@
   "stutteranalyzer.cmd.no_permission": "У вас нет прав на использование этой команды.",
   "stutteranalyzer.cmd.client_only": "Эта команда доступна только на клиентской стороне.",
   "stutteranalyzer.cmd.debug_disabled": "Диагностический доступ не включён. Проверьте конфиг мода для включения.",
-
   "stutteranalyzer.cmd.status.header": "Состояние Stutter Analyzer",
   "stutteranalyzer.cmd.status.degraded": "Одна или несколько подсистем работают с ошибками. Используйте /sa status для подробностей.",
   "stutteranalyzer.cmd.status.state": "Состояние",
@@ -19,16 +18,14 @@
   "stutteranalyzer.cmd.status.emergency_on": "ВКЛ",
   "stutteranalyzer.cmd.status.emergency_off": "ВЫКЛ",
   "stutteranalyzer.cmd.status.submission": "Отправка",
-  "stutteranalyzer.cmd.status.submission_local": "только локально",
+  "stutteranalyzer.cmd.status.submission_local": "локально",
   "stutteranalyzer.cmd.status.submission_upload": "загрузка включена",
   "stutteranalyzer.cmd.status.side.dedicated": "Выделенный сервер",
   "stutteranalyzer.cmd.status.side.integrated": "Встроенный сервер",
   "stutteranalyzer.cmd.status.side.client_integrated": "Клиент + встроенный сервер",
   "stutteranalyzer.cmd.status.monitoring": "тик сервера, память, GC, события чанков",
   "stutteranalyzer.cmd.status.no_freeze": "нет",
-
   "stutteranalyzer.cmd.health.header": "Состояние подсистем",
-
   "stutteranalyzer.cmd.last.header": "Последнее зависание",
   "stutteranalyzer.cmd.last.none": "Зависаний ещё не зафиксировано.",
   "stutteranalyzer.cmd.report.generating": "Генерация отчёта из текущих данных...",
@@ -43,11 +40,9 @@
   "stutteranalyzer.cmd.report.no_unknown": "В текущей сессии неклассифицированных зависаний нет.",
   "stutteranalyzer.cmd.report.not_found": "Отчёт не найден в памяти: %s. Проверьте config/stutter-analyzer/reports/",
   "stutteranalyzer.cmd.report.header": "Отчёт: %s",
-
   "stutteranalyzer.cmd.config.reloaded": "Конфигурация перезагружена. Некоторые значения требуют перезапуска.",
   "stutteranalyzer.cmd.config.debug_enable": "Установите debug = true в stutteranalyzer-common.toml и перезагрузите конфиг.",
   "stutteranalyzer.cmd.config.debug_disable": "Установите debug = false в stutteranalyzer-common.toml и перезагрузите конфиг.",
-
   "stutteranalyzer.cmd.crash.none": "Нет импортированных отчётов о крашах в этой сессии.",
   "stutteranalyzer.cmd.crash.last_header": "Последний импортированный краш",
   "stutteranalyzer.cmd.crash.list_header": "Импортированные крашы (%s)",
@@ -55,7 +50,6 @@
   "stutteranalyzer.cmd.crash.not_found": "Краш не найден: %s",
   "stutteranalyzer.cmd.crash.export_hint": "Экспорт краша: проверьте config/stutter-analyzer/reports/ и crash-reports/ на наличие файлов-подсказок для: %s",
   "stutteranalyzer.cmd.crash.header": "Краш: %s",
-
   "stutteranalyzer.cmd.guard.status_header": "Состояние аварийной защиты",
   "stutteranalyzer.cmd.guard.emergency_warning": "Аварийный режим ВКЛЮЧЁН. Безопасные защиты могут активироваться автоматически.",
   "stutteranalyzer.cmd.guard.list_header": "Аварийные защиты (%s)",
@@ -65,18 +59,14 @@
   "stutteranalyzer.cmd.guard.no_reports": "Отчётов о защитах в этой сессии нет.",
   "stutteranalyzer.cmd.guard.last_header": "Последний отчёт защиты",
   "stutteranalyzer.cmd.guard.header": "Защита: %s",
-
   "stutteranalyzer.cmd.help.header": "Помощь по StutterAnalyzer",
   "stutteranalyzer.cmd.help.status": "/sa status            - Состояние анализатора и количество зависаний",
-
   "stutteranalyzer.cmd.help.last": "/sa last              - Последнее зафиксированное зависание",
   "stutteranalyzer.cmd.help.overlay": "/sa overlay ...       - Оверлей (только клиент)",
-
   "stutteranalyzer.cmd.selfcheck.header": "Самопроверка StutterAnalyzer",
   "stutteranalyzer.cmd.selfcheck.overall_ok": "Результат: %s",
   "stutteranalyzer.cmd.selfcheck.overall_warn": "Результат: %s. Используйте /sa status для подробностей.",
   "stutteranalyzer.cmd.selfcheck.unknown_freeze_hint": "В последнем отчёте найдено неклассифицированное зависание! Используйте /sa submit для отправки.",
-
   "stutteranalyzer.cmd.f3.enabled": "включена",
   "stutteranalyzer.cmd.f3.disabled": "отключена",
   "stutteranalyzer.cmd.f3.enabled_session": "Строка статуса F3 включена для этой сессии.",
@@ -84,14 +74,11 @@
   "stutteranalyzer.cmd.f3.toggled_on": "Строка статуса F3 включена.",
   "stutteranalyzer.cmd.f3.toggled_off": "Строка статуса F3 отключена.",
   "stutteranalyzer.cmd.f3.current": "Текущий текст F3: %s",
-
   "stutteranalyzer.cmd.overlay.enabled": "Оверлей включён.",
   "stutteranalyzer.cmd.overlay.disabled": "Оверлей отключён.",
   "stutteranalyzer.cmd.overlay.toggled": "Оверлей переключён.",
   "stutteranalyzer.cmd.overlay.status_off": "Оверлей: отключён",
-
   "stutteranalyzer.cmd.client.no_data": "Клиентских зависаний ещё не зафиксировано.",
-
   "stutteranalyzer.submit.disabled": "Ручная отправка отчётов отключена в конфиге.",
   "stutteranalyzer.submit.no_report": "Нет доступных отчётов о зависаниях для отправки.",
   "stutteranalyzer.submit.not_found": "Отчёт не найден в памяти: %s. Попробуйте /sa export.",
@@ -117,7 +104,6 @@
   "stutteranalyzer.submit.cloudflare_failed": "Ошибка загрузки (HTTP %s). Сохраняем локально.",
   "stutteranalyzer.submit.cloudflare_error": "Ошибка загрузки. Проверьте подключение к интернету.",
   "stutteranalyzer.submit.cloudflare_fallback": "Переключаемся на локальное сохранение.",
-
   "stutteranalyzer.submit.privacy_blocked": "Отправка заблокирована: обнаружены личные данные.",
   "stutteranalyzer.submit.privacy_fallback": "Локальный резерв сохранён.",
   "stutteranalyzer.submit.received": "Отчёт получен сервером.",
@@ -137,7 +123,6 @@
   "stutteranalyzer.submit.network_error": "Невозможно достучаться до сервера отчётов.",
   "stutteranalyzer.submit.local_fallback_saved": "Локальный резерв: config/stutter-analyzer/submissions/%s.md",
   "stutteranalyzer.submit.no_data_lost": "Данные не потеряны.",
-
   "stutteranalyzer.submit.preview.report_id": "- ID отчёта: %s",
   "stutteranalyzer.submit.preview.category": "- Категория: %s",
   "stutteranalyzer.submit.preview.duration": "- Длительность: %s мс",
@@ -161,27 +146,11 @@
   "stutteranalyzer.submit.preview.full_log_unavailable": "- Полный latest.log: недоступно",
   "stutteranalyzer.submit.preview.hash": "- Хэш отчёта: %s...",
   "stutteranalyzer.submit.preview.sensitivity": "- Сканирование данных: ",
-
   "stutteranalyzer.startup.loaded": "Загружен. Нажмите F3 для статуса SA или используйте /sa status.",
   "stutteranalyzer.startup.loaded_silent": "[SA] Загружен. Мелкие фризы отслеживаются без уведомлений. Нажмите F3 или /sa status.",
   "stutteranalyzer.unknown_freeze.notify": "Обнаружено неклассифицированное зависание. Отчёт сохранён. Используйте /sa submit для отправки.",
   "stutteranalyzer.unknown_freeze.notify_duration": "Обнаружено неклассифицированное зависание (%s мс). Отчёт сохранён. Используйте /sa submit для отправки.",
-
-  "stutteranalyzer.verbose.enabled": "[SA] Режим verbose включён на эту сессию.",
-  "stutteranalyzer.verbose.enabled_hint": "[SA] Мелкие и средние фризы будут показываться в чате с задержкой.",
-  "stutteranalyzer.verbose.reports_unaffected": "[SA] Отчёты сохраняются только по порогам из конфига.",
-  "stutteranalyzer.verbose.disabled": "[SA] Режим verbose отключён. Мелкие фризы отслеживаются тихо.",
-  "stutteranalyzer.verbose.status_header": "[SA] Статус уведомлений",
-  "stutteranalyzer.verbose.mode": "Режим verbose",
-  "stutteranalyzer.verbose.minor_chat": "Уведомления о мелких фризах",
-  "stutteranalyzer.verbose.medium_chat": "Уведомления о средних фризах",
-  "stutteranalyzer.verbose.severe_chat": "Уведомления о серьёзных фризах",
-  "stutteranalyzer.verbose.on": "ВКЛ",
-  "stutteranalyzer.verbose.off": "ВЫКЛ",
-  "stutteranalyzer.verbose.stutter_detected": "[SA] Фриз: %s мс (verbose режим)",
   "stutteranalyzer.verbose.aggregate": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status.",
-  "stutteranalyzer.verbose.test_minor_hint": "Используйте /sa alerts minor, чтобы видеть мелкие микрофризы в чате.",
-
   "stutteranalyzer.cmd.status.last_stutter": "Последний фриз",
   "stutteranalyzer.cmd.status.last_minor": "Последний мелкий фриз",
   "stutteranalyzer.cmd.status.minor_count": "Мелкие фризы",
@@ -191,9 +160,7 @@
   "stutteranalyzer.cmd.status.chat_minor": "Чат: мелкие",
   "stutteranalyzer.cmd.status.chat_medium": "Чат: средние",
   "stutteranalyzer.cmd.status.chat_severe": "Чат: серьёзные",
-  "stutteranalyzer.cmd.status.verbose_mode": "Verbose режим",
   "stutteranalyzer.cmd.status.minor_silent_hint": "[SA] Мелкие микрофризы отслеживаются тихо. Используйте /sa alerts minor для показа в чате.",
-
   "stutteranalyzer.f3.active": "SA: АКТИВЕН",
   "stutteranalyzer.f3.status_warn": "SA: ПРЕДУПРЕЖДЕНИЕ | %s | /sa status",
   "stutteranalyzer.f3.status_error": "SA: ОШИБКА | %s | /sa status",
@@ -210,7 +177,6 @@
   "stutteranalyzer.f3.emergency_on": "Аварийный: ВКЛ | Защит: %s",
   "stutteranalyzer.f3.active_full_last": "SA: АКТИВЕН | Посл.: %s %s мс | Отчёт сохранён",
   "stutteranalyzer.f3.active_full_no_freeze": "SA: АКТИВЕН | FPS: ВКЛ | Посл. зависание: нет | Отчётов: %s",
-
   "stutteranalyzer.row.enabled": "Включён",
   "stutteranalyzer.row.side": "Сторона",
   "stutteranalyzer.row.monitoring": "Мониторинг",
@@ -240,7 +206,6 @@
   "stutteranalyzer.row.outcome": "Результат",
   "stutteranalyzer.row.action": "Действие",
   "stutteranalyzer.row.f3_status_line": "Строка статуса F3",
-
   "stutteranalyzer.selfcheck.item.core": "Ядро",
   "stutteranalyzer.selfcheck.item.config": "Конфигурация",
   "stutteranalyzer.selfcheck.item.commands": "Команды",
@@ -252,21 +217,17 @@
   "stutteranalyzer.selfcheck.item.pattern_detector": "Детектор паттернов",
   "stutteranalyzer.selfcheck.item.emergency_guard": "Аварийная защита",
   "stutteranalyzer.selfcheck.item.submission": "Менеджер отправки",
-
   "stutteranalyzer.selfcheck.status.ok": "ОК",
   "stutteranalyzer.selfcheck.status.warn": "ПРЕДУПРЕЖДЕНИЕ",
   "stutteranalyzer.selfcheck.status.error": "ОШИБКА",
   "stutteranalyzer.selfcheck.status.unavailable": "недоступно",
-
   "stutteranalyzer.health.status.ok": "ОК",
   "stutteranalyzer.health.status.degraded": "ДЕГРАДИРОВАЛ",
   "stutteranalyzer.health.status.disabled": "ОТКЛЮЧЁН",
   "stutteranalyzer.health.status.failed": "СБОЙ",
   "stutteranalyzer.health.status.unavailable": "недоступно",
-
   "stutteranalyzer.guard.list.enabled": "включена",
   "stutteranalyzer.guard.list.disabled": "отключена",
-
   "category.stutteranalyzer.world_join_load_spike": "Рывок при входе в мир",
   "category.stutteranalyzer.world_join_render_stall": "Зависание рендера при входе в мир",
   "category.stutteranalyzer.resource_reload_stall": "Зависание при перезагрузке ресурсов",
@@ -274,7 +235,6 @@
   "category.stutteranalyzer.modpack_startup_stall": "Зависание при запуске модпака",
   "category.stutteranalyzer.periodic_scheduled_micro_hitch": "Периодический плановый микро-рывок",
   "category.stutteranalyzer.unknown_extreme_freeze": "Неклассифицированное экстремальное зависание",
-
   "stutteranalyzer.hover.client_render_stutter": "Рывок рендера, %sмс.\n\nЧто это:\nКраткая пауза в рендере.\n\nЧастые причины:\n- перестройка меша чанков\n- всплеск рендера существ\n- загрузка текстур или ресурсов\n\nЧто попробовать:\n- Sodium/Embeddium или Entity Culling\n- уменьшить дальность рендера\n- /sa optimize suggest",
   "stutteranalyzer.hover.server_tick_spike": "Скачок тика сервера, %sмс.\n\nЧто это:\nСервер слишком долго обрабатывал один тик.\n\nЧастые причины:\n- слишком много существ\n- тяжёлая логика модов\n- сохранение мира или загрузка чанков\n\nЧто попробовать:\n- /sa status\n- уменьшить нагрузку\n- /sa submit если повторяется",
   "stutteranalyzer.hover.chunk_generation": "Генерация чанков, %sмс.\n\nЧто это:\nГенерировались новые чанки.\n\nЧастые причины:\n- исследование новых территорий\n- сложные моды генерации мира\n\nЧто попробовать:\n- предгенерация мира\n- Noisium или C2ME",
@@ -310,7 +270,6 @@
   "stutteranalyzer.hover.unclassified_frame_hitch": "Рывок кадра, %sмс.\n\nЧто это:\nЗаметная короткая пауза, обычно на клиенте.\n\nЧастые причины:\n- всплеск рендера\n- перестройка чанков\n- загрузка существ или ресурсов\n\nЧто попробовать:\n- проверить при загрузке чанков\n- попробовать моды рендера\n- /sa preview после большого фриза",
   "stutteranalyzer.hover.unknown_extreme_freeze": "Экстремальный фриз, %sмс.\n\nЧто это:\nИгра зависла более чем на секунду.\n\nЧастые причины:\n- загрузка мира или ресурсов\n- тяжёлый мод или GC\n- скачок тика сервера или диска\n\nЧто попробовать:\n- /sa preview\n- /sa submit\n- проверить latest.log",
   "stutteranalyzer.hover.unknown_freeze": "Фриз, %sмс.\n\nЧто это:\nИгра зависла на заметное время.\n\nЧастые причины:\n- генерация или загрузка чанков\n- перезагрузка ресурсов или тяжёлый мод\n- скачок тика сервера или диска\n\nЧто попробовать:\n- /sa preview\n- /sa submit если полезно",
-
   "stutteranalyzer.optimize.scan.in_progress": "Сканирование оптимизации уже идёт...",
   "stutteranalyzer.optimize.scan.started": "Сканирование оптимизации запущено в фоне...",
   "stutteranalyzer.optimize.scan.failed": "Ошибка сканирования: %s",
@@ -349,7 +308,6 @@
   "stutteranalyzer.optimize.install.done_fail": "Ничего не установлено. Подробности в latest.log.",
   "stutteranalyzer.optimize.install.done_skipped": "Все моды уже установлены.",
   "stutteranalyzer.optimize.install.manifest_saved": "Лог установки сохранён.",
-
   "stutteranalyzer.alert.minor": "[SA] Микрофриз: %s %sмс",
   "stutteranalyzer.alert.medium": "[SA] Средний фриз: %s %sмс",
   "stutteranalyzer.alert.severe": "[SA] Фриз: %s %sмс",
@@ -361,12 +319,10 @@
   "stutteranalyzer.alert.hint.extreme": "[SA] Отчёт сохранён. Используй /sa submit для отправки логов.",
   "stutteranalyzer.alert.hint.severe": "[SA] Отчёт сохранён. Используй /sa submit для диагностики.",
   "stutteranalyzer.alert.update": "[SA] Доступно обновление: %s. Используй /sa update link.",
-
   "stutteranalyzer.show.invalid_time": "Используй /sa show 5m, 10m, 30m или 1h.",
   "stutteranalyzer.show.none": "Нет средних/серьёзных/экстремальных событий за %s.",
   "stutteranalyzer.show.header": "События за %s, без микрорывков:",
   "stutteranalyzer.show.truncated": "Показано %s из %s событий. /sa preview для полного отчёта.",
-
   "stutteranalyzer.help.header": "Справка Stutter Analyzer",
   "stutteranalyzer.help.section.main": "Основное:",
   "stutteranalyzer.help.line.status": "  /sa status              - Статус анализатора",
@@ -395,7 +351,6 @@
   "stutteranalyzer.help.section.other": "Прочее:",
   "stutteranalyzer.help.line.optimize_suggest": "  /sa optimize suggest    - Найти оптимизации в фоне",
   "stutteranalyzer.help.line.optimize_install": "  /sa optimize install    - Установить план после предупреждения",
-
   "stutteranalyzer.cmd.status.status_ui": "UI статуса",
   "stutteranalyzer.cmd.status.side": "Сторона",
   "stutteranalyzer.cmd.status.last_spike": "Последний фриз",
@@ -413,14 +368,9 @@
   "stutteranalyzer.cmd.status.no_stutters": "Фризов не зафиксировано. Используй /sa alerts test для теста.",
   "stutteranalyzer.cmd.status.reports_warn": "Серьёзные/экстремальные обнаружены, но отчёты не сохранены. Проверь лог игры.",
   "stutteranalyzer.cmd.status.reports_silent": "Мелкие/средние отслеживаются тихо. Отчёты начинаются с %sмс.",
-  "stutteranalyzer.cmd.status.quiet_mode": "Тихий режим",
-  "stutteranalyzer.cmd.status.quiet_on": "ВКЛ (только F3)",
-  "stutteranalyzer.cmd.status.quiet_off": "ВЫКЛ",
   "stutteranalyzer.cmd.status.agg_cooldown": "Кулдаун чата",
   "stutteranalyzer.cmd.status.agg_cooldown_val": "%sс осталось",
-  "stutteranalyzer.cmd.status.submission": "Отправка",
   "stutteranalyzer.cmd.status.submission_cloudflare": "Cloudflare включён",
-  "stutteranalyzer.cmd.status.submission_local": "локально",
   "stutteranalyzer.cmd.status.update_check": "Проверка обновлений",
   "stutteranalyzer.cmd.status.update.disabled": "отключено",
   "stutteranalyzer.cmd.status.update.not_checked": "не проверялось",
@@ -429,7 +379,6 @@
   "stutteranalyzer.cmd.status.update.up_to_date": "актуально",
   "stutteranalyzer.cmd.status.last_report": "Последний отчёт",
   "stutteranalyzer.cmd.status.last_report_none": "нет",
-
   "stutteranalyzer.alerts.set.off": "Оповещения отключены.",
   "stutteranalyzer.alerts.set.off_note": "Чат-оповещения отключены. F3, статус, отчёты работают.",
   "stutteranalyzer.alerts.set.minor": "Режим оповещений: микрофризы (шумно)",
@@ -470,7 +419,6 @@
   "stutteranalyzer.alerts.test.header": "Тестовое оповещение",
   "stutteranalyzer.alerts.test.shown": "%s %sмс - показано",
   "stutteranalyzer.alerts.test.hidden": "%s %sмс - скрыто в этом режиме",
-
   "stutteranalyzer.submit.already_in_progress": "Загрузка отчёта уже выполняется. Подожди.",
   "stutteranalyzer.submit.wait_cooldown": "Подожди перед повторной отправкой отчёта.",
   "stutteranalyzer.submit.no_report_yet": "Сохранённых отчётов пока нет.",
@@ -507,7 +455,6 @@
   "stutteranalyzer.submit.preview.not_uploaded": "Ничего не отправлено. Запусти /sa submit для загрузки.",
   "stutteranalyzer.submit.preview.sensitivity.passed": "прошёл",
   "stutteranalyzer.submit.preview.sensitivity.blocked": "ЗАБЛОКИРОВАНО - найдены личные данные",
-
   "stutteranalyzer.row.version": "Версия",
   "stutteranalyzer.row.minecraft": "Minecraft",
   "stutteranalyzer.row.loader": "Загрузчик",
@@ -516,7 +463,6 @@
   "stutteranalyzer.row.features": "Функции",
   "stutteranalyzer.row.submit": "Отправка",
   "stutteranalyzer.row.upload": "Загрузка",
-
   "stutteranalyzer.version.header": "Информация о версии Stutter Analyzer",
   "stutteranalyzer.version.loader.forge": "Forge",
   "stutteranalyzer.version.loader.fabric": "Fabric",
@@ -526,7 +472,6 @@
   "stutteranalyzer.version.upload_local": "только локально",
   "stutteranalyzer.version.submit_cloudflare": "Cloudflare",
   "stutteranalyzer.version.submit_local": "локально",
-
   "stutteranalyzer.optimize.reason.sodium": "рендер",
   "stutteranalyzer.optimize.reason.embeddium": "рендер",
   "stutteranalyzer.optimize.reason.immediatelyfast": "рендер/UI",
@@ -549,7 +494,6 @@
   "stutteranalyzer.optimize.reason.ai_improvements": "ИИ мобов",
   "stutteranalyzer.optimize.reason.connectivity": "сеть",
   "stutteranalyzer.optimize.reason.packet_fixer": "сеть",
-
   "stutteranalyzer.optimize.btn.install": "[Установить]",
   "stutteranalyzer.optimize.btn.confirm": "[Подтвердить установку]",
   "stutteranalyzer.optimize.skipped": "Пропущено: %s без файла под %s %s",
@@ -558,8 +502,18 @@
   "stutteranalyzer.optimize.install.done_no_new": "Готово: %s уже стоит, %s ошибок.",
   "stutteranalyzer.optimize.install.fail_item": "Ошибка: %s",
   "stutteranalyzer.optimize.install.fail_hint": "Ошибки: подробности в latest.log",
-
   "stutteranalyzer.cmd.dashboard.submit_hint": "Используй /sa submit для отправки последнего отчёта.",
   "stutteranalyzer.cmd.dashboard.status_hint": "Используй /sa status для подробностей.",
-  "stutteranalyzer.cmd.dashboard.degraded_hint": "Анализатор работает с ошибками. Используй /sa status для подробностей."
+  "stutteranalyzer.cmd.dashboard.degraded_hint": "Анализатор работает с ошибками. Используй /sa status для подробностей.",
+  "stutteranalyzer.optimize.reason.ferrite_core": "память",
+  "stutteranalyzer.optimize.reason.immediately_fast": "рендер UI",
+  "stutteranalyzer.optimize.reason.c2me": "генерация мира",
+  "stutteranalyzer.optimize.reason.lazydfu": "запуск",
+  "stutteranalyzer.optimize.reason.enhanced_block_entities": "блок-сущности",
+  "stutteranalyzer.optimize.reason.more_culling": "отсечение блоков",
+  "stutteranalyzer.optimize.reason.leaves_be": "листья",
+  "stutteranalyzer.optimize.reason.alternate_current": "редстоун",
+  "stutteranalyzer.optimize.reason.chunk_sending": "сеть",
+  "stutteranalyzer.optimize.reason.smooth_boot": "запуск",
+  "stutteranalyzer.optimize.reason.brute_force_rendering_culling": "отсечение чанков"
 }
