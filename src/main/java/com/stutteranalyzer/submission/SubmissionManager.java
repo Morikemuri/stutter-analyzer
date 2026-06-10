@@ -369,7 +369,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(healthUrl))
                     .GET()
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                     .timeout(Duration.ofSeconds(5))
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
@@ -673,7 +673,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                         .timeout(Duration.ofSeconds(timeoutSec))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -1173,7 +1173,7 @@ public class SubmissionManager {
         root.addProperty("project", "stutter-analyzer");
         root.addProperty("source", "real_mod_submit");
         root.addProperty("mod_version", StutterAnalyzerFabric.MOD_VERSION);
-        root.addProperty("minecraft_version", "1.20.4");
+        root.addProperty("minecraft_version", "1.20.1");
         root.addProperty("loader", com.stutteranalyzer.SAEnvironment.getLoaderName());
         root.addProperty("loader_version", com.stutteranalyzer.SAEnvironment.getLoaderVersion());
         root.addProperty("report_type", category);
@@ -1465,7 +1465,7 @@ public class SubmissionManager {
         conn.setDoOutput(true);
         conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4");
+        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1");
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         conn.setFixedLengthStreamingMode(bytes.length);
         try (OutputStream os = conn.getOutputStream()) {
@@ -1484,7 +1484,7 @@ public class SubmissionManager {
         conn.setConnectTimeout(timeoutMs);
         conn.setReadTimeout(timeoutMs);
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4");
+        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1");
         int code = conn.getResponseCode();
         InputStream stream = (code >= 200 && code < 400) ? conn.getInputStream() : conn.getErrorStream();
         String responseBody = readStreamUtf8(stream);
@@ -1644,7 +1644,7 @@ public class SubmissionManager {
                 conn.setReadTimeout(15000);
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
                 conn.setRequestProperty("Content-Length", String.valueOf(body.length));
-                conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4");
+                conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1");
                 try (java.io.OutputStream os = conn.getOutputStream()) { os.write(body); }
                 int status = conn.getResponseCode();
                 java.io.InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
@@ -1696,7 +1696,7 @@ public class SubmissionManager {
                     .uri(URI.create(healthUrl))
                     .GET()
                     .timeout(Duration.ofSeconds(10))
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
                 long ms = System.currentTimeMillis() - t0;
@@ -1746,7 +1746,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(echoUrl))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                     .timeout(Duration.ofSeconds(10))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
@@ -1793,7 +1793,7 @@ public class SubmissionManager {
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"source\": \"minecraft_net_test\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerFabric.MOD_VERSION) + ",\n" +
-            "  \"minecraft_version\": \"1.20.4\",\n" +
+            "  \"minecraft_version\": \"1.20.1\",\n" +
             "  \"loader\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderName()) + ",\n" +
             "  \"loader_version\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderVersion()) + ",\n" +
             "  \"report_type\": \"TEST\",\n" +
@@ -1824,7 +1824,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                     .timeout(Duration.ofSeconds(timeoutSec))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
@@ -1905,7 +1905,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(echoUrl))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                         .timeout(Duration.ofSeconds(10))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -1950,7 +1950,7 @@ public class SubmissionManager {
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"source\": \"minecraft_net_test\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerFabric.MOD_VERSION) + ",\n" +
-            "  \"minecraft_version\": \"1.20.4\",\n" +
+            "  \"minecraft_version\": \"1.20.1\",\n" +
             "  \"loader\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderName()) + ",\n" +
             "  \"loader_version\": " + esc(com.stutteranalyzer.SAEnvironment.getLoaderVersion()) + ",\n" +
             "  \"report_type\": \"TEST\",\n" +
@@ -1986,7 +1986,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.4")
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.20.1")
                         .timeout(Duration.ofSeconds(timeoutSec))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
