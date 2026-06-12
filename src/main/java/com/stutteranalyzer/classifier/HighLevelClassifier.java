@@ -1,9 +1,7 @@
 package com.stutteranalyzer.classifier;
 
+import com.stutteranalyzer.SAEnvironment;
 import com.stutteranalyzer.events.RecentEventBuffer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -84,7 +82,7 @@ public class HighLevelClassifier {
 
     private static int countLogMatches() {
         try {
-            Path logFile = resolveLogFile();
+            Path logFile = SAEnvironment.getLogFile();
             if (logFile == null || !Files.exists(logFile)) return 0;
             long fileSize = Files.size(logFile);
             long readOffset = Math.max(0, fileSize - 65536L);
@@ -104,17 +102,5 @@ public class HighLevelClassifier {
         } catch (Exception e) {
             return 0;
         }
-    }
-
-    private static Path resolveLogFile() {
-        try {
-            if (FMLEnvironment.dist == Dist.CLIENT) {
-                try {
-                    return net.minecraft.client.Minecraft.getInstance()
-                        .gameDirectory.toPath().resolve("logs/latest.log");
-                } catch (Exception ignored) {}
-            }
-        } catch (Exception ignored) {}
-        return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
     }
 }

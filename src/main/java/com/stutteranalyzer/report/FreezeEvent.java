@@ -31,6 +31,13 @@ public class FreezeEvent {
 
     public FreezeEvent(FreezeCategory category, double confidence, String reason, String evidence,
                        String side, long durationMs, List<RecentEventBuffer.GameEvent> recentTimeline,
+                       String recommendation) {
+        this(category, confidence, reason, evidence, side, durationMs, recentTimeline,
+             recommendation, HighLevelClassifier.HighLevelResult.none(), null);
+    }
+
+    public FreezeEvent(FreezeCategory category, double confidence, String reason, String evidence,
+                       String side, long durationMs, List<RecentEventBuffer.GameEvent> recentTimeline,
                        String recommendation, HighLevelClassifier.HighLevelResult highLevelResult,
                        PeriodicMeta periodicMeta) {
         this.category         = category;

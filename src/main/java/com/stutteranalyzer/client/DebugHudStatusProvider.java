@@ -10,10 +10,6 @@ import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.ReportWriter;
 import net.minecraft.client.resources.language.I18n;
 
-/**
- * Holds a cached snapshot of analyzer state for the F3 line.
- * Updated on client tick and on-demand from debug commands.
- */
 public class DebugHudStatusProvider {
 
     public enum OverallStatus { ACTIVE, WARNING, ERROR, DISABLED }
@@ -97,7 +93,6 @@ public class DebugHudStatusProvider {
                 ReportWriter.savedReports()), F3StatusFormatter.COLOR_GRAY));
         }
 
-        // Cloudflare upload status
         String cfEndpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         if (!cfEndpoint.isBlank() && "cloudflare".equalsIgnoreCase(SAConfig.INSTANCE.submissionTarget.get())) {
             sb.append(colored(" | " + I18n.get("stutteranalyzer.f3.upload_ready"), F3StatusFormatter.COLOR_AQUA));

@@ -22,7 +22,7 @@ public class OptimizeMod {
     public String reason;
     public int priority;
     public boolean safeDefault;
-    public boolean primarySuggestion; // false for dep-only entries (priority 0)
+    public boolean primarySuggestion;
     public List<String> installRequires = new ArrayList<>();
 
     public transient String depForMod;
@@ -36,7 +36,7 @@ public class OptimizeMod {
     public transient String resolvedSha512;
     public transient long resolvedFileSize;
     public transient boolean resolvedOnline;
-    public transient String resolvedVersion;   // Modrinth version_number, e.g. "mc1.21.4-0.6.13"
+    public transient String resolvedVersion;   // Modrinth version_number, e.g. "mc1.21.1-0.6.13-fabric"
 
     public boolean supportsLoader(String loader) {
         if (loaders == null || loaders.isEmpty()) return true;
@@ -116,7 +116,7 @@ public class OptimizeMod {
         }
     }
 
-    /** Strip build metadata, mc-version tags and loader names: "mc1.21.4-0.8.12-neoforge" -> "0.8.12" */
+    /** Strip build metadata, mc-version tags and loader names: "mc1.21.1-0.8.12-fabric" -> "0.8.12" */
     public static String cleanVersion(String raw) {
         if (raw == null) return "";
         String v = raw.trim().toLowerCase();

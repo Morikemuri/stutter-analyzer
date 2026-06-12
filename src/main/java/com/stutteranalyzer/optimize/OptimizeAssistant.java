@@ -6,7 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerFabric;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -72,13 +72,12 @@ public class OptimizeAssistant {
         }
 
         // Scan the physical mods folder to detect pending-restart mods
-        // (jars installed but not yet loaded because restart is required)
         Map<String, String> physicalJarIds = ModsFolderScanner.scan(gameDir.resolve("mods"));
         List<String> pendingRestartNames = new ArrayList<>();
         Set<String> pendingIds = new java.util.HashSet<>();
 
         for (OptimizeMod dbMod : database) {
-            if (dbMod.alreadyInstalled(normalizedInstalled)) continue; // already loaded
+            if (dbMod.alreadyInstalled(normalizedInstalled)) continue;
             boolean inFolder = physicalJarIds.containsKey(dbMod.id.toLowerCase())
                 || physicalJarIds.containsKey(OptimizeMod.normalize(dbMod.id));
             if (!inFolder && dbMod.aliases != null) {
@@ -131,7 +130,7 @@ public class OptimizeAssistant {
             return earlyPlan;
         }
 
-        // Build a lookup map for dep resolution
+        // Build lookup map for dep resolution
         Map<String, OptimizeMod> dbById = new HashMap<>();
         for (OptimizeMod m : database) {
             dbById.put(m.id.toLowerCase(), m);
@@ -203,54 +202,14 @@ public class OptimizeAssistant {
                 failedDeps.add(candidate);
             }
         }
+        if (cacheDirty[0]) saveCache(cacheFile, cache);
         skipped.addAll(failedDeps);
         ready.addAll(depsToAdd);
-
-        // Pre-install final validation: nobody leaves this method depending on a mod
-        // that is neither installed nor in the plan. Loop because evicting one mod
-        // can orphan another's bookkeeping.
-        boolean planChanged;
-        do {
-            planChanged = false;
-            Set<String> planIds = new HashSet<>();
-            for (OptimizeMod m : ready) planIds.add(m.id.toLowerCase());
-            for (OptimizeMod m : new ArrayList<>(ready)) {
-                if (m.installRequires == null) continue;
-                for (String depId : m.installRequires) {
-                    String depNorm = depId.toLowerCase();
-                    OptimizeMod depMod = dbById.get(depNorm);
-                    boolean satisfied = planIds.contains(depNorm)
-                        || expandedInstalled.contains(depNorm)
-                        || (depMod != null && depMod.alreadyInstalled(expandedInstalled));
-                    if (!satisfied) {
-                        LOGGER.warn("[SA] Plan validation: {} is missing required dep {} - evicting from plan",
-                            m.displayName, depId);
-                        m.skipReason = "required dependency " + depId + " missing from final plan";
-                        m.skipMissingDep = depMod != null ? depMod.displayName : depId;
-                        ready.remove(m);
-                        skipped.add(m);
-                        planChanged = true;
-                    }
-                }
-            }
-        } while (planChanged);
-
-        // Evict orphaned libraries whose parent fell out of the plan -
-        // nobody needs a lonely Moonlight howling in the mods folder
-        Set<String> parentNames = new HashSet<>();
-        for (OptimizeMod m : ready) {
-            if (m.depForMod == null) parentNames.add(m.displayName);
-        }
-        ready.removeIf(m -> m.depForMod != null && !parentNames.contains(m.depForMod));
 
         // Whole-set compatibility pass: the plan must survive as a TEAM,
         // not as a bunch of individually charming mods that hate each other
         List<OptimizeMod> incompatible = validatePlanSet(ready, expandedInstalled, loadedModVersions());
         skipped.addAll(incompatible);
-
-        if (cacheDirty[0]) {
-            saveCache(cacheFile, cache);
-        }
 
         OptimizePlan plan = new OptimizePlan();
         plan.recommended = ready;
@@ -337,9 +296,10 @@ public class OptimizeAssistant {
     private static Map<String, String> loadedModVersions() {
         Map<String, String> map = new HashMap<>();
         try {
-            for (net.minecraftforge.forgespi.language.IModInfo info :
-                    net.minecraftforge.fml.ModList.get().getMods()) {
-                map.put(info.getModId().toLowerCase(), info.getVersion().toString());
+            for (net.fabricmc.loader.api.ModContainer mc :
+                    net.fabricmc.loader.api.FabricLoader.getInstance().getAllMods()) {
+                map.put(mc.getMetadata().getId().toLowerCase(),
+                        mc.getMetadata().getVersion().getFriendlyString());
             }
         } catch (Throwable t) {
             LOGGER.warn("[SA] Could not read loaded mod versions: {}", t.getMessage());
@@ -462,48 +422,42 @@ public class OptimizeAssistant {
             Files.createDirectories(configDir);
             Path planFile = configDir.resolve("optimize_last_plan.json");
 
-            com.google.gson.JsonObject root = new com.google.gson.JsonObject();
+            JsonObject root = new JsonObject();
             root.addProperty("timestamp", java.time.Instant.now().toString());
             root.addProperty("minecraft_version", plan.mcVersion);
             root.addProperty("loader", plan.loader);
             root.addProperty("risk", plan.risk.name());
 
-            com.google.gson.JsonArray readyArr = new com.google.gson.JsonArray();
+            JsonArray readyArr = new JsonArray();
             for (OptimizeMod m : plan.recommended) {
-                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
-                o.addProperty("id", m.id);
-                o.addProperty("display_name", m.displayName);
-                if (m.depForMod != null) o.addProperty("required_dep_for", m.depForMod);
-                o.addProperty("source", "modrinth");
-                o.addProperty("file_name", m.resolvedFilename != null ? m.resolvedFilename : "");
-                o.addProperty("download_url", m.resolvedUrl != null ? m.resolvedUrl : "");
-                o.addProperty("file_size", m.resolvedFileSize);
-                o.addProperty("hash_sha512", m.resolvedSha512 != null ? m.resolvedSha512 : "");
-                readyArr.add(o);
+                JsonObject obj = new JsonObject();
+                obj.addProperty("id", m.id);
+                obj.addProperty("name", m.displayName);
+                obj.addProperty("url", m.resolvedUrl != null ? m.resolvedUrl : "");
+                if (m.resolvedVersion != null) obj.addProperty("version", m.resolvedVersion);
+                if (m.depForMod != null) obj.addProperty("required_dep_for", m.depForMod);
+                readyArr.add(obj);
             }
             root.add("ready_to_install", readyArr);
 
-            com.google.gson.JsonArray alreadyArr = new com.google.gson.JsonArray();
-            for (String name : plan.alreadyInstalled) alreadyArr.add(name);
+            JsonArray alreadyArr = new JsonArray();
+            for (String s : plan.alreadyInstalled) alreadyArr.add(s);
             root.add("already_installed", alreadyArr);
 
-            com.google.gson.JsonArray skippedArr = new com.google.gson.JsonArray();
+            JsonArray skippedArr = new JsonArray();
             for (OptimizeMod m : plan.skippedCandidates) {
-                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
-                o.addProperty("id", m.id);
-                o.addProperty("display_name", m.displayName);
-                o.addProperty("reason", m.skipReason != null ? m.skipReason : "no compatible file on Modrinth");
-                o.addProperty("loader", plan.loader);
-                o.addProperty("minecraft_version", plan.mcVersion);
-                o.addProperty("source_checked", "modrinth");
-                skippedArr.add(o);
+                JsonObject obj = new JsonObject();
+                obj.addProperty("id", m.id);
+                obj.addProperty("name", m.displayName);
+                obj.addProperty("reason", m.skipReason != null ? m.skipReason : "no compatible file on Modrinth");
+                skippedArr.add(obj);
             }
             root.add("skipped_candidates", skippedArr);
 
-            com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
-            Files.writeString(planFile, gson.toJson(root), java.nio.charset.StandardCharsets.UTF_8);
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            Files.writeString(planFile, gson.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            LOGGER.warn("[SA] Failed to write optimize plan JSON: {}", e.getMessage());
+            LOGGER.warn("[SA] Failed to write plan JSON: {}", e.getMessage());
         }
     }
 
@@ -610,7 +564,7 @@ public class OptimizeAssistant {
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent",
-                "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
+                "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
             conn.setConnectTimeout(CONNECT_TIMEOUT);
             conn.setReadTimeout(READ_TIMEOUT);
             conn.setRequestMethod("GET");
@@ -749,4 +703,3 @@ public class OptimizeAssistant {
         }
     }
 }
-

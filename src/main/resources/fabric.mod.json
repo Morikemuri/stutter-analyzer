@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "stutteranalyzer",
+  "version": "${version}",
+  "name": "Stutter Analyzer",
+  "description": "Detect stutters, freezes, and tick spikes with clear diagnostics and shareable performance reports.",
+  "authors": ["Morikemuri"],
+  "contact": {
+    "homepage": "https://github.com/Morikemuri/stutter-analyzer",
+    "sources": "https://github.com/Morikemuri/stutter-analyzer",
+    "issues": "https://github.com/Morikemuri/stutter-analyzer/issues"
+  },
+  "license": "ARR",
+  "icon": "assets/stutteranalyzer/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.stutteranalyzer.StutterAnalyzerFabric"
+    ],
+    "client": [
+      "com.stutteranalyzer.StutterAnalyzerFabricClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
+  },
+  "mixins": [
+    "stutteranalyzer.mixins.json"
+  ]
+}

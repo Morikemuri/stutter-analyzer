@@ -1,23 +1,19 @@
 package com.stutteranalyzer.report;
 
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.SAEnvironment;
+import com.stutteranalyzer.StutterAnalyzerFabric;
 import com.stutteranalyzer.config.SAConfig;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ReportWriter {
 
-    // Report writing goes off-thread. The server thread has suffered enough.
     private static final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "stutteranalyzer-report-writer");
         t.setDaemon(true);
@@ -32,7 +28,7 @@ public class ReportWriter {
             try {
                 write(report);
             } catch (Throwable t) {
-                StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] ReportWriter failed: {}", t.getMessage(), t);
+                StutterAnalyzerFabric.LOGGER.error("[StutterAnalyzer] ReportWriter failed: {}", t.getMessage(), t);
             }
         });
     }
@@ -66,23 +62,17 @@ public class ReportWriter {
         }
 
         savedReports++;
-        StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Report saved: {}", report.reportId);
+        StutterAnalyzerFabric.LOGGER.info("[StutterAnalyzer] Report saved: {}", report.reportId);
     }
 
     private static Path resolveReportDir() {
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            File gameDir = Minecraft.getInstance().gameDirectory;
-            return Paths.get(gameDir.getAbsolutePath(), "config", "stutter-analyzer", "reports");
-        } else {
-            return Paths.get("config", "stutter-analyzer", "reports");
-        }
+        return SAEnvironment.getConfigDir().resolve("stutter-analyzer/reports");
     }
 
     private static void enforceMaxReports(Path dir) {
         int max = SAConfig.INSTANCE.maxReports.get();
         File[] files = dir.toFile().listFiles((d, n) -> n.endsWith(".md") || n.endsWith(".json"));
         if (files == null || files.length <= max * 2) return;
-        // Evict the oldest reports. Storage is not infinite, sadly.
         java.util.Arrays.sort(files, java.util.Comparator.comparingLong(File::lastModified));
         int toDelete = files.length - max * 2;
         for (int i = 0; i < toDelete; i++) {

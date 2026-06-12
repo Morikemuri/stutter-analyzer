@@ -1,6 +1,6 @@
 package com.stutteranalyzer.guard;
 
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.StutterAnalyzerFabric;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.guard.rubidium.RubidiumLavaCrashGuard;
 
@@ -48,7 +48,7 @@ public class EmergencyGuardManager {
             if (level == EmergencyGuard.SafetyLevel.SAFE_AUTO_GUARD && emergencyMode && confidence >= minConf) {
                 EmergencyGuardResult result = guard.apply(ctx);
                 recordReport(guard.patternId(), result);
-                StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] Guard triggered: {} - {}", guard.patternId(), result.logMessage);
+                StutterAnalyzerFabric.LOGGER.warn("[StutterAnalyzer] Guard triggered: {} - {}", guard.patternId(), result.logMessage);
                 return result;
             } else if (confidence >= warnConf) {
                 EmergencyGuardResult result = EmergencyGuardResult.warnOnly(guard.patternId(), confidence,

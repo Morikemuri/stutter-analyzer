@@ -2,9 +2,9 @@ package com.stutteranalyzer.knowledge;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.stutteranalyzer.StutterAnalyzerMod;
+import com.stutteranalyzer.SAEnvironment;
+import com.stutteranalyzer.StutterAnalyzerFabric;
 import com.stutteranalyzer.core.SubsystemHealth;
-import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,18 +24,16 @@ public class OptimizationModKnowledgeBase {
 
     public static void load() {
         try {
-            // Load from bundled resource. Do not do this every tick. Once is enough.
             InputStream bundled = OptimizationModKnowledgeBase.class.getResourceAsStream(
                 "/assets/stutteranalyzer/optimization_mods.json");
 
-            // Try local override first - useful for adding custom mod entries without touching the JAR
-            Path localOverride = FMLPaths.CONFIGDIR.get().resolve("stutter-analyzer/optimization_mods.local.json");
+            Path localOverride = SAEnvironment.getConfigDir().resolve("stutter-analyzer/optimization_mods.local.json");
             InputStream src = (Files.exists(localOverride) && !Files.isDirectory(localOverride))
                 ? Files.newInputStream(localOverride)
                 : bundled;
 
             if (src == null) {
-                StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] optimization_mods.json not found. Knowledge subsystem disabled.");
+                StutterAnalyzerFabric.LOGGER.warn("[StutterAnalyzer] optimization_mods.json not found. Knowledge subsystem disabled.");
                 SubsystemHealth.setStatus("ModInventory", SubsystemHealth.Status.DISABLED, "optimization_mods.json missing");
                 return;
             }
@@ -46,9 +44,9 @@ public class OptimizationModKnowledgeBase {
                 data = gson.fromJson(r, type);
             }
             loaded = true;
-            StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Optimization mod knowledge base loaded ({} entries).", data.size());
+            StutterAnalyzerFabric.LOGGER.info("[StutterAnalyzer] Optimization mod knowledge base loaded ({} entries).", data.size());
         } catch (Throwable t) {
-            StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] Failed to load knowledge base: {}", t.getMessage(), t);
+            StutterAnalyzerFabric.LOGGER.error("[StutterAnalyzer] Failed to load knowledge base: {}", t.getMessage(), t);
             SubsystemHealth.setStatus("ModInventory", SubsystemHealth.Status.DEGRADED, "knowledge base load error: " + t.getMessage());
         }
     }

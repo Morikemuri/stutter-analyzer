@@ -1,7 +1,6 @@
 package com.stutteranalyzer.knowledge;
 
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.forgespi.language.IModInfo;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,17 +20,18 @@ public class ModInventory {
 
     public static List<ModEntry> snapshot() {
         List<ModEntry> entries = new ArrayList<>();
-        for (IModInfo info : ModList.get().getMods()) {
+        for (var container : FabricLoader.getInstance().getAllMods()) {
+            var meta = container.getMetadata();
             entries.add(new ModEntry(
-                info.getModId(),
-                info.getDisplayName(),
-                info.getVersion().toString()
+                meta.getId(),
+                meta.getName(),
+                meta.getVersion().getFriendlyString()
             ));
         }
         return entries;
     }
 
     public static boolean isInstalled(String modId) {
-        return ModList.get().isLoaded(modId);
+        return FabricLoader.getInstance().isModLoaded(modId);
     }
 }

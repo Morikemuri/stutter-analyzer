@@ -1,6 +1,6 @@
 {
   "pack": {
-    "description": "${mod_id} resources",
-    "pack_format": 34
+    "description": "stutteranalyzer resources",
+    "pack_format": 22
   }
 }
