@@ -11,7 +11,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 
 public class ClientCommandRegistrar {
 
@@ -36,10 +36,10 @@ public class ClientCommandRegistrar {
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher, String root) {
         dispatcher.register(Commands.literal(root)
 
-            // ── bare /sa ──────────────────────────────────────────────────────
+            // â”€â”€ bare /sa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .executes(ctx -> CommonCommandLogic.quickDashboard(ctx.getSource()))
 
-            // ── main ──────────────────────────────────────────────────────────
+            // â”€â”€ main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("help")
                 .executes(ctx -> CommonCommandLogic.showHelp(ctx.getSource())))
             .then(Commands.literal("status")
@@ -49,7 +49,7 @@ public class ClientCommandRegistrar {
             .then(Commands.literal("privacy")
                 .executes(ctx -> CommonCommandLogic.showPrivacy(ctx.getSource())))
 
-            // ── alerts ────────────────────────────────────────────────────────
+            // â”€â”€ alerts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("alerts")
                 .executes(ctx -> CommonCommandLogic.alertsStatus(ctx.getSource()))
                 .then(Commands.literal("status")
@@ -71,11 +71,11 @@ public class ClientCommandRegistrar {
                         .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.alertsCooldown(
                             ctx.getSource(), IntegerArgumentType.getInteger(ctx, "seconds")))))))
 
-            // ── preview (alias for submit preview) ───────────────────────────
+            // â”€â”€ preview (alias for submit preview) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("preview")
                 .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitPreview(ctx.getSource()))))
 
-            // ── submit ────────────────────────────────────────────────────────
+            // â”€â”€ submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("submit")
                 .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitLast(ctx.getSource())))
                 .then(Commands.literal("preview")
@@ -85,17 +85,17 @@ public class ClientCommandRegistrar {
                 .then(Commands.literal("health")
                     .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.submitHealth(ctx.getSource())))))
 
-            // ── reports ───────────────────────────────────────────────────────
+            // â”€â”€ reports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("reports")
                 .executes(ctx -> CommonCommandLogic.listReports(ctx.getSource())))
             .then(Commands.literal("last")
                 .executes(ctx -> CommonCommandLogic.showLast(ctx.getSource())))
 
-            // ── f3 (client-side, actual implementation) ───────────────────────
+            // â”€â”€ f3 (client-side, actual implementation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("f3")
                 .executes(ctx -> {
                     boolean enabled = SAConfig.INSTANCE.debugHudEnabled.get();
-                    String current = F3StatusFormatter.format().replaceAll("§.", "");
+                    String current = F3StatusFormatter.format().replaceAll("Â§.", "");
                     ctx.getSource().sendSuccess(() -> CommandFeedback.row(
                         Component.translatable("stutteranalyzer.row.f3_status_line"),
                         Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
@@ -118,7 +118,7 @@ public class ClientCommandRegistrar {
                 .then(Commands.literal("status")
                     .executes(ctx -> {
                         boolean enabled = DebugHudStatusProvider.isF3Enabled();
-                        String current = F3StatusFormatter.format().replaceAll("§.", "");
+                        String current = F3StatusFormatter.format().replaceAll("Â§.", "");
                         ctx.getSource().sendSuccess(() -> CommandFeedback.row(
                             Component.translatable("stutteranalyzer.row.f3_status_line"),
                             Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
@@ -127,7 +127,7 @@ public class ClientCommandRegistrar {
                         return 1;
                     })))
 
-            // ── overlay (placeholder: not implemented in this build) ──────────
+            // â”€â”€ overlay (placeholder: not implemented in this build) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("overlay")
                 .executes(ctx -> CommonCommandLogic.overlayUnavailable(ctx.getSource()))
                 .then(Commands.literal("on")
@@ -143,7 +143,7 @@ public class ClientCommandRegistrar {
                 .then(Commands.literal("status")
                     .executes(ctx -> CommonCommandLogic.overlayUnavailable(ctx.getSource()))))
 
-            // ── show <time> ───────────────────────────────────────────────────
+            // â”€â”€ show <time> â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("show")
                 .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.showRecentEvents(
                     ctx.getSource(), "15m")))
@@ -151,7 +151,7 @@ public class ClientCommandRegistrar {
                     .executes(ctx -> safe(ctx.getSource(), () -> CommonCommandLogic.showRecentEvents(
                         ctx.getSource(), StringArgumentType.getString(ctx, "time"))))))
 
-            // ── optimize ──────────────────────────────────────────────────────
+            // â”€â”€ optimize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             .then(Commands.literal("optimize")
                 .executes(ctx -> CommonCommandLogic.optimizeSuggest(ctx.getSource()))
                 .then(Commands.literal("suggest")

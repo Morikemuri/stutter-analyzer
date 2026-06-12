@@ -33,39 +33,46 @@ public class StutterAnalyzerMod {
     public static final String MOD_ID        = "stutteranalyzer";
     public static final String MOD_VERSION   = "0.4.0";
     // The one true Minecraft version - hardcoded strings hiding in dark corners are how ports go stale
-    public static final String MC_VERSION    = "1.21.4";
+    public static final String MC_VERSION    = "1.21.6";
     public static final String BUILD_ID      = "release";
-    public static final String BUILD_DATE    = "2026-06-11-b1-1214";
+    public static final String BUILD_DATE    = "2026-06-11-b1-1216";
     public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,submit-cloudflare-v2,config-migration,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public StutterAnalyzerMod() {
         SAConfig.register(ModLoadingContext.get());
 
-        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        // EventBus 7 (Forge 56+): every event brings its own BUS to the party,
+        // and the mod lifecycle events ask for your BusGroup at the door
+        var modBus = FMLJavaModLoadingContext.get().getModBusGroup();
 
-        modBus.addListener(this::onCommonSetup);
+        net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent.getBus(modBus)
+            .addListener(this::onCommonSetup);
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            modBus.addListener(ClientSetup::onClientSetup);
+            FMLClientSetupEvent.getBus(modBus).addListener(ClientSetup::onClientSetup);
 
             // Forge bus - client tick and player login
-            MinecraftForge.EVENT_BUS.addListener(ClientSetup::onClientTick);
-            MinecraftForge.EVENT_BUS.addListener(ClientSetup::onPlayerLoggedIn);
+            TickEvent.ClientTickEvent.BUS.addListener(ClientSetup::onClientTick);
+            net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingIn.BUS
+                .addListener(ClientSetup::onPlayerLoggedIn);
 
             // F3 debug screen line
-            MinecraftForge.EVENT_BUS.addListener(F3StatusLineRenderer::onDebugText);
+            net.minecraftforge.client.event.CustomizeGuiOverlayEvent.DebugText.BUS
+                .addListener(F3StatusLineRenderer::onDebugText);
         }
 
         // Server tick - tracks MSPT and fires FreezeDetector on both client and dedicated server
-        MinecraftForge.EVENT_BUS.addListener(StutterAnalyzerMod::onServerTick);
+        TickEvent.ServerTickEvent.BUS.addListener(StutterAnalyzerMod::onServerTick);
 
         // Server commands - registered on Forge bus explicitly (works on both client and dedicated server)
-        MinecraftForge.EVENT_BUS.addListener(ServerCommandRegistrar::onRegisterCommands);
+        net.minecraftforge.event.RegisterCommandsEvent.BUS
+            .addListener(ServerCommandRegistrar::onRegisterCommands);
 
         // Client commands - only on client
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            MinecraftForge.EVENT_BUS.addListener(ClientCommandRegistrar::onRegisterClientCommands);
+            net.minecraftforge.client.event.RegisterClientCommandsEvent.BUS
+                .addListener(ClientCommandRegistrar::onRegisterClientCommands);
         }
 
         LOGGER.info("[StutterAnalyzer] Loaded StutterAnalyzer {} build={} id=[{}]",

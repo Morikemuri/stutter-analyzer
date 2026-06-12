@@ -3,7 +3,7 @@ package com.stutteranalyzer.client;
 import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.core.SubsystemHealth;
 import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 
 public class F3StatusLineRenderer {
 
