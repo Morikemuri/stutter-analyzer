@@ -11,7 +11,7 @@ public final class PlatformInfo {
     public static String loaderVersion() { return SAEnvironment.getLoaderVersion(); }
 
     // The one true Minecraft version - everything else asks here instead of hardcoding
-    public static String minecraftVersion() { return "1.21.4"; }
+    public static String minecraftVersion() { return "1.21.6"; }
 
     public static boolean isForge() { return "forge".equalsIgnoreCase(SAEnvironment.getLoaderName()); }
 

@@ -352,21 +352,17 @@ public class CommonCommandLogic {
         // Always show project links - /sa update is gone, this is now the one stop shop
         net.minecraft.network.chat.Component cfLink = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.open_page")
             .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                    net.minecraft.network.chat.ClickEvent.Action.OPEN_URL,
-                    "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer/"))
-                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
-                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenUrl(
+                    java.net.URI.create("https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer/")))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
                     net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.hover.curseforge")))
                 .withColor(net.minecraft.ChatFormatting.AQUA)
                 .withUnderlined(true));
         net.minecraft.network.chat.Component ghLink = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.open_repo")
             .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                    net.minecraft.network.chat.ClickEvent.Action.OPEN_URL,
-                    "https://github.com/Morikemuri/stutter-analyzer"))
-                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
-                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenUrl(
+                    java.net.URI.create("https://github.com/Morikemuri/stutter-analyzer")))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
                     net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.hover.github")))
                 .withColor(net.minecraft.ChatFormatting.AQUA)
                 .withUnderlined(true));
@@ -791,7 +787,7 @@ public class CommonCommandLogic {
             Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
         ), false);
         if (enabled) {
-            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("Â§.", "");
+            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("Ãƒâ€šÃ‚Â§.", "");
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
         }
         return 1;
@@ -851,7 +847,7 @@ public class CommonCommandLogic {
             StutterAnalyzerFabric.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
         }
         java.nio.file.Path gameDir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
-        String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
+        String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().name();
         boolean isServer = !SAFabricPlatform.isClient();
 
         com.stutteranalyzer.optimize.OptimizeInstaller.startScan();
@@ -978,8 +974,7 @@ public class CommonCommandLogic {
         }
         Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
             .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                    net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/sa optimize install"))
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent.RunCommand("/sa optimize install"))
                 .withUnderlined(true)
                 .withColor(net.minecraft.ChatFormatting.GREEN));
         out.add(CommandFeedback.info(installBtn));
