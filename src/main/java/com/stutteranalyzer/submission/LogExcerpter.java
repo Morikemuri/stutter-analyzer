@@ -1,8 +1,10 @@
 package com.stutteranalyzer.submission;
 
-import com.stutteranalyzer.SAEnvironment;
-import com.stutteranalyzer.StutterAnalyzerFabric;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.config.SAConfig;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -62,7 +64,7 @@ public class LogExcerpter {
         int maxChars      = SAConfig.INSTANCE.maxLogExcerptChars.get();
 
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFile();
             if (logFile == null || !Files.exists(logFile)) {
                 return "No relevant latest.log excerpt was found for this report.";
             }
@@ -70,7 +72,7 @@ public class LogExcerpter {
             long fileSize = Files.size(logFile);
             if (fileSize == 0) return "No relevant latest.log excerpt was found for this report.";
 
-            long readOffset = Math.max(0, fileSize - 262144);
+            long readOffset = Math.max(0, fileSize - 262144); // read last 256KB
             byte[] buf;
             try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
                 raf.seek(readOffset);
@@ -94,6 +96,7 @@ public class LogExcerpter {
                 }
             }
 
+            // If no timestamp/keyword match, use last maxLines lines
             if (relevant.isEmpty()) {
                 for (int i = Math.max(0, allLines.length - maxLines); i < allLines.length; i++) {
                     String stripped = allLines[i].stripTrailing();
@@ -119,24 +122,27 @@ public class LogExcerpter {
             }
             return sanitized.text();
         } catch (Exception e) {
-            StutterAnalyzerFabric.LOGGER.debug("[SA] Log excerpt extraction failed: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.debug("[SA] Log excerpt extraction failed: {}", e.getMessage());
             return "No relevant latest.log excerpt was found for this report.";
         }
     }
 
     private static boolean isRelevantLine(String line, int eventTotalSecs, int contextSecs) {
         String lineLower = line.toLowerCase(Locale.ROOT);
+        // Check timestamp proximity (Minecraft log format: [HH:MM:SS])
         if (line.length() >= 10 && line.charAt(0) == '[') {
             int closeIdx = line.indexOf(']');
             if (closeIdx > 0 && closeIdx <= 9) {
                 int lineSecs = parseHHMMSS(line.substring(1, closeIdx));
                 if (lineSecs >= 0 && eventTotalSecs >= 0) {
                     int diff = Math.abs(lineSecs - eventTotalSecs);
+                    // Handle midnight wrap
                     if (diff > 43200) diff = 86400 - diff;
                     if (diff <= contextSecs) return true;
                 }
             }
         }
+        // Check keywords
         for (String kw : KEYWORDS) {
             if (lineLower.contains(kw)) return true;
         }
@@ -160,7 +166,7 @@ public class LogExcerpter {
 
         int maxChars = SAConfig.INSTANCE.maxFullLogChars.get();
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFile();
             if (logFile == null || !Files.exists(logFile)) return null;
 
             long fileSize = Files.size(logFile);
@@ -182,12 +188,12 @@ public class LogExcerpter {
 
             ReportSanitizer.SanitizeResult sanitized = ReportSanitizer.sanitize(content);
             if (sanitized.hadSensitiveData()) {
-                StutterAnalyzerFabric.LOGGER.warn("[SA] Full log blocked: sensitive data detected.");
+                StutterAnalyzerNeo.LOGGER.warn("[SA] Full log blocked: sensitive data detected.");
                 return null;
             }
             return sanitized.text();
         } catch (Exception e) {
-            StutterAnalyzerFabric.LOGGER.debug("[SA] Full log read failed: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.debug("[SA] Full log read failed: {}", e.getMessage());
             return null;
         }
     }
@@ -208,7 +214,7 @@ public class LogExcerpter {
 
     private static String doExtractStutterLogEvents(int maxLines) {
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFile();
             if (logFile == null || !Files.exists(logFile)) return "latest.log could not be read.";
             List<String> matching = new ArrayList<>();
             try (var reader = Files.newBufferedReader(logFile, StandardCharsets.UTF_8)) {
@@ -251,7 +257,7 @@ public class LogExcerpter {
 
     private static String doExtractUnknownFreezeContext(int linesBefore, int linesAfter, int maxEvents) {
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFile();
             if (logFile == null || !Files.exists(logFile)) return "latest.log could not be read.";
             List<String> allLines = new ArrayList<>();
             long maxBytes = 2 * 1024 * 1024L;
@@ -304,7 +310,7 @@ public class LogExcerpter {
 
     private static String doExtractSuspiciousSignals(int maxLines) {
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFile();
             if (logFile == null || !Files.exists(logFile)) return "latest.log could not be read.";
             List<String> matching = new ArrayList<>();
             try (var reader = Files.newBufferedReader(logFile, StandardCharsets.UTF_8)) {
@@ -323,4 +329,17 @@ public class LogExcerpter {
             return "Could not extract suspicious signals: " + e.getMessage();
         }
     }
+
+    private static Path resolveLogFile() {
+        try {
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                try {
+                    return net.minecraft.client.Minecraft.getInstance()
+                        .gameDirectory.toPath().resolve("logs/latest.log");
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
+    }
 }
+

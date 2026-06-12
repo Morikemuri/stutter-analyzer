@@ -1,6 +1,8 @@
 package com.stutteranalyzer.classifier;
 
-import com.stutteranalyzer.SAEnvironment;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -8,6 +10,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
+/**
+ * Secondary classifier that reads recent log content to identify contributing
+ * context when the primary metrics-based classifier cannot determine a cause.
+ * Only runs for UNKNOWN_FREEZE events >= 250 ms.
+ * Reads last 128 KB of latest.log - fast and non-blocking on background thread.
+ */
 public class LogContextClassifier {
 
     public record ContextResult(
@@ -49,11 +57,11 @@ public class LogContextClassifier {
 
     public static ContextResult detectContext() {
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFile();
             if (logFile == null || !Files.exists(logFile)) return ContextResult.empty();
 
             long fileSize = Files.size(logFile);
-            long readOffset = Math.max(0, fileSize - 131072L);
+            long readOffset = Math.max(0, fileSize - 131072L); // last 128 KB
             byte[] buf;
             try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
                 raf.seek(readOffset);
@@ -82,4 +90,17 @@ public class LogContextClassifier {
         }
         return false;
     }
+
+    private static Path resolveLogFile() {
+        try {
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                try {
+                    return net.minecraft.client.Minecraft.getInstance()
+                        .gameDirectory.toPath().resolve("logs/latest.log");
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
+    }
 }
+

@@ -1,6 +1,6 @@
 package com.stutteranalyzer.client;
 
-import com.stutteranalyzer.StutterAnalyzerFabric;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
@@ -10,37 +10,52 @@ import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.QuietMode;
 import com.stutteranalyzer.core.StutterCounter;
+import com.stutteranalyzer.core.SubsystemHealth;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.update.UpdateCheckResult;
 import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 
-public class FabricClientSetup {
+public class ClientSetup {
 
     private static boolean startupMessageShown = false;
     private static int tickCounter = 0;
+    // Aggregate chat suppression state
     private static long lastAggregateChatShownTime = 0;
     private static long lastAggregateShownCount = 0;
     private static long lastAggregateShownWorstMs = 0;
 
-    public static void onClientTick(Minecraft client) {
+    public static void onClientSetup(FMLClientSetupEvent event) {
+        StutterAnalyzerNeo.LOGGER.info("[StutterAnalyzer] NeoForge client setup complete.");
+        SubsystemHealth.setStatus("F3StatusLineRenderer", SubsystemHealth.Status.OK, null);
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent.Post event) {
         MetricsCollector.onClientTick();
         long frameMs = (long) MetricsCollector.frameTime().currentFrameMs();
+        // Strictly above threshold: a tick of exactly minorFrameMs is normal, not a stutter
         if (frameMs > SAConfig.INSTANCE.minorFrameMs.get()) {
             FreezeDetector.onClientFrameSpike(frameMs, MetricsCollector.eventBuffer(), false);
         }
 
+        // Immediate F3 refresh requested by debug commands or stutter injection
         if (AnalyzerRuntimeState.consumeF3RefreshRequest()) {
-            safeRefreshHud();
+            safeRefreshF3();
         }
 
         tickCounter++;
         if (tickCounter % 20 == 0) {
-            safeRefreshHud();
+            safeRefreshF3();
         }
 
+        // AlertManager: preset-based chat alerts for all categories
         AlertManager.PendingAlert alert = AlertManager.consumePendingAlert();
         if (alert != null) {
             showAlertMessage(alert);
@@ -49,13 +64,17 @@ public class FabricClientSetup {
         // Async optimize scan result
         java.util.List<net.minecraft.network.chat.Component> scanMsgs =
             com.stutteranalyzer.optimize.OptimizeInstaller.consumePendingScanMessages();
-        if (scanMsgs != null && client.player != null) {
-            for (net.minecraft.network.chat.Component c : scanMsgs) {
-                // sendSystemMessage left the client in 1.21.2 - displayClientMessage holds the fort
-                client.player.displayClientMessage(c, false);
+        if (scanMsgs != null) {
+            Minecraft mc2 = Minecraft.getInstance();
+            if (mc2.player != null) {
+                for (net.minecraft.network.chat.Component c : scanMsgs) {
+                    // sendSystemMessage left the client in 1.21.2 - displayClientMessage holds the fort
+                    mc2.player.displayClientMessage(c, false);
+                }
             }
         }
 
+        // Aggregate minor stutter notification - smart suppression (gated on alert mode)
         long[] aggregate = FreezeDetector.consumeAggregateNotification();
         if (aggregate != null && SAConfig.INSTANCE.aggregateRepeatedMinorStutters.get()
                 && SAConfig.INSTANCE.minorAggregateChatEnabled.get()
@@ -75,28 +94,31 @@ public class FabricClientSetup {
                     int minWorst = SAConfig.INSTANCE.minorAggregateMinWorstIncreaseMs.get();
                     shouldShow = countIncrease >= minCount || worstIncrease >= minWorst;
                 }
-                if (shouldShow && client.player != null) {
-                    int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
-                    client.player.displayClientMessage(
-                        Component.translatable("stutteranalyzer.alerts.aggregate.small", count, window, worst)
-                            .withStyle(ChatFormatting.GREEN), false);
-                    lastAggregateChatShownTime = now;
-                    lastAggregateShownCount = count;
-                    lastAggregateShownWorstMs = worst;
+                if (shouldShow) {
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc.player != null) {
+                        int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
+                        mc.player.displayClientMessage(Component.translatable(
+                            "stutteranalyzer.alerts.aggregate.small", count, window, worst).withStyle(ChatFormatting.GREEN), false);
+                        lastAggregateChatShownTime = now;
+                        lastAggregateShownCount = count;
+                        lastAggregateShownWorstMs = worst;
+                    }
                 }
             }
         }
     }
 
-    private static void safeRefreshHud() {
+    private static void safeRefreshF3() {
         try {
             DebugHudStatusProvider.refresh();
         } catch (Throwable t) {
-            StutterAnalyzerFabric.LOGGER.error("[SA] HUD refresh failed: {}", t.getMessage(), t);
+            StutterAnalyzerNeo.LOGGER.error("[SA] F3 refresh failed: {}", t.getMessage(), t);
         }
     }
 
-    public static void onPlayerLoggedIn() {
+    @SubscribeEvent
+    public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
         showStartupMessageIfNeeded();
         showUpdateNotificationIfNeeded();
     }
@@ -109,8 +131,8 @@ public class FabricClientSetup {
         int severe  = SAConfig.INSTANCE.severeFrameMs.get();
         int extreme = SAConfig.INSTANCE.extremeFrameMs.get();
         int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
-        boolean isUnknown   = event.category() == FreezeCategory.UNKNOWN_FREEZE;
-        boolean isPeriodic  = event.category() == FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
+        boolean isUnknown = event.category() == FreezeCategory.UNKNOWN_FREEZE;
+        boolean isPeriodic = event.category() == FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
         boolean isScheduled = event.category() == FreezeCategory.PERIODIC_SCHEDULED_MICRO_HITCH;
         String catName = event.category().name();
 
@@ -166,12 +188,13 @@ public class FabricClientSetup {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (SAConfig.INSTANCE.mentionSilentMinorTracking.get()) {
-            mc.player.displayClientMessage(
-                Component.translatable("stutteranalyzer.startup.loaded_silent").withStyle(ChatFormatting.GREEN), false);
+            mc.player.displayClientMessage(Component.translatable("stutteranalyzer.startup.loaded_silent").withStyle(ChatFormatting.GREEN), false);
         } else {
             mc.player.displayClientMessage(
                 Component.literal("[Stutter Analyzer] ").withStyle(ChatFormatting.GRAY)
-                .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN)), false);
+                .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN)),
+                false
+            );
         }
         startupMessageShown = true;
     }

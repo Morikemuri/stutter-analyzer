@@ -11,7 +11,7 @@ public class AlertHoverText {
         Component hover = Component.translatable(hoverKey(category), ms);
         return visibleMsg.copy()
             .withStyle(s -> s.withColor(ChatFormatting.GREEN)
-                .withHoverEvent(new HoverEvent.ShowText(hover))); // 1.21.5+ records: short, sweet, sealed
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover)));
     }
 
     private static String hoverKey(FreezeCategory cat) {

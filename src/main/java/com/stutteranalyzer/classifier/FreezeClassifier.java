@@ -1,12 +1,14 @@
 package com.stutteranalyzer.classifier;
 
-import com.stutteranalyzer.SAEnvironment;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.events.RecentEventBuffer;
 import com.stutteranalyzer.metrics.FrameTimeTracker;
 import com.stutteranalyzer.metrics.MemoryGcTracker;
 import com.stutteranalyzer.metrics.ServerTickTracker;
 import com.stutteranalyzer.report.FreezeEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -38,19 +40,24 @@ public class FreezeClassifier {
 
         double minConf = SAConfig.INSTANCE.minimumConfidence.get();
 
+        // GC pause check
         if (mem.recentGc() && mem.lastGcPauseMs() >= durationMs * 0.5) {
             confidence = 0.80;
             category = FreezeCategory.GARBAGE_COLLECTION;
             reason = "GC pause duration matches freeze duration.";
             evidence = "GC pause ~" + mem.lastGcPauseMs() + " ms, heap at " + String.format("%.0f", mem.heapPercent()) + "%.";
             recommendation = "Increase JVM heap, reduce allocation rate, check GC log.";
-        } else if (mem.heapPercent() > 90) {
+        }
+        // Memory pressure check
+        else if (mem.heapPercent() > 90) {
             confidence = 0.70;
             category = FreezeCategory.MEMORY_PRESSURE;
             reason = "Heap usage above 90%.";
             evidence = "Heap: " + mem.heapUsedMb() + "/" + mem.heapMaxMb() + " MB.";
             recommendation = "Increase -Xmx, add FerriteCore/ModernFix, reduce loaded chunks.";
-        } else if (!isClient && tick.currentMspt() >= SAConfig.INSTANCE.warningMspt.get()) {
+        }
+        // Server tick spike on non-client
+        else if (!isClient && tick.currentMspt() >= SAConfig.INSTANCE.warningMspt.get()) {
             double mspt = tick.currentMspt();
             if (mspt >= SAConfig.INSTANCE.extremeMspt.get()) confidence = 0.85;
             else if (mspt >= SAConfig.INSTANCE.severeMspt.get()) confidence = 0.75;
@@ -59,7 +66,9 @@ public class FreezeClassifier {
             reason = "Server MSPT exceeded threshold.";
             evidence = "MSPT: " + String.format("%.1f", mspt) + " ms (avg " + String.format("%.1f", tick.rollingAvgMspt()) + " ms), TPS ~" + String.format("%.1f", tick.tpsEstimate()) + ".";
             recommendation = "Use spark profiler to identify the ticking hotspot.";
-        } else if (isClient && frame.currentFrameMs() >= SAConfig.INSTANCE.minorFrameMs.get()) {
+        }
+        // Client render stutter
+        else if (isClient && frame.currentFrameMs() >= SAConfig.INSTANCE.minorFrameMs.get()) {
             double frameMs = frame.currentFrameMs();
             if (frameMs >= SAConfig.INSTANCE.extremeFrameMs.get()) confidence = 0.70;
             else if (frameMs >= SAConfig.INSTANCE.severeFrameMs.get()) confidence = 0.65;
@@ -68,7 +77,9 @@ public class FreezeClassifier {
             reason = "Client frame time exceeded threshold.";
             evidence = "Frame time: " + String.format("%.1f", frameMs) + " ms.";
             recommendation = "Check GPU usage, reduce render distance, disable shaders to test.";
-        } else {
+        }
+        // Recent events pattern matching
+        else {
             for (RecentEventBuffer.GameEvent evt : recentEvents) {
                 switch (evt.type) {
                     case CHUNK_GENERATION_START, CHUNK_GENERATION_END -> {
@@ -126,10 +137,12 @@ public class FreezeClassifier {
             }
         }
 
+        // Micro-hitch detection: 50-99ms events
         if (confidence < minConf && durationMs >= 50 && durationMs < 100) {
             periodicityTracker.record(durationMs);
             PeriodicityTracker.PeriodicResult periodic = periodicityTracker.detect(durationMs);
             if (periodic != null && periodic.isScheduled()) {
+                // Matches a known scheduler interval (5s/10s/30s/60s/120s/300s)
                 category = FreezeCategory.PERIODIC_SCHEDULED_MICRO_HITCH;
                 confidence = 0.70;
                 reason = "Repeated minor hitch at a stable ~" + formatIntervalS(periodic.periodMsEstimate()) + " interval matching a common scheduler period.";
@@ -137,6 +150,7 @@ public class FreezeClassifier {
                 recommendation = "Usually harmless. A small hitch repeats at a scheduled interval. If noticeable, try disabling overlays, skin/cape polling mods, or launcher cosmetic features one by one.";
                 periodicMeta = new FreezeEvent.PeriodicMeta(periodic.periodMsEstimate(), periodic.occurrences(), true, "UNCLASSIFIED_MICRO_HITCH", detectPossibleContext());
             } else if (periodic != null) {
+                // Regular interval but not a known scheduler period
                 category = FreezeCategory.PERIODIC_MINOR_MICRO_HITCH;
                 confidence = 0.65;
                 reason = "Repeated minor hitch detected at a stable interval.";
@@ -144,6 +158,7 @@ public class FreezeClassifier {
                 recommendation = "Usually harmless. Check background polling tasks only if it becomes frequent or noticeable.";
                 periodicMeta = new FreezeEvent.PeriodicMeta(periodic.periodMsEstimate(), periodic.occurrences(), true, "UNCLASSIFIED_MICRO_HITCH", java.util.List.of("UNKNOWN_SCHEDULED_TASK"));
             } else {
+                // Not enough history yet
                 category = FreezeCategory.UNCLASSIFIED_MICRO_HITCH;
                 confidence = 0.50;
                 reason = "Minor frame-time spike detected, but no reliable pattern matched yet.";
@@ -151,17 +166,21 @@ public class FreezeClassifier {
                 recommendation = "Usually harmless. Monitor for recurrence.";
             }
         } else if (confidence < minConf && durationMs >= 100 && durationMs < 250) {
+            // Medium-range hitch (100-249ms) - do not call it UNKNOWN_FREEZE
             category = FreezeCategory.UNCLASSIFIED_FRAME_HITCH;
             confidence = 0.50;
             reason = "Medium frame hitch with no matching pattern.";
             evidence = "Hitch duration: " + durationMs + " ms.";
             recommendation = "Enable debug mode if this recurs frequently. Check GPU and server tick around the time.";
         } else if (confidence < minConf && SAConfig.INSTANCE.unknownFreezeEnabled.get()) {
+            // Only use UNKNOWN_FREEZE for events >= 250ms that truly have no pattern
             category = FreezeCategory.UNKNOWN_FREEZE;
             reason = "No pattern matched with sufficient confidence (score " + String.format("%.0f", confidence * 100) + "% < minimum " + String.format("%.0f", minConf * 100) + "%).";
             recommendation = "Enable debug mode, reproduce the freeze, then export and submit the report.";
         }
 
+        // Secondary log-context pass: for UNKNOWN_FREEZE >= 250ms, scan latest.log for
+        // watchdog/C2ME/GC patterns and promote to SERVER_TICK_SPIKE when evidence is strong.
         if (category == FreezeCategory.UNKNOWN_FREEZE && durationMs >= 250) {
             LogContextClassifier.ContextResult ctx = LogContextClassifier.detectContext();
             if (ctx.hasStrongServerTickEvidence()) {
@@ -178,6 +197,7 @@ public class FreezeClassifier {
                 evidence       = String.join(". ", evParts) + ".";
                 recommendation = buildContextRecommendation(ctx);
             } else if (ctx.evidenceScore() >= 2) {
+                // Keep UNKNOWN_FREEZE but enrich with observed contributing factors
                 List<String> evParts = new ArrayList<>();
                 if (ctx.serverTickSpikeEvidence()) evParts.add("server tick spike signals");
                 if (ctx.c2meWorldgenEvidence())    evParts.add("C2ME/worldgen chunk pressure");
@@ -203,7 +223,7 @@ public class FreezeClassifier {
     private static List<String> detectPossibleContext() {
         List<String> ctx = new ArrayList<>();
         try {
-            Path logFile = SAEnvironment.getLogFile();
+            Path logFile = resolveLogFileForContext();
             if (logFile != null && Files.exists(logFile)) {
                 long fileSize = Files.size(logFile);
                 long offset = Math.max(0, fileSize - 32768L);
@@ -232,6 +252,18 @@ public class FreezeClassifier {
         return false;
     }
 
+    private static Path resolveLogFileForContext() {
+        try {
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                try {
+                    return net.minecraft.client.Minecraft.getInstance()
+                        .gameDirectory.toPath().resolve("logs/latest.log");
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
+    }
+
     private String buildContextRecommendation(LogContextClassifier.ContextResult ctx) {
         List<String> recs = new ArrayList<>();
         if (ctx.watchdogEvidence() || ctx.serverTickSpikeEvidence())
@@ -248,3 +280,4 @@ public class FreezeClassifier {
         return String.join(". ", recs) + ".";
     }
 }
+

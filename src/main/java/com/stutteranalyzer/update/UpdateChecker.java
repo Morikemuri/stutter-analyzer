@@ -3,9 +3,9 @@ package com.stutteranalyzer.update;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.stutteranalyzer.SAEnvironment;
-import com.stutteranalyzer.StutterAnalyzerFabric;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.config.SAConfig;
+import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.net.URI;
@@ -47,6 +47,7 @@ public class UpdateChecker {
         }
     }
 
+    /** Schedules the startup update check with delay from config. Loads disk cache first. */
     public static void scheduleStartupCheck() {
         if (!SAConfig.INSTANCE.checkForUpdates.get()) return;
         if (!SAConfig.INSTANCE.checkOnStartup.get()) return;
@@ -55,13 +56,14 @@ public class UpdateChecker {
         scheduler.schedule(UpdateChecker::performCheck, delay, TimeUnit.SECONDS);
     }
 
+    /** Submits an immediate async update check (used by /sa update check). */
     public static void performCheckAsync() {
         scheduler.submit(UpdateChecker::performCheck);
     }
 
     private static void performCheck() {
         if (!SAConfig.INSTANCE.checkForUpdates.get()) {
-            StutterAnalyzerFabric.LOGGER.info("[SA] Update checks disabled by config.");
+            StutterAnalyzerNeo.LOGGER.info("[SA] Update checks disabled by config.");
             return;
         }
         String url = SAConfig.INSTANCE.updateVersionUrl.get();
@@ -82,13 +84,13 @@ public class UpdateChecker {
             UpdateCheckResult result = parseJson(response.body());
             cached.set(result);
             saveCacheToDisk(result);
-            StutterAnalyzerFabric.LOGGER.info("[SA] Update check complete. Latest: {} updateAvailable: {}",
+            StutterAnalyzerNeo.LOGGER.info("[SA] Update check complete. Latest: {} updateAvailable: {}",
                 result.latestVersion(), result.updateAvailable());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             cached.set(UpdateCheckResult.error("interrupted"));
         } catch (Exception e) {
-            StutterAnalyzerFabric.LOGGER.warn("[SA] Update check failed: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Update check failed: {}", e.getMessage());
             cached.set(UpdateCheckResult.error("could not reach GitHub"));
         }
     }
@@ -103,7 +105,7 @@ public class UpdateChecker {
             String message = str(obj, "message", "");
             boolean critical = obj.has("critical") && !obj.get("critical").isJsonNull()
                 && obj.get("critical").getAsBoolean();
-            boolean updateAvailable = SemanticVersion.isNewer(latestVersion, StutterAnalyzerFabric.MOD_VERSION);
+            boolean updateAvailable = SemanticVersion.isNewer(latestVersion, StutterAnalyzerNeo.MOD_VERSION);
             return new UpdateCheckResult(true, latestVersion, updateAvailable,
                 githubPage, curseforgeUrl, changelogUrl, message, critical, null,
                 System.currentTimeMillis());
@@ -131,7 +133,7 @@ public class UpdateChecker {
             cached.set(new UpdateCheckResult(true, latestVersion, updateAvailable,
                 githubPage, curseforgeUrl, "", "", false, null, checkedAt));
         } catch (Exception e) {
-            StutterAnalyzerFabric.LOGGER.debug("[SA] Could not load update cache: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.debug("[SA] Could not load update cache: {}", e.getMessage());
         }
     }
 
@@ -150,12 +152,12 @@ public class UpdateChecker {
                 + "}\n";
             Files.writeString(p, json);
         } catch (IOException e) {
-            StutterAnalyzerFabric.LOGGER.debug("[SA] Could not save update cache: {}", e.getMessage());
+            StutterAnalyzerNeo.LOGGER.debug("[SA] Could not save update cache: {}", e.getMessage());
         }
     }
 
     private static Path cacheFile() {
-        return SAEnvironment.getConfigDir().resolve("stutter-analyzer/update-cache.json");
+        return FMLPaths.CONFIGDIR.get().resolve("stutter-analyzer/update-cache.json");
     }
 
     private static String str(JsonObject obj, String key, String def) {
@@ -167,3 +169,4 @@ public class UpdateChecker {
         return s == null ? "null" : "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 }
+

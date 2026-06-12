@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.stutteranalyzer.StutterAnalyzerFabric;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.command.CommandFeedback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -102,8 +102,8 @@ public class OptimizeInstaller {
         }
 
         // Last line of defense: re-validate the whole plan against the live
-        // mod list before a single byte is downloaded. Fabric Loader's
-        // "Incompatible mods found!" screen is not our idea of a changelog.
+        // mod list before a single byte is downloaded. The missing-dependency
+        // screen is not our idea of a changelog.
         List<OptimizeMod> evicted = OptimizeAssistant.finalValidatePlan(plan);
         for (OptimizeMod m : evicted) {
             if (m.skipConflictWith != null) {
@@ -133,6 +133,7 @@ public class OptimizeInstaller {
         src.sendFailure(Component.translatable("stutteranalyzer.optimize.warning.line1"));
         src.sendFailure(Component.translatable("stutteranalyzer.optimize.warning.backup"));
 
+        // Compact "Planned: ModA, ModB +N" line
         int shown = Math.min(plan.recommended.size(), 5);
         String nameList = plan.recommended.subList(0, shown).stream()
             .map(m -> m.displayName).collect(java.util.stream.Collectors.joining(", "));
@@ -176,7 +177,7 @@ public class OptimizeInstaller {
                     if (!satisfied) {
                         LOGGER.warn("[SA] Install-time guard: {} is missing required dep {} - removed from install",
                             m.displayName, depId);
-                        send(src, Component.translatable("stutteranalyzer.optimize.skipped_missing_dep",
+                        send(src, Component.translatable("stutteranalyzer.optimize.dep_skipped",
                             m.displayName, depId));
                         plan.recommended.remove(m);
                         changed = true;
@@ -203,7 +204,10 @@ public class OptimizeInstaller {
 
         for (OptimizeMod mod : plan.recommended) {
             if (mod.resolvedUrl == null || mod.resolvedUrl.isEmpty()) {
-                LOGGER.info("[SA] Safety net: {} has no resolvedUrl, skipping", mod.displayName);
+                // Safety net - should not happen after pre-filtering
+                LOGGER.warn("[SA] Skipping {} - no resolved URL at install time", mod.id);
+                failedList.add(new ManifestEntry(mod.id, mod.displayName, null, null, null, "failed", "no resolved url"));
+                failCount++;
                 continue;
             }
 
@@ -309,7 +313,7 @@ public class OptimizeInstaller {
         URL url = new URL(fileUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("User-Agent",
-            "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
+            "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
         conn.setConnectTimeout(10_000);
         conn.setReadTimeout(60_000);
         conn.setInstanceFollowRedirects(true);
@@ -458,3 +462,4 @@ public class OptimizeInstaller {
         }
     }
 }
+

@@ -1,6 +1,6 @@
 package com.stutteranalyzer.classifier;
 
-import com.stutteranalyzer.StutterAnalyzerFabric;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.config.SAConfig;
 import com.stutteranalyzer.core.AlertManager;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
@@ -52,14 +52,14 @@ public class FreezeDetector {
         updateVerbosePending(frameMs);
 
         if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
-            StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Real client frame spike detected: {}ms severity={}", frameMs, severity);
+            StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Real client frame spike detected: {}ms severity={}", frameMs, severity);
         }
 
         // Step 4: Rate-limit minor/medium. Severe/extreme always go through.
         boolean isSevereOrExtreme = frameMs >= SAConfig.INSTANCE.severeFrameMs.get();
         if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
             if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
-                StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Full classification rate-limited ({}/{}ms)",
+                StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Full classification rate-limited ({}/{}ms)",
                     System.currentTimeMillis() - lastReportTime, REPORT_RATE_LIMIT_MS);
             }
             return;
@@ -171,7 +171,7 @@ public class FreezeDetector {
         }
 
         if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
-            StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Event classified: {} {}ms", event.category().name(), event.durationMs());
+            StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Event classified: {} {}ms", event.category().name(), event.durationMs());
         }
 
         if (event.category() == FreezeCategory.UNKNOWN_FREEZE) {
@@ -183,10 +183,10 @@ public class FreezeDetector {
             FreezeReport report = FreezeReport.from(event);
             ReportWriter.writeAsync(report);
             if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
-                StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Report saved for {}ms", durationMs);
+                StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Report saved for {}ms", durationMs);
             }
         } else if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
-            StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Report skipped: below threshold for {}ms", durationMs);
+            StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Report skipped: below threshold for {}ms", durationMs);
         }
 
         // Queue chat alert via AlertManager (handles all categories, cooldowns, and mode check)
@@ -226,7 +226,7 @@ public class FreezeDetector {
         recordToCounter(durationMs);
         updateVerbosePending(durationMs);
         if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
-            StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Injected silent stutter: {}ms severity={}", durationMs, severity);
+            StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Injected silent stutter: {}ms severity={}", durationMs, severity);
         }
     }
 
@@ -254,3 +254,4 @@ public class FreezeDetector {
         return null;
     }
 }
+

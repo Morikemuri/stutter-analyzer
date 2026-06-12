@@ -1,11 +1,11 @@
 package com.stutteranalyzer.command;
 
-import com.stutteranalyzer.StutterAnalyzerFabric;
+import com.stutteranalyzer.StutterAnalyzerNeo;
 import com.stutteranalyzer.classifier.FreezeCategory;
-import com.stutteranalyzer.core.AlertManager;
-import com.stutteranalyzer.core.AlertMode;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
+import com.stutteranalyzer.core.AlertManager;
+import com.stutteranalyzer.core.AlertMode;
 import com.stutteranalyzer.core.AnalyzerRuntimeState;
 import com.stutteranalyzer.core.MetricsCollector;
 import com.stutteranalyzer.core.StutterCounter;
@@ -16,7 +16,6 @@ import com.stutteranalyzer.guard.EmergencyGuard;
 import com.stutteranalyzer.guard.EmergencyGuardManager;
 import com.stutteranalyzer.guard.EmergencyGuardReport;
 import com.stutteranalyzer.knowledge.OptimizationModKnowledgeBase;
-import com.stutteranalyzer.platform.SAFabricPlatform;
 import com.stutteranalyzer.report.FreezeEvent;
 import com.stutteranalyzer.report.FreezeReport;
 import com.stutteranalyzer.report.ReportWriter;
@@ -25,10 +24,13 @@ import com.stutteranalyzer.update.UpdateCheckResult;
 import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 import com.stutteranalyzer.events.RecentEventBuffer;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -37,11 +39,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Server-safe command logic shared between /stutteranalyzer and /sa.
+ * Must not reference any client-only classes.
+ */
 public class CommonCommandLogic {
 
     public static int showStatus(CommandSourceStack src) {
         FreezeEvent last = FreezeDetector.lastFreezeEvent();
-        boolean isClient = SAFabricPlatform.isClient();
+        boolean isClient = FMLEnvironment.dist == Dist.CLIENT;
         boolean degraded = SubsystemHealth.anyDegraded();
 
         String countMode = SAConfig.INSTANCE.countMode.get();
@@ -90,6 +96,7 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.cmd.status.tracker_on")
         ), false);
 
+        // Last tracked spike
         if (lastDurationMs > 0) {
             src.sendSuccess(() -> CommandFeedback.row(
                 Component.translatable("stutteranalyzer.cmd.status.last_spike"),
@@ -100,6 +107,7 @@ public class CommonCommandLogic {
                 Component.translatable("stutteranalyzer.cmd.status.last_spike_none")), false);
         }
 
+        // Episode/frame counts
         Component minorCountComp = worstMinor > 0
             ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", minorDisplay, worstMinor)
             : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", minorDisplay);
@@ -113,6 +121,11 @@ public class CommonCommandLogic {
             ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", mediumDisplay, worstMedium)
             : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", mediumDisplay);
         src.sendSuccess(() -> CommandFeedback.row(mediumLabel, mediumCountComp), false);
+        if (showRaw && useEpisodes && mediumRaw != mediumDisplay) {
+            Component rawMediumComp = Component.translatable("stutteranalyzer.cmd.status.count_in_60s", mediumRaw);
+            src.sendSuccess(() -> CommandFeedback.row(
+                Component.translatable("stutteranalyzer.cmd.status.medium_frames"), rawMediumComp), false);
+        }
         Component severeCountComp = worstSevere > 0
             ? Component.translatable("stutteranalyzer.cmd.status.count_in_60s_worst", severeDisplay, worstSevere)
             : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", severeDisplay);
@@ -122,6 +135,7 @@ public class CommonCommandLogic {
             : Component.translatable("stutteranalyzer.cmd.status.count_in_60s", extremeDisplay);
         src.sendSuccess(() -> CommandFeedback.row(extremeLabel, extremeCountComp), false);
 
+        // Reports
         int savedReports = ReportWriter.savedReports();
         boolean saveSevere  = SAConfig.INSTANCE.saveSevereStutterReports.get();
         boolean saveExtreme = SAConfig.INSTANCE.saveExtremeReports.get();
@@ -133,6 +147,7 @@ public class CommonCommandLogic {
             Component.translatable("stutteranalyzer.row.reports_saved"),
             reportsVal), false);
 
+        // Last saved report
         FreezeReport lastSaved = ReportWriter.lastReport();
         if (lastSaved != null) {
             FreezeEvent savedEvt = lastSaved.event;
@@ -145,6 +160,7 @@ public class CommonCommandLogic {
                 Component.translatable("stutteranalyzer.cmd.status.last_report_none")), false);
         }
 
+        // Status notes about report saving
         if (!allSavingDisabled) {
             boolean nothingTracked = last == null && lastDurationMs == 0
                 && minorDisplay == 0 && mediumDisplay == 0 && severeDisplay == 0 && extremeDisplay == 0;
@@ -161,11 +177,13 @@ public class CommonCommandLogic {
             }
         }
 
+        // Crashes imported
         int crashCount = PreviousCrashImporter.allImported().size();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.crashes_imported"),
             String.valueOf(crashCount)), false);
 
+        // Aggregate cooldown
         long aggRemaining = StutterCounter.aggregateCooldownRemainingSeconds();
         if (aggRemaining > 0) {
             src.sendSuccess(() -> CommandFeedback.row(
@@ -173,11 +191,13 @@ public class CommonCommandLogic {
                 Component.translatable("stutteranalyzer.cmd.status.agg_cooldown_val", aggRemaining)), false);
         }
 
+        // Chat notifications
         boolean chatSevere = SAConfig.INSTANCE.chatNotifySevereStutters.get();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.cmd.status.chat_severe"),
             Component.translatable(chatSevere ? "stutteranalyzer.alerts.status.on" : "stutteranalyzer.alerts.status.off_val")), false);
 
+        // Submission target
         String subTarget = SAConfig.INSTANCE.submissionTarget.get();
         Component subDisplay = "cloudflare".equalsIgnoreCase(subTarget)
             ? Component.translatable("stutteranalyzer.cmd.status.submission_cloudflare")
@@ -317,240 +337,98 @@ public class CommonCommandLogic {
 
     public static int showVersion(CommandSourceStack src) {
         boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
-        Component submitDisplay = net.minecraft.network.chat.Component.translatable(cfEnabled ? "stutteranalyzer.version.submit_cloudflare" : "stutteranalyzer.version.submit_local");
-        Component uploadDisplay = net.minecraft.network.chat.Component.translatable(cfEnabled ? "stutteranalyzer.version.upload_ready" : "stutteranalyzer.version.upload_local");
+        Component submitDisplay = Component.translatable(cfEnabled ? "stutteranalyzer.version.submit_cloudflare" : "stutteranalyzer.version.submit_local");
+        Component uploadDisplay = Component.translatable(cfEnabled ? "stutteranalyzer.version.upload_ready" : "stutteranalyzer.version.upload_local");
         String javaVersion = System.getProperty("java.version", "unknown");
         int javaMajor = 0;
         try { javaMajor = Integer.parseInt(javaVersion.contains(".") ? javaVersion.split("[._-]")[0].equals("1") ? javaVersion.split("[._-]")[1] : javaVersion.split("[._-]")[0] : javaVersion); } catch (Exception ignored) {}
         final String javaDisplay = javaMajor > 0 ? String.valueOf(javaMajor) : javaVersion;
-        src.sendSuccess(() -> CommandFeedback.header(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.version"), net.minecraft.network.chat.Component.literal(StutterAnalyzerFabric.MOD_VERSION)), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.minecraft"), net.minecraft.network.chat.Component.literal(com.stutteranalyzer.platform.PlatformInfo.minecraftVersion())), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.loader"), net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.loader.fabric")), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.java"), net.minecraft.network.chat.Component.literal(javaDisplay)), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.build"), net.minecraft.network.chat.Component.literal(StutterAnalyzerFabric.BUILD_ID)), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.submit"), submitDisplay), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.upload"), uploadDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.version.header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.version"), Component.literal(StutterAnalyzerNeo.MOD_VERSION)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal(StutterAnalyzerNeo.MC_VERSION)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.neoforge")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.java"), Component.literal(javaDisplay)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.build"), Component.literal(StutterAnalyzerNeo.BUILD_ID)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.submit"), submitDisplay), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.upload"), uploadDisplay), false);
         // Update status (cached only - non-blocking)
-        com.stutteranalyzer.update.UpdateCheckResult updateResult = com.stutteranalyzer.update.UpdateChecker.getCached();
+        UpdateCheckResult updateResult = UpdateChecker.getCached();
         boolean updatesEnabled = SAConfig.INSTANCE.checkForUpdates.get();
-        net.minecraft.network.chat.Component updateStatus;
+        Component updateStatus;
         if (!updatesEnabled) {
-            updateStatus = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.disabled");
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.disabled");
         } else if (updateResult == null) {
-            com.stutteranalyzer.update.UpdateChecker.performCheckAsync();
-            updateStatus = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.checking");
+            UpdateChecker.performCheckAsync();
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.checking");
         } else if (!updateResult.success()) {
-            updateStatus = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.failed");
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.failed");
         } else if (updateResult.updateAvailable()) {
             final String latest = updateResult.latestVersion();
-            updateStatus = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.available", latest);
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.available", latest);
         } else {
-            updateStatus = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates.current");
+            updateStatus = Component.translatable("stutteranalyzer.version.updates.current");
         }
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.updates"), updateStatus), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.version.updates"), updateStatus), false);
         // Always show project links - /sa update is gone, this is now the one stop shop
-        net.minecraft.network.chat.Component cfLink = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.open_page")
+        Component cfLink = Component.translatable("stutteranalyzer.version.link.open_page")
             .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenUrl(
-                    java.net.URI.create("https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer/")))
-                .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
-                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.hover.curseforge")))
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.OPEN_URL,
+                    "https://www.curseforge.com/minecraft/mc-mods/stutter-analyzer/"))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                    Component.translatable("stutteranalyzer.version.link.hover.curseforge")))
                 .withColor(net.minecraft.ChatFormatting.AQUA)
                 .withUnderlined(true));
-        net.minecraft.network.chat.Component ghLink = net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.open_repo")
+        Component ghLink = Component.translatable("stutteranalyzer.version.link.open_repo")
             .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenUrl(
-                    java.net.URI.create("https://github.com/Morikemuri/stutter-analyzer")))
-                .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
-                    net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.hover.github")))
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.OPEN_URL,
+                    "https://github.com/Morikemuri/stutter-analyzer"))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                    Component.translatable("stutteranalyzer.version.link.hover.github")))
                 .withColor(net.minecraft.ChatFormatting.AQUA)
                 .withUnderlined(true));
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.curseforge"), cfLink), false);
-        src.sendSuccess(() -> CommandFeedback.row(net.minecraft.network.chat.Component.translatable("stutteranalyzer.version.link.github"), ghLink), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.version.link.curseforge"), cfLink), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.version.link.github"), ghLink), false);
         return 1;
     }
 
-    public static int submitLast(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Alerts Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+    public static int alertsSetMode(CommandSourceStack src, String modeName) {
+        AlertMode mode = AlertMode.fromString(modeName);
+        SAConfig.INSTANCE.alertMode.set(mode.name());
+        if (mode == AlertMode.OFF) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.off")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.off_note")), false);
+        } else if (mode == AlertMode.MINOR) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.minor")), false);
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.alerts.set.minor_note")), false);
+        } else if (mode == AlertMode.MEDIUM) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.medium")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.medium_note")), false);
+        } else if (mode == AlertMode.SEVERE) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.severe")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.severe_note")), false);
+        } else if (mode == AlertMode.EXTREME) {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.extreme")), false);
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.extreme_note")), false);
+        } else {
+            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.medium")), false);
+        }
+        return 1;
+    }
+
+    public static int alertsCooldown(CommandSourceStack src, int seconds) {
+        int clamped = Math.max(5, Math.min(600, seconds));
+        if (clamped != seconds) {
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.alerts.cooldown.range")), false);
             return 0;
         }
-        return SubmissionManager.submitLast(src);
-    }
-
-    public static int submitPreview(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        return SubmissionManager.submitPreview(src);
-    }
-
-    public static int submitReport(CommandSourceStack src, String reportId) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        return SubmissionManager.submitById(src, reportId);
-    }
-
-    public static int submitCrashLast(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        return SubmissionManager.submitCrashLast(src);
-    }
-
-    public static int submitCrash(CommandSourceStack src, String crashId) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.submit_id_hint", crashId)), false);
-        return 1;
-    }
-
-    public static int submitGuardLast(CommandSourceStack src) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        return SubmissionManager.submitGuardLast(src);
-    }
-
-    public static int submitGuard(CommandSourceStack src, String guardId) {
-        if (!CommandPermissionHelper.canSubmitReports(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.guard.submit_id_hint")), false);
-        return 1;
-    }
-
-    public static int crashLast(CommandSourceStack src) {
-        CrashEvent ce = PreviousCrashImporter.last();
-        if (ce == null) {
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.none")), false);
-            return 1;
-        }
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.last_header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.id"), ce.crashId), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.type"), ce.crashType), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.summary"), ce.summary), false);
-        if (ce.hasKnownPattern())
-            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.known_pattern"), ce.bestMatch().patternId + " (" + ce.bestMatch().confidencePct() + "%)"), false);
-        return 1;
-    }
-
-    public static int crashList(CommandSourceStack src) {
-        List<CrashEvent> all = PreviousCrashImporter.allImported();
-        if (all.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.list_none")), false);
-            return 1;
-        }
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.list_header", all.size())), false);
-        for (CrashEvent ce : all) {
-            String pat = ce.hasKnownPattern() ? " [" + ce.bestMatch().patternId + "]" : "";
-            src.sendSuccess(() -> CommandFeedback.info("- " + ce.crashId + pat), false);
-        }
-        return 1;
-    }
-
-    public static int crashShow(CommandSourceStack src, String crashId) {
-        List<CrashEvent> all = findCrash(crashId);
-        if (all.isEmpty()) {
-            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.crash.not_found", crashId)), false);
-            return 1;
-        }
-        CrashEvent ce = all.get(0);
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.header", ce.crashId)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.type"), ce.crashType), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.summary"), ce.summary), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.timestamp"), ce.timestamp.toString()), false);
-        if (ce.hasKnownPattern()) {
-            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.pattern"), ce.bestMatch().patternId), false);
-            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), ce.bestMatch().confidencePct() + "%"), false);
-            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.reason"), ce.bestMatch().reason), false);
-        }
-        return 1;
-    }
-
-    public static int crashExport(CommandSourceStack src, String crashId) {
-        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.export_hint", crashId)), false);
-        return 1;
-    }
-
-    public static int guardStatus(CommandSourceStack src) {
-        boolean em = SAConfig.INSTANCE.guardEmergencyMode.get();
-        boolean enabled = SAConfig.INSTANCE.guardEnabled.get();
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.status_header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.system_enabled"), String.valueOf(enabled)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.emergency_mode"), em ? "ENABLED" : "disabled"), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.session_triggers"), String.valueOf(com.stutteranalyzer.guard.GuardWarningRateLimiter.sessionTriggerCount())), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.guards_registered"), String.valueOf(EmergencyGuardManager.allGuards().size())), false);
-        if (em) src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.emergency_warning")), false);
-        return 1;
-    }
-
-    public static int guardList(CommandSourceStack src) {
-        List<EmergencyGuard> guards = EmergencyGuardManager.allGuards();
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.list_header", guards.size())), false);
-        for (EmergencyGuard g : guards) {
-            Component statusComp = Component.literal(g.safetyLevel().name() + " | ")
-                .append(Component.translatable(EmergencyGuardManager.isEnabled(g.patternId())
-                    ? "stutteranalyzer.guard.list.enabled"
-                    : "stutteranalyzer.guard.list.disabled"));
-            src.sendSuccess(() -> CommandFeedback.row(g.patternId(), statusComp), false);
-        }
-        return 1;
-    }
-
-    public static int guardInfo(CommandSourceStack src, String guardId) {
-        for (EmergencyGuard g : EmergencyGuardManager.allGuards()) {
-            if (g.patternId().equalsIgnoreCase(guardId) || g.patternId().toLowerCase().contains(guardId.toLowerCase())) {
-                src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.header", g.patternId())), false);
-                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.safety_level"), g.safetyLevel().name()), false);
-                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.enabled"), String.valueOf(EmergencyGuardManager.isEnabled(g.patternId()))), false);
-                return 1;
-            }
-        }
-        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.not_found", guardId)), false);
-        return 1;
-    }
-
-    public static int guardEnable(CommandSourceStack src, String guardId) {
-        if (!CommandPermissionHelper.canManageGuards(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        EmergencyGuardManager.setEnabled(guardId.toUpperCase(), true);
-        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.guard.enabled", guardId)), false);
-        return 1;
-    }
-
-    public static int guardDisable(CommandSourceStack src, String guardId) {
-        if (!CommandPermissionHelper.canManageGuards(src)) {
-            src.sendFailure(CommandFeedback.noPermission());
-            return 0;
-        }
-        EmergencyGuardManager.setEnabled(guardId.toUpperCase(), false);
-        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.disabled", guardId)), false);
-        return 1;
-    }
-
-    public static int guardReportLast(CommandSourceStack src) {
-        EmergencyGuardReport rep = EmergencyGuardManager.lastReport();
-        if (rep == null) {
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.guard.no_reports")), false);
-            return 1;
-        }
-        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.last_header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.pattern"), rep.patternId), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.outcome"), rep.outcome.name()), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), (int)(rep.confidence * 100) + "%"), false);
-        if (!rep.action.isEmpty()) src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.action"), rep.action), false);
+        SAConfig.INSTANCE.alertCooldownSeconds.set(clamped);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.cooldown.set", clamped)), false);
         return 1;
     }
 
@@ -610,37 +488,6 @@ public class CommonCommandLogic {
         return 1;
     }
 
-    public static int alertsSetMode(CommandSourceStack src, AlertMode mode) {
-        SAConfig.INSTANCE.alertMode.set(mode.name());
-        if (mode == AlertMode.OFF) {
-            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.off")), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.off_note")), false);
-        } else if (mode == AlertMode.MINOR) {
-            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.minor")), false);
-            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.alerts.set.minor_note")), false);
-        } else if (mode == AlertMode.MEDIUM) {
-            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.medium")), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.medium_note")), false);
-        } else if (mode == AlertMode.SEVERE) {
-            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.severe")), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.severe_note")), false);
-        } else if (mode == AlertMode.EXTREME) {
-            src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.set.extreme")), false);
-            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.alerts.set.extreme_note")), false);
-        }
-        return 1;
-    }
-
-    public static int alertsCooldown(CommandSourceStack src, int seconds) {
-        if (seconds < 5 || seconds > 600) {
-            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.alerts.cooldown.range")), false);
-            return 0;
-        }
-        SAConfig.INSTANCE.alertCooldownSeconds.set(seconds);
-        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.alerts.cooldown.set", seconds)), false);
-        return 1;
-    }
-
     public static int alertsTest(CommandSourceStack src) {
         AlertMode mode = AlertManager.currentMode();
         int medium  = SAConfig.INSTANCE.mediumFrameMs.get();
@@ -658,6 +505,194 @@ public class CommonCommandLogic {
                 : Component.translatable("stutteranalyzer.alerts.test.hidden", cat, ms);
             src.sendSuccess(() -> CommandFeedback.info(line), false);
         }
+        return 1;
+    }
+
+    public static int submitLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitLast(src);
+    }
+
+    public static int submitPreview(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitPreview(src);
+    }
+
+    public static int submitReport(CommandSourceStack src, String reportId) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitById(src, reportId);
+    }
+
+    public static int submitCrashLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitCrashLast(src);
+    }
+
+    public static int submitCrash(CommandSourceStack src, String crashId) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        src.sendSuccess(() -> CommandFeedback.info("Submitting latest report (crash-ID lookup not yet supported, submitting last report instead)."), false);
+        return SubmissionManager.submitLast(src);
+    }
+
+    public static int submitGuardLast(CommandSourceStack src) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        return SubmissionManager.submitGuardLast(src);
+    }
+
+    public static int submitGuard(CommandSourceStack src, String guardId) {
+        if (!CommandPermissionHelper.canSubmitReports(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        src.sendSuccess(() -> CommandFeedback.info("Submitting latest report (guard-ID lookup not yet supported, submitting last report instead)."), false);
+        return SubmissionManager.submitLast(src);
+    }
+
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Crash commands Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+    public static int crashLast(CommandSourceStack src) {
+        CrashEvent ce = PreviousCrashImporter.last();
+        if (ce == null) {
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.none")), false);
+            return 1;
+        }
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.last_header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.id"), ce.crashId), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.type"), ce.crashType), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.summary"), ce.summary), false);
+        if (ce.hasKnownPattern())
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.known_pattern"), ce.bestMatch().patternId + " (" + ce.bestMatch().confidencePct() + "%)"), false);
+        return 1;
+    }
+
+    public static int crashList(CommandSourceStack src) {
+        List<CrashEvent> all = PreviousCrashImporter.allImported();
+        if (all.isEmpty()) {
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.list_none")), false);
+            return 1;
+        }
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.list_header", all.size())), false);
+        for (CrashEvent ce : all) {
+            String pat = ce.hasKnownPattern() ? " [" + ce.bestMatch().patternId + "]" : "";
+            src.sendSuccess(() -> CommandFeedback.info("- " + ce.crashId + pat), false);
+        }
+        return 1;
+    }
+
+    public static int crashShow(CommandSourceStack src, String crashId) {
+        List<CrashEvent> all = PreviousCrashImported(crashId);
+        if (all.isEmpty()) {
+            src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.crash.not_found", crashId)), false);
+            return 1;
+        }
+        CrashEvent ce = all.get(0);
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.crash.header", ce.crashId)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.type"), ce.crashType), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.summary"), ce.summary), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.timestamp"), ce.timestamp.toString()), false);
+        if (ce.hasKnownPattern()) {
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.pattern"), ce.bestMatch().patternId), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), ce.bestMatch().confidencePct() + "%"), false);
+            src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.reason"), ce.bestMatch().reason), false);
+        }
+        return 1;
+    }
+
+    public static int crashExport(CommandSourceStack src, String crashId) {
+        src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.crash.export_hint", crashId)), false);
+        return 1;
+    }
+
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Guard commands Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+    public static int guardStatus(CommandSourceStack src) {
+        boolean em = com.stutteranalyzer.config.SAConfig.INSTANCE.guardEmergencyMode.get();
+        boolean enabled = com.stutteranalyzer.config.SAConfig.INSTANCE.guardEnabled.get();
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.status_header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.system_enabled"), String.valueOf(enabled)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.emergency_mode"), em ? "ENABLED" : "disabled"), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.session_triggers"), String.valueOf(com.stutteranalyzer.guard.GuardWarningRateLimiter.sessionTriggerCount())), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.guards_registered"), String.valueOf(EmergencyGuardManager.allGuards().size())), false);
+        if (em) src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.emergency_warning")), false);
+        return 1;
+    }
+
+    public static int guardList(CommandSourceStack src) {
+        List<EmergencyGuard> guards = EmergencyGuardManager.allGuards();
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.list_header", guards.size())), false);
+        for (EmergencyGuard g : guards) {
+            Component statusComp = Component.literal(g.safetyLevel().name() + " | ")
+                .append(Component.translatable(EmergencyGuardManager.isEnabled(g.patternId())
+                    ? "stutteranalyzer.guard.list.enabled"
+                    : "stutteranalyzer.guard.list.disabled"));
+            src.sendSuccess(() -> CommandFeedback.row(g.patternId(), statusComp), false);
+        }
+        return 1;
+    }
+
+    public static int guardInfo(CommandSourceStack src, String guardId) {
+        for (EmergencyGuard g : EmergencyGuardManager.allGuards()) {
+            if (g.patternId().equalsIgnoreCase(guardId) || g.patternId().toLowerCase().contains(guardId.toLowerCase())) {
+                src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.header", g.patternId())), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.safety_level"), g.safetyLevel().name()), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.enabled"), String.valueOf(EmergencyGuardManager.isEnabled(g.patternId()))), false);
+                src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.config_key"), g.patternId().toLowerCase()), false);
+                return 1;
+            }
+        }
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.not_found", guardId)), false);
+        return 1;
+    }
+
+    public static int guardEnable(CommandSourceStack src, String guardId) {
+        if (!CommandPermissionHelper.canManageGuards(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        EmergencyGuardManager.setEnabled(guardId.toUpperCase(), true);
+        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.guard.enabled", guardId)), false);
+        return 1;
+    }
+
+    public static int guardDisable(CommandSourceStack src, String guardId) {
+        if (!CommandPermissionHelper.canManageGuards(src)) {
+            src.sendFailure(CommandFeedback.noPermission());
+            return 0;
+        }
+        EmergencyGuardManager.setEnabled(guardId.toUpperCase(), false);
+        src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.cmd.guard.disabled", guardId)), false);
+        return 1;
+    }
+
+    public static int guardReportLast(CommandSourceStack src) {
+        EmergencyGuardReport rep = EmergencyGuardManager.lastReport();
+        if (rep == null) {
+            src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.guard.no_reports")), false);
+            return 1;
+        }
+        src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.cmd.guard.last_header")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.pattern"), rep.patternId), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.outcome"), rep.outcome.name()), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.confidence"), (int)(rep.confidence * 100) + "%"), false);
+        if (!rep.action.isEmpty()) src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.action"), rep.action), false);
         return 1;
     }
 
@@ -698,37 +733,37 @@ public class CommonCommandLogic {
         boolean degraded = SubsystemHealth.anyDegraded();
         boolean cfEnabled = SubmissionManager.isCloudflareEnabled();
         int reports = ReportWriter.savedReports();
-        net.minecraft.network.chat.Component spikeComp = last != null
-            ? net.minecraft.network.chat.Component.literal(last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms")
-            : net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_spike_none");
+        Component spikeComp = last != null
+            ? Component.literal(last.category().name().toLowerCase().replace('_', ' ') + " " + last.durationMs() + "ms")
+            : Component.translatable("stutteranalyzer.cmd.status.last_spike_none");
         FreezeReport lastSavedRep = ReportWriter.lastReport();
-        net.minecraft.network.chat.Component reportComp = lastSavedRep != null
-            ? net.minecraft.network.chat.Component.literal(lastSavedRep.event.category().name() + " " + lastSavedRep.event.durationMs() + "ms")
-            : net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_report_none");
-        net.minecraft.network.chat.Component uploadComp = net.minecraft.network.chat.Component.translatable(cfEnabled ? "stutteranalyzer.version.upload_ready" : "stutteranalyzer.version.upload_local");
-        net.minecraft.network.chat.Component stateComp = net.minecraft.network.chat.Component.translatable(degraded ? "stutteranalyzer.cmd.status.state_degraded" : "stutteranalyzer.cmd.status.state_active");
+        Component reportComp = lastSavedRep != null
+            ? Component.literal(lastSavedRep.event.category().name() + " " + lastSavedRep.event.durationMs() + "ms")
+            : Component.translatable("stutteranalyzer.cmd.status.last_report_none");
+        Component uploadComp = Component.translatable(cfEnabled ? "stutteranalyzer.version.upload_ready" : "stutteranalyzer.version.upload_local");
+        Component stateComp = Component.translatable(degraded ? "stutteranalyzer.cmd.status.state_degraded" : "stutteranalyzer.cmd.status.state_active");
         src.sendSuccess(() -> CommandFeedback.header("[SA] Stutter Analyzer"), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.status"), stateComp), false);
+            Component.translatable("stutteranalyzer.row.status"), stateComp), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_spike"), spikeComp), false);
+            Component.translatable("stutteranalyzer.cmd.status.last_spike"), spikeComp), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.status.last_report"), reportComp), false);
+            Component.translatable("stutteranalyzer.cmd.status.last_report"), reportComp), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.reports_saved"),
-            net.minecraft.network.chat.Component.literal(String.valueOf(reports))), false);
+            Component.translatable("stutteranalyzer.row.reports_saved"),
+            Component.literal(String.valueOf(reports))), false);
         src.sendSuccess(() -> CommandFeedback.row(
-            net.minecraft.network.chat.Component.translatable("stutteranalyzer.row.upload"), uploadComp), false);
+            Component.translatable("stutteranalyzer.row.upload"), uploadComp), false);
         if (reports > 0) {
             src.sendSuccess(() -> CommandFeedback.info(
-                net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.dashboard.submit_hint")), false);
+                Component.translatable("stutteranalyzer.cmd.dashboard.submit_hint")), false);
         } else {
             src.sendSuccess(() -> CommandFeedback.info(
-                net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.dashboard.status_hint")), false);
+                Component.translatable("stutteranalyzer.cmd.dashboard.status_hint")), false);
         }
         if (degraded) {
             src.sendSuccess(() -> CommandFeedback.warn(
-                net.minecraft.network.chat.Component.translatable("stutteranalyzer.cmd.dashboard.degraded_hint")), false);
+                Component.translatable("stutteranalyzer.cmd.dashboard.degraded_hint")), false);
         }
         return 1;
     }
@@ -777,39 +812,21 @@ public class CommonCommandLogic {
         return SubmissionManager.submitHealth(src);
     }
 
+    // Ã¢â€â‚¬Ã¢â€â‚¬ F3 commands (server-side stub: client-only features fail gracefully) Ã¢â€â‚¬
+
     public static int f3Status(CommandSourceStack src) {
-        if (!SAFabricPlatform.isClient()) {
+        if (FMLEnvironment.dist != Dist.CLIENT) {
             src.sendFailure(CommandFeedback.clientOnly()); return 0;
         }
-        boolean enabled = com.stutteranalyzer.client.DebugHudStatusProvider.isF3Enabled();
+        boolean enabled = SAConfig.INSTANCE.debugHudEnabled.get();
         src.sendSuccess(() -> CommandFeedback.row(
             Component.translatable("stutteranalyzer.row.f3_status_line"),
             Component.translatable(enabled ? "stutteranalyzer.cmd.f3.enabled" : "stutteranalyzer.cmd.f3.disabled")
         ), false);
         if (enabled) {
-            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("Ãƒâ€šÃ‚Â§.", "");
+            String current = com.stutteranalyzer.client.F3StatusFormatter.format().replaceAll("Ã‚Â§.", "");
             src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.cmd.f3.current", current)), false);
         }
-        return 1;
-    }
-
-    public static int f3On(CommandSourceStack src) {
-        if (!SAFabricPlatform.isClient()) {
-            src.sendFailure(CommandFeedback.clientOnly()); return 0;
-        }
-        com.stutteranalyzer.client.DebugHudStatusProvider.setF3Enabled(true);
-        SAConfig.INSTANCE.debugHudEnabled.set(true);
-        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.f3.enabled_session")), false);
-        return 1;
-    }
-
-    public static int f3Off(CommandSourceStack src) {
-        if (!SAFabricPlatform.isClient()) {
-            src.sendFailure(CommandFeedback.clientOnly()); return 0;
-        }
-        com.stutteranalyzer.client.DebugHudStatusProvider.setF3Enabled(false);
-        SAConfig.INSTANCE.debugHudEnabled.set(false);
-        src.sendSuccess(() -> CommandFeedback.success(Component.translatable("stutteranalyzer.cmd.f3.disabled_session")), false);
         return 1;
     }
 
@@ -818,15 +835,6 @@ public class CommonCommandLogic {
         src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.future")), false);
         src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.overlay.use_f3")), false);
         return 1;
-    }
-
-    public static int f3Toggle(CommandSourceStack src) {
-        if (!SAFabricPlatform.isClient()) {
-            src.sendFailure(CommandFeedback.clientOnly()); return 0;
-        }
-        boolean current = com.stutteranalyzer.client.DebugHudStatusProvider.isF3Enabled();
-        if (current) return f3Off(src);
-        return f3On(src);
     }
 
     public static int optimizeSuggest(CommandSourceStack src) {
@@ -841,14 +849,13 @@ public class CommonCommandLogic {
         // Fast synchronous state collection
         java.util.Set<String> installedIds = new java.util.HashSet<>();
         try {
-            net.fabricmc.loader.api.FabricLoader.getInstance().getAllMods()
-                .forEach(m -> installedIds.add(m.getMetadata().getId()));
+            net.neoforged.fml.ModList.get().forEachModContainer((id, c) -> installedIds.add(id));
         } catch (Throwable t) {
-            StutterAnalyzerFabric.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
+            StutterAnalyzerNeo.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
         }
-        java.nio.file.Path gameDir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
-        String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().name();
-        boolean isServer = !SAFabricPlatform.isClient();
+        java.nio.file.Path gameDir = net.neoforged.fml.loading.FMLPaths.GAMEDIR.get();
+        String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
+        boolean isServer = !(FMLEnvironment.dist == Dist.CLIENT);
 
         com.stutteranalyzer.optimize.OptimizeInstaller.startScan();
         Thread worker = new Thread(() -> {
@@ -856,18 +863,18 @@ public class CommonCommandLogic {
             try {
                 com.stutteranalyzer.optimize.OptimizePlan plan =
                     com.stutteranalyzer.optimize.OptimizeAssistant.buildPlan(
-                        installedIds, gameDir, "fabric", mcVersion, isServer);
+                        installedIds, gameDir, "neoforge", mcVersion, isServer);
                 com.stutteranalyzer.optimize.OptimizeInstaller.setPlan(plan, gameDir.resolve("mods"));
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(buildPlanDisplay(plan, isServer));
             } catch (Throwable t) {
-                StutterAnalyzerFabric.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
+                StutterAnalyzerNeo.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(
                     java.util.List.of(CommandFeedback.info(
                         Component.translatable("stutteranalyzer.optimize.scan.failed", t.getMessage()))));
             } finally {
                 long elapsed = System.currentTimeMillis() - start;
                 if (elapsed > 2000) {
-                    StutterAnalyzerFabric.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
+                    StutterAnalyzerNeo.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
                 }
             }
         }, "SA-OptimizeScan");
@@ -881,9 +888,9 @@ public class CommonCommandLogic {
             com.stutteranalyzer.optimize.OptimizeInstaller.handleInstall(src);
             return 1;
         } catch (Throwable t) {
-            StutterAnalyzerFabric.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
+            StutterAnalyzerNeo.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
             src.sendSuccess(() -> CommandFeedback.info(
-                Component.translatable("stutteranalyzer.optimize.install_failed_cmd", t.getMessage())), false);
+            Component.translatable("stutteranalyzer.optimize.install_failed_cmd", t.getMessage())), false);
             return 0;
         }
     }
@@ -900,6 +907,7 @@ public class CommonCommandLogic {
         List<Component> out = new ArrayList<>();
         String loaderName = plan.loader.isEmpty() ? "unknown"
             : plan.loader.substring(0, 1).toUpperCase() + plan.loader.substring(1);
+
         out.add(CommandFeedback.header(Component.translatable("stutteranalyzer.optimize.scan.title",
             plan.mcVersion, loaderName)));
         if (isServer) {
@@ -943,43 +951,40 @@ public class CommonCommandLogic {
                 continue;
             }
             num++;
+            Component reasonComp = Component.translatable("stutteranalyzer.optimize.reason." + mod.id);
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mod_entry",
-                num, mod.displayName,
-                Component.translatable("stutteranalyzer.optimize.reason." + mod.id))));
+                num, mod.displayName, reasonComp)));
         }
-        if (!plan.skippedCandidates.isEmpty()) {
-            // Incompatible and dep-less mods get a personal goodbye; the rest share one line
-            List<com.stutteranalyzer.optimize.OptimizeMod> noFile = new ArrayList<>();
-            for (com.stutteranalyzer.optimize.OptimizeMod m : plan.skippedCandidates) {
-                if (m.skipConflictWith != null) {
-                    out.add(CommandFeedback.info(Component.translatable(
-                        "stutteranalyzer.optimize.skipped_conflict", m.displayName, m.skipConflictWith)));
-                } else if (m.skipMissingDep != null) {
-                    out.add(CommandFeedback.info(Component.translatable(
-                        "stutteranalyzer.optimize.skipped_missing_dep", m.displayName, m.skipMissingDep)));
-                } else {
-                    noFile.add(m);
-                }
+        // Incompatible and dep-less mods get a personal goodbye; the rest share one line
+        int noFileCount = 0;
+        for (com.stutteranalyzer.optimize.OptimizeMod mod : plan.skippedCandidates) {
+            if (mod.skipConflictWith != null) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    mod.displayName, mod.skipConflictWith)));
+            } else if (mod.skipMissingDep != null) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.dep_skipped",
+                    mod.displayName, mod.skipMissingDep)));
+            } else {
+                noFileCount++;
             }
-            if (!noFile.isEmpty()) {
-                String skippedNames = noFile.stream()
-                    .map(m -> m.displayName).collect(Collectors.joining(", "));
-                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
-                    skippedNames, plan.loader, plan.mcVersion)));
-            }
-            StutterAnalyzerFabric.LOGGER.info("[SA] Skipped candidates: {}",
-                plan.skippedCandidates.stream()
-                    .map(m -> m.displayName + (m.skipReason != null ? " (" + m.skipReason + ")" : ""))
-                    .collect(Collectors.joining(", ")));
+        }
+        if (noFileCount > 0) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
+                noFileCount, plan.loader, plan.mcVersion)));
         }
         Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
             .withStyle(s -> s
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent.RunCommand("/sa optimize install"))
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                    net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/sa optimize install"))
                 .withUnderlined(true)
                 .withColor(net.minecraft.ChatFormatting.GREEN));
         out.add(CommandFeedback.info(installBtn));
-        StutterAnalyzerFabric.LOGGER.info("[SA] Full optimization plan: {}",
+        StutterAnalyzerNeo.LOGGER.info("[SA] Full optimization plan: {}",
             plan.recommended.stream().map(m -> m.displayName).collect(Collectors.joining(", ")));
+        if (!plan.skippedCandidates.isEmpty()) {
+            StutterAnalyzerNeo.LOGGER.info("[SA] Skipped candidates (no file): {}",
+                plan.skippedCandidates.stream().map(m -> m.id).collect(Collectors.joining(", ")));
+        }
         return out;
     }
 
@@ -1019,8 +1024,8 @@ public class CommonCommandLogic {
         for (int i = 0; i < toShow.size(); i++) {
             RecentEventBuffer.GameEvent e = toShow.get(i);
             int num = i + 1;
-            String time2 = fmt.format(e.timestamp);
-            String line = num + ". " + e.detail + ", " + time2;
+            String timeStr2 = fmt.format(e.timestamp);
+            String line = num + ". " + e.detail + ", " + timeStr2;
             FreezeCategory cat = categoryFromDetail(e.detail);
             long ms = parseMsFromDetail(e.detail);
             Component visibleMsg = Component.literal(line);
@@ -1068,7 +1073,9 @@ public class CommonCommandLogic {
         try { return FreezeCategory.valueOf(name); } catch (Exception e) { return null; }
     }
 
-    private static List<CrashEvent> findCrash(String crashId) {
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+    private static List<CrashEvent> PreviousCrashImported(String crashId) {
         return PreviousCrashImporter.allImported().stream()
             .filter(ce -> ce.crashId.equals(crashId))
             .toList();
@@ -1091,3 +1098,4 @@ public class CommonCommandLogic {
         };
     }
 }
+
