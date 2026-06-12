@@ -32,7 +32,7 @@ import org.apache.logging.log4j.Logger;
 public class StutterAnalyzerNeo {
 
     public static final String MOD_ID         = "stutteranalyzer";
-    public static final String MOD_VERSION    = "0.4.0";
+    public static final String MOD_VERSION    = "0.5.0";
     // The one true Minecraft version - hardcoded strings hiding in dark corners are how ports go stale
     public static final String MC_VERSION     = "1.21.6";
     public static final String BUILD_ID       = "release";
