@@ -1,6 +1,6 @@
 package com.stutteranalyzer.client;
 
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
@@ -17,10 +17,11 @@ import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.event.TickEvent.ClientTickEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 public class ClientSetup {
 
@@ -32,12 +33,14 @@ public class ClientSetup {
     private static long lastAggregateShownWorstMs = 0;
 
     public static void onClientSetup(FMLClientSetupEvent event) {
-        StutterAnalyzerNeo.LOGGER.info("[StutterAnalyzer] NeoForge client setup complete.");
+        StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Client setup complete.");
         SubsystemHealth.setStatus("F3StatusLineRenderer", SubsystemHealth.Status.OK, null);
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+
         MetricsCollector.onClientTick();
         long frameMs = (long) MetricsCollector.frameTime().currentFrameMs();
         // Strictly above threshold: a tick of exactly minorFrameMs is normal, not a stutter
@@ -68,7 +71,8 @@ public class ClientSetup {
             Minecraft mc2 = Minecraft.getInstance();
             if (mc2.player != null) {
                 for (net.minecraft.network.chat.Component c : scanMsgs) {
-                    mc2.player.sendSystemMessage(c);
+                    // sendSystemMessage left the client in 1.21.2 - displayClientMessage holds the fort
+                    mc2.player.displayClientMessage(c, false);
                 }
             }
         }
@@ -97,8 +101,8 @@ public class ClientSetup {
                     Minecraft mc = Minecraft.getInstance();
                     if (mc.player != null) {
                         int window = SAConfig.INSTANCE.minorStutterAggregateWindowSeconds.get();
-                        mc.player.sendSystemMessage(Component.translatable(
-                            "stutteranalyzer.alerts.aggregate.small", count, window, worst).withStyle(ChatFormatting.GREEN));
+                        mc.player.displayClientMessage(Component.translatable(
+                            "stutteranalyzer.alerts.aggregate.small", count, window, worst).withStyle(ChatFormatting.GREEN), false);
                         lastAggregateChatShownTime = now;
                         lastAggregateShownCount = count;
                         lastAggregateShownWorstMs = worst;
@@ -112,7 +116,7 @@ public class ClientSetup {
         try {
             DebugHudStatusProvider.refresh();
         } catch (Throwable t) {
-            StutterAnalyzerNeo.LOGGER.error("[SA] F3 refresh failed: {}", t.getMessage(), t);
+            StutterAnalyzerMod.LOGGER.error("[SA] F3 refresh failed: {}", t.getMessage(), t);
         }
     }
 
@@ -157,13 +161,13 @@ public class ClientSetup {
             msgComp = Component.translatable("stutteranalyzer.alert.minor", catName, ms);
         }
 
-        mc.player.sendSystemMessage(AlertHoverText.build(event.category(), ms, msgComp));
+        mc.player.displayClientMessage(AlertHoverText.build(event.category(), ms, msgComp), false);
 
         if (showHint && info.reportSaved() && SAConfig.INSTANCE.alertShowReportHint.get()) {
             String hintKey = isUnknown
                 ? "stutteranalyzer.alert.hint.unknown"
                 : (ms >= extreme ? "stutteranalyzer.alert.hint.extreme" : "stutteranalyzer.alert.hint.severe");
-            mc.player.sendSystemMessage(Component.translatable(hintKey).withStyle(ChatFormatting.YELLOW));
+            mc.player.displayClientMessage(Component.translatable(hintKey).withStyle(ChatFormatting.YELLOW), false);
         }
     }
 
@@ -176,8 +180,8 @@ public class ClientSetup {
                 && latestVersion.equals(UpdateChecker.getLastNotifiedVersion())) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.sendSystemMessage(
-            Component.translatable("stutteranalyzer.alert.update", latestVersion).withStyle(ChatFormatting.GREEN));
+        mc.player.displayClientMessage(
+            Component.translatable("stutteranalyzer.alert.update", latestVersion).withStyle(ChatFormatting.GREEN), false);
         UpdateChecker.markNotified(latestVersion);
     }
 
@@ -187,11 +191,12 @@ public class ClientSetup {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (SAConfig.INSTANCE.mentionSilentMinorTracking.get()) {
-            mc.player.sendSystemMessage(Component.translatable("stutteranalyzer.startup.loaded_silent").withStyle(ChatFormatting.GREEN));
+            mc.player.displayClientMessage(Component.translatable("stutteranalyzer.startup.loaded_silent").withStyle(ChatFormatting.GREEN), false);
         } else {
-            mc.player.sendSystemMessage(
+            mc.player.displayClientMessage(
                 Component.literal("[Stutter Analyzer] ").withStyle(ChatFormatting.GRAY)
-                .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN))
+                .append(Component.translatable("stutteranalyzer.startup.loaded").withStyle(ChatFormatting.GREEN)),
+                false
             );
         }
         startupMessageShown = true;

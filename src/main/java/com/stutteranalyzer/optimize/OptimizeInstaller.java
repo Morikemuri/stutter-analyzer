@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.command.CommandFeedback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -100,6 +100,30 @@ public class OptimizeInstaller {
                 net.minecraft.network.chat.Component.translatable("stutteranalyzer.optimize.install.already_running")), false);
             return;
         }
+
+        // Last line of defense: re-validate the whole plan against the live
+        // mod list before a single byte is downloaded. The missing-dependency
+        // screen is not our idea of a changelog.
+        List<OptimizeMod> evicted = OptimizeAssistant.finalValidatePlan(plan);
+        for (OptimizeMod m : evicted) {
+            if (m.skipConflictWith != null) {
+                send(src, Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    m.displayName, m.skipConflictWith));
+            } else if (m.skipMissingDep != null) {
+                send(src, Component.translatable("stutteranalyzer.optimize.skipped_missing_dep",
+                    m.displayName, m.skipMissingDep));
+            } else {
+                send(src, Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    m.displayName, m.skipReason != null ? m.skipReason : "incompatible"));
+            }
+        }
+        if (plan.recommended.isEmpty()) {
+            currentPlan = null;
+            installRunning.set(false);
+            send(src, Component.translatable("stutteranalyzer.optimize.install.none_safe"));
+            return;
+        }
+
         currentPlan = null;
         showInstallWarning(src, plan, modsDir);
         executeInstall(src, plan, modsDir);
@@ -289,7 +313,7 @@ public class OptimizeInstaller {
         URL url = new URL(fileUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("User-Agent",
-            "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
+            "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
         conn.setConnectTimeout(10_000);
         conn.setReadTimeout(60_000);
         conn.setInstanceFollowRedirects(true);

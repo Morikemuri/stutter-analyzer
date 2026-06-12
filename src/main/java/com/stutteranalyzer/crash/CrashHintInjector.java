@@ -1,6 +1,6 @@
 package com.stutteranalyzer.crash;
 
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.pattern.KnownPatternDetector;
 
 import java.io.FileWriter;
@@ -46,7 +46,7 @@ public class CrashHintInjector {
             LatestLogHintWriter.appendHint(best.patternId, best.confidencePct());
 
         } catch (IOException e) {
-            StutterAnalyzerNeo.LOGGER.error("[StutterAnalyzer] CrashHintInjector failed: {}", e.getMessage());
+            StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] CrashHintInjector failed: {}", e.getMessage());
         }
     }
 
@@ -77,4 +77,3 @@ public class CrashHintInjector {
         };
     }
 }
-

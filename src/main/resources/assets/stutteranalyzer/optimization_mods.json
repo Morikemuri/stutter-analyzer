@@ -455,7 +455,7 @@
     "install_safe": true,
     "install_reason": "Reduces leaf rendering overhead in forested areas.",
     "install_modrinth": "cull-less-leaves",
-    "install_conflicts": [],
+    "install_conflicts": ["sodium>=0.6"],
     "install_requires": ["yacl"]
   },
   "clumps": {

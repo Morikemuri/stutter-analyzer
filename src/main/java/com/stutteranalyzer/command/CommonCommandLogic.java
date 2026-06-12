@@ -1,6 +1,6 @@
 package com.stutteranalyzer.command;
 
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.classifier.FreezeCategory;
 import com.stutteranalyzer.classifier.FreezeDetector;
 import com.stutteranalyzer.config.SAConfig;
@@ -24,8 +24,8 @@ import com.stutteranalyzer.update.UpdateCheckResult;
 import com.stutteranalyzer.update.UpdateChecker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.api.distmarker.Dist;
 
 import com.stutteranalyzer.events.RecentEventBuffer;
 import java.io.IOException;
@@ -344,11 +344,11 @@ public class CommonCommandLogic {
         try { javaMajor = Integer.parseInt(javaVersion.contains(".") ? javaVersion.split("[._-]")[0].equals("1") ? javaVersion.split("[._-]")[1] : javaVersion.split("[._-]")[0] : javaVersion); } catch (Exception ignored) {}
         final String javaDisplay = javaMajor > 0 ? String.valueOf(javaMajor) : javaVersion;
         src.sendSuccess(() -> CommandFeedback.header(Component.translatable("stutteranalyzer.version.header")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.version"), Component.literal(StutterAnalyzerNeo.MOD_VERSION)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal("1.21.1")), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.neoforge")), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.version"), Component.literal(StutterAnalyzerMod.MOD_VERSION)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.minecraft"), Component.literal(StutterAnalyzerMod.MC_VERSION)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.loader"), Component.translatable("stutteranalyzer.version.loader.forge")), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.java"), Component.literal(javaDisplay)), false);
-        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.build"), Component.literal(StutterAnalyzerNeo.BUILD_ID)), false);
+        src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.build"), Component.literal(StutterAnalyzerMod.BUILD_ID)), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.submit"), submitDisplay), false);
         src.sendSuccess(() -> CommandFeedback.row(Component.translatable("stutteranalyzer.row.upload"), uploadDisplay), false);
         // Update status (cached only - non-blocking)
@@ -849,11 +849,11 @@ public class CommonCommandLogic {
         // Fast synchronous state collection
         java.util.Set<String> installedIds = new java.util.HashSet<>();
         try {
-            net.neoforged.fml.ModList.get().forEachModContainer((id, c) -> installedIds.add(id));
+            net.minecraftforge.fml.ModList.get().forEachModContainer((id, c) -> installedIds.add(id));
         } catch (Throwable t) {
-            StutterAnalyzerNeo.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
+            StutterAnalyzerMod.LOGGER.warn("[SA] Could not scan installed mods: {}", t.getMessage());
         }
-        java.nio.file.Path gameDir = net.neoforged.fml.loading.FMLPaths.GAMEDIR.get();
+        java.nio.file.Path gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get();
         String mcVersion = net.minecraft.SharedConstants.getCurrentVersion().getName();
         boolean isServer = !(FMLEnvironment.dist == Dist.CLIENT);
 
@@ -863,18 +863,18 @@ public class CommonCommandLogic {
             try {
                 com.stutteranalyzer.optimize.OptimizePlan plan =
                     com.stutteranalyzer.optimize.OptimizeAssistant.buildPlan(
-                        installedIds, gameDir, "neoforge", mcVersion, isServer);
+                        installedIds, gameDir, "forge", mcVersion, isServer);
                 com.stutteranalyzer.optimize.OptimizeInstaller.setPlan(plan, gameDir.resolve("mods"));
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(buildPlanDisplay(plan, isServer));
             } catch (Throwable t) {
-                StutterAnalyzerNeo.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
+                StutterAnalyzerMod.LOGGER.warn("[SA] optimizeSuggest background task failed: {}", t.getMessage(), t);
                 com.stutteranalyzer.optimize.OptimizeInstaller.completeScan(
                     java.util.List.of(CommandFeedback.info(
                         Component.translatable("stutteranalyzer.optimize.scan.failed", t.getMessage()))));
             } finally {
                 long elapsed = System.currentTimeMillis() - start;
                 if (elapsed > 2000) {
-                    StutterAnalyzerNeo.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
+                    StutterAnalyzerMod.LOGGER.info("[SA] Internal task slow: optimize_scan took {}ms", elapsed);
                 }
             }
         }, "SA-OptimizeScan");
@@ -888,7 +888,7 @@ public class CommonCommandLogic {
             com.stutteranalyzer.optimize.OptimizeInstaller.handleInstall(src);
             return 1;
         } catch (Throwable t) {
-            StutterAnalyzerNeo.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
+            StutterAnalyzerMod.LOGGER.warn("[SA] optimizeInstall failed: {}", t.getMessage(), t);
             src.sendSuccess(() -> CommandFeedback.info(
             Component.translatable("stutteranalyzer.optimize.install_failed_cmd", t.getMessage())), false);
             return 0;
@@ -955,15 +955,22 @@ public class CommonCommandLogic {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mod_entry",
                 num, mod.displayName, reasonComp)));
         }
+        // Incompatible and dep-less mods get a personal goodbye; the rest share one line
+        int noFileCount = 0;
         for (com.stutteranalyzer.optimize.OptimizeMod mod : plan.skippedCandidates) {
-            if (mod.skippedDepName != null) {
+            if (mod.skipConflictWith != null) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    mod.displayName, mod.skipConflictWith)));
+            } else if (mod.skipMissingDep != null) {
                 out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.dep_skipped",
-                    mod.displayName, mod.skippedDepName)));
+                    mod.displayName, mod.skipMissingDep)));
+            } else {
+                noFileCount++;
             }
         }
-        if (!plan.skippedCandidates.isEmpty()) {
+        if (noFileCount > 0) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
-                plan.skippedCandidates.size(), plan.loader, plan.mcVersion)));
+                noFileCount, plan.loader, plan.mcVersion)));
         }
         Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
             .withStyle(s -> s
@@ -972,10 +979,10 @@ public class CommonCommandLogic {
                 .withUnderlined(true)
                 .withColor(net.minecraft.ChatFormatting.GREEN));
         out.add(CommandFeedback.info(installBtn));
-        StutterAnalyzerNeo.LOGGER.info("[SA] Full optimization plan: {}",
+        StutterAnalyzerMod.LOGGER.info("[SA] Full optimization plan: {}",
             plan.recommended.stream().map(m -> m.displayName).collect(Collectors.joining(", ")));
         if (!plan.skippedCandidates.isEmpty()) {
-            StutterAnalyzerNeo.LOGGER.info("[SA] Skipped candidates (no file): {}",
+            StutterAnalyzerMod.LOGGER.info("[SA] Skipped candidates (no file): {}",
                 plan.skippedCandidates.stream().map(m -> m.id).collect(Collectors.joining(", ")));
         }
         return out;
@@ -1091,4 +1098,3 @@ public class CommonCommandLogic {
         };
     }
 }
-

@@ -1,6 +1,6 @@
 package com.stutteranalyzer.core;
 
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.config.SAConfig;
 
 import java.util.function.Supplier;
@@ -30,11 +30,10 @@ public class SafeExecutor {
 
     private static void handleFailure(String subsystem, Throwable t) {
         if (!SAConfig.INSTANCE.failSilently.get()) {
-            StutterAnalyzerNeo.LOGGER.error("[StutterAnalyzer] Subsystem '{}' encountered an error: {}", subsystem, t.getMessage(), t);
+            StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] Subsystem '{}' encountered an error: {}", subsystem, t.getMessage(), t);
         }
         if (SAConfig.INSTANCE.disableFailedSubsystems.get()) {
             SubsystemHealth.setStatus(subsystem, SubsystemHealth.Status.FAILED, t.getClass().getSimpleName() + ": " + t.getMessage());
         }
     }
 }
-

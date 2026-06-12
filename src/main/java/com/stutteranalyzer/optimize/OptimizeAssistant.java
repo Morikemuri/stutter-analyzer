@@ -6,7 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -226,7 +226,7 @@ public class OptimizeAssistant {
                         LOGGER.warn("[SA] Plan validation: {} is missing required dep {} - evicting from plan",
                             m.displayName, depId);
                         m.skipReason = "required dependency " + depId + " missing from final plan";
-                        m.skippedDepName = depMod != null ? depMod.displayName : depId;
+                        m.skipMissingDep = depMod != null ? depMod.displayName : depId;
                         ready.remove(m);
                         skipped.add(m);
                         planChanged = true;
@@ -242,6 +242,11 @@ public class OptimizeAssistant {
             if (m.depForMod == null) parentNames.add(m.displayName);
         }
         ready.removeIf(m -> m.depForMod != null && !parentNames.contains(m.depForMod));
+
+        // Whole-set compatibility pass: the plan must survive as a TEAM,
+        // not as a bunch of individually charming mods that hate each other
+        List<OptimizeMod> incompatible = validatePlanSet(ready, expandedInstalled, loadedModVersions());
+        skipped.addAll(incompatible);
 
         if (cacheDirty[0]) {
             saveCache(cacheFile, cache);
@@ -290,7 +295,7 @@ public class OptimizeAssistant {
             }
             OptimizeMod depMod = dbById.get(depNorm);
             if (depMod == null) {
-                candidate.skippedDepName = depId;
+                candidate.skipMissingDep = depId;
                 return "required dependency " + depId + " not in database";
             }
             if (depMod.alreadyInstalled(expandedInstalled)) {
@@ -304,7 +309,7 @@ public class OptimizeAssistant {
             if (inPlan) continue;
 
             if (!depMod.supportsLoader(loader)) {
-                candidate.skippedDepName = depMod.displayName;
+                candidate.skipMissingDep = depMod.displayName;
                 return "required dependency " + depMod.displayName + " not available for " + loader;
             }
             if (depMod.modrinthSlug != null && !depMod.resolvedOnline) {
@@ -312,7 +317,7 @@ public class OptimizeAssistant {
                 cacheDirty[0] = true;
             }
             if (depMod.resolvedUrl == null || depMod.resolvedUrl.isEmpty()) {
-                candidate.skippedDepName = depMod.displayName;
+                candidate.skipMissingDep = depMod.displayName;
                 return "required dependency " + depMod.displayName
                     + " could not be resolved for " + loader + " " + mcVersion;
             }
@@ -326,6 +331,129 @@ public class OptimizeAssistant {
             chain.add(depMod);
         }
         return null;
+    }
+
+    /** id -> friendly version string for every currently loaded mod. */
+    private static Map<String, String> loadedModVersions() {
+        Map<String, String> map = new HashMap<>();
+        try {
+            for (net.minecraftforge.forgespi.language.IModInfo info :
+                    net.minecraftforge.fml.ModList.get().getMods()) {
+                map.put(info.getModId().toLowerCase(), info.getVersion().toString());
+            }
+        } catch (Throwable t) {
+            LOGGER.warn("[SA] Could not read loaded mod versions: {}", t.getMessage());
+        }
+        return map;
+    }
+
+    /**
+     * Validates the plan as a set: every planned mod's conflicts are checked
+     * against installed mods AND the rest of the plan, with version ranges.
+     * Violators get evicted, then dependents without deps and orphaned deps
+     * are pruned. Returns the evicted mods (orphaned deps leave quietly).
+     */
+    static List<OptimizeMod> validatePlanSet(List<OptimizeMod> ready,
+                                             Set<String> installedIds,
+                                             Map<String, String> installedVersions) {
+        List<OptimizeMod> removed = new ArrayList<>();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+
+            // 1. Conflict eviction (installed mods + the rest of the plan)
+            for (OptimizeMod mod : new ArrayList<>(ready)) {
+                if (mod.conflicts == null) continue;
+                String conflictName = null;
+                for (String token : mod.conflicts) {
+                    String targetId = OptimizeMod.conflictTargetId(token);
+
+                    if (installedIds.contains(targetId)
+                            || installedIds.contains(OptimizeMod.normalize(targetId))) {
+                        String ver = installedVersions.get(targetId);
+                        if (!OptimizeMod.isVersionedConflict(token)
+                                || OptimizeMod.versionConflicts(token, ver)) {
+                            conflictName = targetId + (ver != null ? " " + ver : "");
+                        }
+                    }
+                    if (conflictName == null) {
+                        for (OptimizeMod other : ready) {
+                            if (other == mod || !other.matchesId(targetId)) continue;
+                            if (!OptimizeMod.isVersionedConflict(token)
+                                    || OptimizeMod.versionConflicts(token, other.resolvedVersion)) {
+                                conflictName = other.displayName
+                                    + (other.resolvedVersion != null ? " " + other.resolvedVersion : "");
+                            }
+                            break;
+                        }
+                    }
+                    if (conflictName != null) break;
+                }
+                if (conflictName != null) {
+                    mod.skipConflictWith = conflictName;
+                    mod.skipReason = "incompatible with " + conflictName;
+                    ready.remove(mod);
+                    removed.add(mod);
+                    changed = true;
+                    LOGGER.info("[SA] Plan validation: skipping {} - incompatible with {}",
+                        mod.displayName, conflictName);
+                }
+            }
+
+            // 2. Dependents whose required deps are no longer in plan or installed
+            for (OptimizeMod mod : new ArrayList<>(ready)) {
+                if (mod.installRequires == null || mod.installRequires.isEmpty()) continue;
+                for (String depId : mod.installRequires) {
+                    boolean satisfied = installedIds.contains(depId.toLowerCase())
+                        || installedIds.contains(OptimizeMod.normalize(depId))
+                        || ready.stream().anyMatch(m2 -> m2 != mod && m2.matchesId(depId));
+                    if (!satisfied) {
+                        mod.skipMissingDep = depId;
+                        mod.skipReason = "missing compatible " + depId;
+                        ready.remove(mod);
+                        removed.add(mod);
+                        changed = true;
+                        LOGGER.info("[SA] Plan validation: skipping {} - missing dependency {}",
+                            mod.displayName, depId);
+                        break;
+                    }
+                }
+            }
+
+            // 3. Orphaned deps: libraries that only came along for a mod that left
+            Set<String> requiredIds = new HashSet<>();
+            for (OptimizeMod mod : ready) {
+                if (mod.depForMod == null && mod.installRequires != null) {
+                    for (String d : mod.installRequires) requiredIds.add(d.toLowerCase());
+                }
+            }
+            for (OptimizeMod mod : new ArrayList<>(ready)) {
+                if (mod.depForMod == null) continue;
+                boolean stillNeeded = requiredIds.stream().anyMatch(mod::matchesId);
+                if (!stillNeeded) {
+                    ready.remove(mod);
+                    changed = true;
+                    LOGGER.info("[SA] Plan validation: dropping orphaned dependency {}", mod.displayName);
+                }
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * Final pre-install validation: re-checks the complete plan against the
+     * live mod list right before any download. Returns evicted mods.
+     */
+    public static List<OptimizeMod> finalValidatePlan(OptimizePlan plan) {
+        Map<String, String> versions = loadedModVersions();
+        Set<String> ids = new HashSet<>();
+        for (String id : versions.keySet()) {
+            ids.add(id);
+            ids.add(OptimizeMod.normalize(id));
+        }
+        List<OptimizeMod> removed = validatePlanSet(plan.recommended, ids, versions);
+        plan.skippedCandidates.addAll(removed);
+        return removed;
     }
 
     private static void writePlanJson(OptimizePlan plan, Path gameDir) {
@@ -482,7 +610,7 @@ public class OptimizeAssistant {
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent",
-                "StutterAnalyzer/" + StutterAnalyzerNeo.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
+                "StutterAnalyzer/" + StutterAnalyzerMod.MOD_VERSION + " (github.com/Morikemuri/stutter-analyzer)");
             conn.setConnectTimeout(CONNECT_TIMEOUT);
             conn.setReadTimeout(READ_TIMEOUT);
             conn.setRequestMethod("GET");
@@ -515,6 +643,8 @@ public class OptimizeAssistant {
                 String fileUrl = primaryFile.get("url").getAsString();
                 String filename = primaryFile.get("filename").getAsString();
                 long fileSize = primaryFile.has("size") ? primaryFile.get("size").getAsLong() : 0L;
+                String versionNumber = version.has("version_number")
+                    ? version.get("version_number").getAsString() : null;
 
                 String sha512 = null;
                 if (primaryFile.has("hashes")) {
@@ -535,12 +665,14 @@ public class OptimizeAssistant {
                 mod.resolvedFilename = filename;
                 mod.resolvedSha512 = sha512;
                 mod.resolvedFileSize = fileSize;
+                mod.resolvedVersion = versionNumber;
                 mod.resolvedOnline = true;
 
                 JsonObject cacheEntry = new JsonObject();
                 cacheEntry.addProperty("url", fileUrl);
                 cacheEntry.addProperty("filename", filename);
                 if (sha512 != null) cacheEntry.addProperty("sha512", sha512);
+                if (versionNumber != null) cacheEntry.addProperty("version_number", versionNumber);
                 cacheEntry.addProperty("size", fileSize);
                 cacheEntry.addProperty("cached_at", System.currentTimeMillis());
                 cache.put(cacheKey, cacheEntry);
@@ -555,6 +687,7 @@ public class OptimizeAssistant {
         if (entry.has("filename")) mod.resolvedFilename = entry.get("filename").getAsString();
         if (entry.has("sha512")) mod.resolvedSha512 = entry.get("sha512").getAsString();
         if (entry.has("size")) mod.resolvedFileSize = entry.get("size").getAsLong();
+        if (entry.has("version_number")) mod.resolvedVersion = entry.get("version_number").getAsString();
         mod.resolvedOnline = mod.resolvedUrl != null;
     }
 

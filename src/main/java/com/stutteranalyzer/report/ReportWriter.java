@@ -1,10 +1,10 @@
 package com.stutteranalyzer.report;
 
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.config.SAConfig;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -32,7 +32,7 @@ public class ReportWriter {
             try {
                 write(report);
             } catch (Throwable t) {
-                StutterAnalyzerNeo.LOGGER.error("[StutterAnalyzer] ReportWriter failed: {}", t.getMessage(), t);
+                StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] ReportWriter failed: {}", t.getMessage(), t);
             }
         });
     }
@@ -66,7 +66,7 @@ public class ReportWriter {
         }
 
         savedReports++;
-        StutterAnalyzerNeo.LOGGER.info("[StutterAnalyzer] Report saved: {}", report.reportId);
+        StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Report saved: {}", report.reportId);
     }
 
     private static Path resolveReportDir() {
@@ -93,4 +93,3 @@ public class ReportWriter {
     public static int savedReports() { return savedReports; }
     public static FreezeReport lastReport() { return lastReport; }
 }
-

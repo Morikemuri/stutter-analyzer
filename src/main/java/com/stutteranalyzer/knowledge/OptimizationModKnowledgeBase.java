@@ -2,9 +2,9 @@ package com.stutteranalyzer.knowledge;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.core.SubsystemHealth;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -35,7 +35,7 @@ public class OptimizationModKnowledgeBase {
                 : bundled;
 
             if (src == null) {
-                StutterAnalyzerNeo.LOGGER.warn("[StutterAnalyzer] optimization_mods.json not found. Knowledge subsystem disabled.");
+                StutterAnalyzerMod.LOGGER.warn("[StutterAnalyzer] optimization_mods.json not found. Knowledge subsystem disabled.");
                 SubsystemHealth.setStatus("ModInventory", SubsystemHealth.Status.DISABLED, "optimization_mods.json missing");
                 return;
             }
@@ -46,9 +46,9 @@ public class OptimizationModKnowledgeBase {
                 data = gson.fromJson(r, type);
             }
             loaded = true;
-            StutterAnalyzerNeo.LOGGER.info("[StutterAnalyzer] Optimization mod knowledge base loaded ({} entries).", data.size());
+            StutterAnalyzerMod.LOGGER.info("[StutterAnalyzer] Optimization mod knowledge base loaded ({} entries).", data.size());
         } catch (Throwable t) {
-            StutterAnalyzerNeo.LOGGER.error("[StutterAnalyzer] Failed to load knowledge base: {}", t.getMessage(), t);
+            StutterAnalyzerMod.LOGGER.error("[StutterAnalyzer] Failed to load knowledge base: {}", t.getMessage(), t);
             SubsystemHealth.setStatus("ModInventory", SubsystemHealth.Status.DEGRADED, "knowledge base load error: " + t.getMessage());
         }
     }
@@ -66,4 +66,3 @@ public class OptimizationModKnowledgeBase {
         return Collections.emptyList();
     }
 }
-

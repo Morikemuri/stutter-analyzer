@@ -514,13 +514,9 @@
   "stutteranalyzer.optimize.reason.ai_improvements": "ИИ мобов",
   "stutteranalyzer.optimize.reason.connectivity": "сеть",
   "stutteranalyzer.optimize.reason.packet_fixer": "сеть",
-  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings",
   "stutteranalyzer.optimize.btn.install": "[Установить]",
   "stutteranalyzer.optimize.btn.confirm": "[Подтвердить установку]",
   "stutteranalyzer.optimize.skipped": "Пропущено: %s без файла под %s %s",
-  "stutteranalyzer.optimize.dep_added": "Добавлена зависимость: %s для %s.",
-  "stutteranalyzer.optimize.dep_present": "Зависимость уже установлена: %s",
-  "stutteranalyzer.optimize.dep_skipped": "Пропущено %s: не удалось найти обязательную зависимость %s.",
   "stutteranalyzer.optimize.install.already": "Уже стоит: %s",
   "stutteranalyzer.optimize.install.done": "Готово: %s установлено, %s уже было, %s ошибок. Нужен перезапуск.",
   "stutteranalyzer.optimize.install.done_no_new": "Готово: %s уже стоит, %s ошибок.",
@@ -549,5 +545,12 @@
   "stutteranalyzer.version.updates.checking": "проверка в фоне",
   "stutteranalyzer.version.updates.download": "Скачать: %s",
   "stutteranalyzer.submit.validate_failed": "[SA] Проверка отправки не удалась: %s",
-  "stutteranalyzer.alerts.aggregate.small": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status."
+  "stutteranalyzer.alerts.aggregate.small": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status.",
+  "stutteranalyzer.optimize.dep_added": "Добавлена зависимость: %s для %s.",
+  "stutteranalyzer.optimize.dep_present": "Зависимость уже установлена: %s",
+  "stutteranalyzer.optimize.dep_skipped": "Пропущено %s: не удалось найти обязательную зависимость %s.",
+  "stutteranalyzer.optimize.skipped_conflict": "Пропущено %s: несовместимо с %s.",
+  "stutteranalyzer.optimize.skipped_missing_dep": "Пропущено %s: нет совместимого %s.",
+  "stutteranalyzer.optimize.install.none_safe": "Нет безопасных совместимых оптимизационных модов для установки.",
+  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings"
 }

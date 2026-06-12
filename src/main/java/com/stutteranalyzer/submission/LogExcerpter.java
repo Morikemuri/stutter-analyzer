@@ -1,10 +1,10 @@
 package com.stutteranalyzer.submission;
 
-import com.stutteranalyzer.StutterAnalyzerNeo;
+import com.stutteranalyzer.StutterAnalyzerMod;
 import com.stutteranalyzer.config.SAConfig;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
@@ -122,7 +122,7 @@ public class LogExcerpter {
             }
             return sanitized.text();
         } catch (Exception e) {
-            StutterAnalyzerNeo.LOGGER.debug("[SA] Log excerpt extraction failed: {}", e.getMessage());
+            StutterAnalyzerMod.LOGGER.debug("[SA] Log excerpt extraction failed: {}", e.getMessage());
             return "No relevant latest.log excerpt was found for this report.";
         }
     }
@@ -188,12 +188,12 @@ public class LogExcerpter {
 
             ReportSanitizer.SanitizeResult sanitized = ReportSanitizer.sanitize(content);
             if (sanitized.hadSensitiveData()) {
-                StutterAnalyzerNeo.LOGGER.warn("[SA] Full log blocked: sensitive data detected.");
+                StutterAnalyzerMod.LOGGER.warn("[SA] Full log blocked: sensitive data detected.");
                 return null;
             }
             return sanitized.text();
         } catch (Exception e) {
-            StutterAnalyzerNeo.LOGGER.debug("[SA] Full log read failed: {}", e.getMessage());
+            StutterAnalyzerMod.LOGGER.debug("[SA] Full log read failed: {}", e.getMessage());
             return null;
         }
     }
@@ -342,4 +342,3 @@ public class LogExcerpter {
         return FMLPaths.GAMEDIR.get().resolve("logs/latest.log");
     }
 }
-
