@@ -34,9 +34,9 @@ public class StutterAnalyzerNeo {
     public static final String MOD_ID         = "stutteranalyzer";
     public static final String MOD_VERSION    = "0.4.0";
     // The one true Minecraft version - hardcoded strings hiding in dark corners are how ports go stale
-    public static final String MC_VERSION     = "1.21.4";
+    public static final String MC_VERSION     = "1.21.6";
     public static final String BUILD_ID       = "release";
-    public static final String BUILD_DATE     = "2026-06-11-b1-1214";
+    public static final String BUILD_DATE     = "2026-06-11-b1-1216";
     public static final String BUILD_FEATURES = "update-checker,quiet-mode,episode-counting,extreme-tracking,rich-status-v2,submit-cloudflare-v2,config-migration,simplified-ux,rich-issue-body,simplified-submit,log-events,freeze-context,suspicious-signals,runtime-snapshot,payload-diagnostics,received-fields,log-context-classifier,upload-lock-fix,upload-timeout,upload-id,async-submit,safe-submit,brigadier-crash-guard,submit-minimal,fast-response";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
