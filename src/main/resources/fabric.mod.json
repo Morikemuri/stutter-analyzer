@@ -15,16 +15,16 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.stutteranalyzer.StutterAnalyzerFabric"
+      "io.github.morikemuri.stutteranalyzer.StutterAnalyzerFabric"
     ],
     "client": [
-      "com.stutteranalyzer.StutterAnalyzerFabricClient"
+      "io.github.morikemuri.stutteranalyzer.StutterAnalyzerFabricClient"
     ]
   },
   "depends": {
     "fabricloader": ">=0.16.0",
     "fabric-api": "*",
-    "minecraft": "~1.21.1",
+    "minecraft": "~1.21.4",
     "java": ">=21"
   },
   "mixins": [
