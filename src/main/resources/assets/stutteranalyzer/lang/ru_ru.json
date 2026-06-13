@@ -548,5 +548,8 @@
   "stutteranalyzer.version.updates.checking": "проверка в фоне",
   "stutteranalyzer.version.updates.download": "Скачать: %s",
   "stutteranalyzer.submit.validate_failed": "[SA] Проверка отправки не удалась: %s",
-  "stutteranalyzer.alerts.aggregate.small": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status."
+  "stutteranalyzer.alerts.aggregate.small": "[SA] Повторяющиеся мелкие фризы: %s за %sс, худший %sмс. Отслеживаются тихо. /sa status.",
+  "stutteranalyzer.optimize.dep_added": "Добавлена зависимость: %s для %s.",
+  "stutteranalyzer.optimize.dep_present": "Зависимость уже установлена: %s",
+  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings"
 }
