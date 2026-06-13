@@ -15,10 +15,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.stutteranalyzer.StutterAnalyzerFabric"
+      "io.github.morikemuri.stutteranalyzer.StutterAnalyzerFabric"
     ],
     "client": [
-      "com.stutteranalyzer.StutterAnalyzerFabricClient"
+      "io.github.morikemuri.stutteranalyzer.StutterAnalyzerFabricClient"
     ]
   },
   "depends": {
