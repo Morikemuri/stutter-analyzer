@@ -86,7 +86,7 @@ public class SubmissionManager {
         pendingMigrationNotice = true;
     }
 
-    // â”€â”€ Public entry points â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Public entry points ───────────────────────────────────────────────────
 
     public static int submitLast(CommandSourceStack src) {
         if (!SAConfig.INSTANCE.enableManualSubmission.get()) {
@@ -369,7 +369,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(healthUrl))
                     .GET()
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                     .timeout(Duration.ofSeconds(5))
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
@@ -407,7 +407,7 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_crash")), false);
             return 1;
         }
-        return submitLocalRaw(src, ce.crashId, buildCrashMarkdown(ce), buildCrashJson(ce), buildCrashIssueBody(ce));
+        return submitLocalRaw(src, ce.crashId, SubmitPayloadBuilder.buildCrashMarkdown(ce), SubmitPayloadBuilder.buildCrashJson(ce), SubmitPayloadBuilder.buildCrashIssueBody(ce));
     }
 
     public static int submitGuardLast(CommandSourceStack src) {
@@ -416,10 +416,10 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_guard")), false);
             return 1;
         }
-        return submitLocalRaw(src, rep.guardId, rep.toMarkdown(), "{}", buildGuardIssueBody(rep));
+        return submitLocalRaw(src, rep.guardId, rep.toMarkdown(), "{}", SubmitPayloadBuilder.buildGuardIssueBody(rep));
     }
 
-    // â”€â”€ Cloudflare submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Cloudflare submission ─────────────────────────────────────────────────
 
     public static boolean isCloudflareEnabled() {
         String target = SAConfig.INSTANCE.submissionTarget.get();
@@ -521,7 +521,7 @@ public class SubmissionManager {
     private static final int MAX_PAYLOAD_CHARS = 480 * 1024;
 
     private static void submitToCloudflare(CommandSourceStack src, FreezeReport report, String markdown, String reportHash) {
-        // â”€â”€ Command thread: lock + first message only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Command thread: lock + first message only ─────────────────────────
         if (!submissionInProgress.compareAndSet(false, true)) {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.already_in_progress")), false);
             return;
@@ -639,7 +639,7 @@ public class SubmissionManager {
         // Log submit debug info to latest.log only (not shown in chat for release)
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-        StutterAnalyzerFabric.LOGGER.info("[SA] Submit debug - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
+        StutterAnalyzerFabric.LOGGER.info("[SA] Submit route trace - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
             StutterAnalyzerFabric.BUILD_ID, endpoint, timeoutSec, payloadKb, uploadId);
 
         src.sendSuccess(() -> CommandFeedback.info(Component.translatable("stutteranalyzer.submit.cloudflare_uploading")), false);
@@ -673,7 +673,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                         .timeout(Duration.ofSeconds(timeoutSec))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -891,12 +891,12 @@ public class SubmissionManager {
         }
     }
 
-    // â”€â”€ Local submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Local submission ──────────────────────────────────────────────────────
 
     private static int submitLocalReport(CommandSourceStack src, FreezeReport report) {
         String markdown = report.toMarkdown();
         String json = report.toJson();
-        String issueBody = buildFreezeIssueBody(report);
+        String issueBody = SubmitPayloadBuilder.buildFreezeIssueBody(report);
         return submitLocalRaw(src, report.reportId, markdown, json, issueBody);
     }
 
@@ -938,7 +938,7 @@ public class SubmissionManager {
         return 1;
     }
 
-    // â”€â”€ Client extras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Client extras ─────────────────────────────────────────────────────────
 
     private static void copyToClipboard(CommandSourceStack src, String text) {
         try {
@@ -971,7 +971,7 @@ public class SubmissionManager {
         }
     }
 
-    // â”€â”€ Migration notice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Migration notice ──────────────────────────────────────────────────────
 
     private static void checkMigrationNotice(CommandSourceStack src) {
         if (pendingMigrationNotice) {
@@ -980,7 +980,7 @@ public class SubmissionManager {
         }
     }
 
-    // â”€â”€ Path resolution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Path resolution ───────────────────────────────────────────────────────
 
     private static Path resolveSubmissionsDir() {
         return SAEnvironment.getConfigDir().resolve("stutter-analyzer/submissions");
@@ -990,7 +990,7 @@ public class SubmissionManager {
         return SAEnvironment.getConfigDir().resolve("stutter-analyzer/submission-consent.txt");
     }
 
-    // â”€â”€ Payload builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payload builder ───────────────────────────────────────────────────────
 
     private static JsonObject buildRuntimeSnapshotObject() {
         boolean isClient = SAEnvironment.isClientSide();
@@ -1173,7 +1173,7 @@ public class SubmissionManager {
         root.addProperty("project", "stutter-analyzer");
         root.addProperty("source", "real_mod_submit");
         root.addProperty("mod_version", StutterAnalyzerFabric.MOD_VERSION);
-        root.addProperty("minecraft_version", io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion());
+        root.addProperty("minecraft_version", "1.21.1");
         root.addProperty("loader", io.github.morikemuri.stutteranalyzer.SAEnvironment.getLoaderName());
         root.addProperty("loader_version", io.github.morikemuri.stutteranalyzer.SAEnvironment.getLoaderVersion());
         root.addProperty("report_type", category);
@@ -1221,7 +1221,7 @@ public class SubmissionManager {
         return new PreparedUploadPayload(root, jsonString, bodyBytes, sha256Hex(jsonString));
     }
 
-    // â”€â”€ Submit preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Submit preview ────────────────────────────────────────────────────────
 
     public static int submitPreview(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
@@ -1364,76 +1364,11 @@ public class SubmissionManager {
         try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
     }
 
-    // â”€â”€ Issue body builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Issue body builders ───────────────────────────────────────────────────
 
-    private static String buildFreezeIssueBody(FreezeReport report) {
-        return "## StutterAnalyzer Freeze Report\n\n" +
-            "**Report ID:** `" + report.reportId + "`\n" +
-            "**Category:** " + report.event.category() + "\n" +
-            "**Duration:** " + report.event.durationMs() + " ms\n" +
-            "**Confidence:** " + report.event.confidencePct() + "%\n" +
-            "**Side:** " + report.event.side() + "\n\n" +
-            "## What were you doing?\n\n" +
-            "(describe the situation when the freeze occurred)\n\n" +
-            "## Attached files\n\n" +
-            "Please attach or paste the contents of `" + report.reportId + ".md`" +
-            " from `config/stutter-analyzer/submissions/`.\n\n" +
-            "---\n" +
-            "*Prepared via StutterAnalyzer*\n";
-    }
+    // Issue-body builders extracted to SubmitPayloadBuilder (0.6.0 stage 1).
 
-    private static String buildCrashMarkdown(CrashEvent ce) {
-        return "# Crash Report Import\n\n" +
-            "**ID:** " + ce.crashId + "\n" +
-            "**Timestamp:** " + ce.timestamp + "\n" +
-            "**Type:** " + ce.crashType + "\n" +
-            "**Summary:** " + ce.summary + "\n" +
-            (ce.hasKnownPattern()
-                ? "\n**Known Pattern:** " + ce.bestMatch().patternId +
-                  " (" + ce.bestMatch().confidencePct() + "% confidence)\n"
-                : "\n**Pattern:** Unknown\n");
-    }
-
-    private static String buildCrashJson(CrashEvent ce) {
-        return "{\n" +
-            "  \"crash_id\": \"" + ce.crashId + "\",\n" +
-            "  \"timestamp\": \"" + ce.timestamp + "\",\n" +
-            "  \"type\": \"" + esc(ce.crashType) + "\",\n" +
-            "  \"summary\": \"" + esc(ce.summary) + "\",\n" +
-            "  \"known_pattern\": " + (ce.hasKnownPattern() ? "\"" + ce.bestMatch().patternId + "\"" : "null") + "\n" +
-            "}\n";
-    }
-
-    private static String buildCrashIssueBody(CrashEvent ce) {
-        return "## Crash Report\n\n" +
-            "**Crash ID:** `" + ce.crashId + "`\n" +
-            "**Type:** " + ce.crashType + "\n" +
-            "**Summary:** " + ce.summary + "\n\n" +
-            "## What were you doing?\n\n" +
-            "(describe the situation when the crash occurred)\n\n" +
-            "## Attached files\n\n" +
-            "Please attach or paste the contents of `" + ce.crashId + ".md`" +
-            " from `config/stutter-analyzer/submissions/`.\n\n" +
-            "---\n" +
-            "*Prepared via StutterAnalyzer /sa submit crash last*\n";
-    }
-
-    private static String buildGuardIssueBody(EmergencyGuardReport rep) {
-        return "## Emergency Guard Report\n\n" +
-            "**Guard ID:** `" + rep.guardId + "`\n" +
-            "**Pattern:** " + rep.patternId + "\n" +
-            "**Outcome:** " + rep.outcome.name() + "\n" +
-            "**Confidence:** " + (int)(rep.confidence * 100) + "%\n\n" +
-            "## What were you doing?\n\n" +
-            "(describe the situation)\n\n" +
-            "## Attached files\n\n" +
-            "Please attach or paste the contents of `" + rep.guardId + ".md`" +
-            " from `config/stutter-analyzer/submissions/`.\n\n" +
-            "---\n" +
-            "*Prepared via StutterAnalyzer /sa submit guard last*\n";
-    }
-
-    // â”€â”€ Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Utilities ─────────────────────────────────────────────────────────────
 
     private static String sha256Hex(String input) {
         try {
@@ -1454,7 +1389,7 @@ public class SubmissionManager {
         return "UP-" + ts + "-" + rand;
     }
 
-    // â”€â”€ HTTP transport helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── HTTP transport helpers ────────────────────────────────────────────────
 
     // Returns "<statusCode>|<body>" or throws on error/timeout
     private static String postWithUrlConn(String endpoint, String body, int timeoutMs) throws Exception {
@@ -1465,7 +1400,7 @@ public class SubmissionManager {
         conn.setDoOutput(true);
         conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion());
+        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1");
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         conn.setFixedLengthStreamingMode(bytes.length);
         try (OutputStream os = conn.getOutputStream()) {
@@ -1484,7 +1419,7 @@ public class SubmissionManager {
         conn.setConnectTimeout(timeoutMs);
         conn.setReadTimeout(timeoutMs);
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion());
+        conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1");
         int code = conn.getResponseCode();
         InputStream stream = (code >= 200 && code < 400) ? conn.getInputStream() : conn.getErrorStream();
         String responseBody = readStreamUtf8(stream);
@@ -1521,7 +1456,7 @@ public class SubmissionManager {
         }
     }
 
-    // â”€â”€ Config reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Config reset ──────────────────────────────────────────────────────────
 
     public static int submitConfigReset(CommandSourceStack src) {
         String defaultEndpoint = "https://stutter-analyzer-reports.morikemuri.workers.dev/api/report";
@@ -1539,7 +1474,7 @@ public class SubmissionManager {
         return 1;
     }
 
-    // â”€â”€ Export payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Export payload ────────────────────────────────────────────────────────
 
     public static int submitExportPayload(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
@@ -1590,7 +1525,7 @@ public class SubmissionManager {
         return 1;
     }
 
-    // â”€â”€ Validate payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Validate payload ─────────────────────────────────────────────────────
 
     public static int submitValidatePayload(CommandSourceStack src) {
         FreezeReport report = ReportWriter.lastReport();
@@ -1644,7 +1579,7 @@ public class SubmissionManager {
                 conn.setReadTimeout(15000);
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
                 conn.setRequestProperty("Content-Length", String.valueOf(body.length));
-                conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion());
+                conn.setRequestProperty("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1");
                 try (java.io.OutputStream os = conn.getOutputStream()) { os.write(body); }
                 int status = conn.getResponseCode();
                 java.io.InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
@@ -1673,7 +1608,7 @@ public class SubmissionManager {
         return SAEnvironment.getGameDir().resolve("config/stutter-analyzer/debug");
     }
 
-    // â”€â”€ Network diagnostic commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Network diagnostic commands ───────────────────────────────────────────
 
     private static volatile String lastNetHealthResult = "not tested";
     private static volatile String lastNetEchoResult   = "not tested";
@@ -1696,7 +1631,7 @@ public class SubmissionManager {
                     .uri(URI.create(healthUrl))
                     .GET()
                     .timeout(Duration.ofSeconds(10))
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                     .build();
                 HttpResponse<String> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
                 long ms = System.currentTimeMillis() - t0;
@@ -1746,7 +1681,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(echoUrl))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                     .timeout(Duration.ofSeconds(10))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
@@ -1793,7 +1728,7 @@ public class SubmissionManager {
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"source\": \"minecraft_net_test\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerFabric.MOD_VERSION) + ",\n" +
-            "  \"minecraft_version\": \"" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion() + "\",\n" +
+            "  \"minecraft_version\": \"1.21.1\",\n" +
             "  \"loader\": " + esc(io.github.morikemuri.stutteranalyzer.SAEnvironment.getLoaderName()) + ",\n" +
             "  \"loader_version\": " + esc(io.github.morikemuri.stutteranalyzer.SAEnvironment.getLoaderVersion()) + ",\n" +
             "  \"report_type\": \"TEST\",\n" +
@@ -1824,7 +1759,7 @@ public class SubmissionManager {
                 HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                    .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                     .timeout(Duration.ofSeconds(timeoutSec))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
@@ -1905,7 +1840,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(echoUrl))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                         .timeout(Duration.ofSeconds(10))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
@@ -1950,7 +1885,7 @@ public class SubmissionManager {
             "  \"project\": \"stutter-analyzer\",\n" +
             "  \"source\": \"minecraft_net_test\",\n" +
             "  \"mod_version\": " + esc(StutterAnalyzerFabric.MOD_VERSION) + ",\n" +
-            "  \"minecraft_version\": \"" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion() + "\",\n" +
+            "  \"minecraft_version\": \"1.21.1\",\n" +
             "  \"loader\": " + esc(io.github.morikemuri.stutteranalyzer.SAEnvironment.getLoaderName()) + ",\n" +
             "  \"loader_version\": " + esc(io.github.morikemuri.stutteranalyzer.SAEnvironment.getLoaderVersion()) + ",\n" +
             "  \"report_type\": \"TEST\",\n" +
@@ -1986,7 +1921,7 @@ public class SubmissionManager {
                     HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
                         .header("Content-Type", "application/json")
-                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/" + io.github.morikemuri.stutteranalyzer.platform.PlatformInfo.minecraftVersion())
+                        .header("User-Agent", "StutterAnalyzer/" + StutterAnalyzerFabric.MOD_VERSION + " Minecraft/1.21.1")
                         .timeout(Duration.ofSeconds(timeoutSec))
                         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                         .build();
