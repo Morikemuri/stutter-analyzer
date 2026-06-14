@@ -942,21 +942,39 @@ public class CommonCommandLogic {
             "stutteranalyzer.optimize.risk." + plan.risk.name().toLowerCase());
         out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.plan_risk",
             plan.recommended.size(), riskLabel)));
-        int shown = plan.recommended.size();
-        for (int i = 0; i < shown; i++) {
-            io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
-            int num = i + 1;
+        if (plan.largePlan) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.large_plan",
+                plan.recommended.size())));
+        }
+        int num = 0;
+        for (io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod mod : plan.recommended) {
+            if (mod.depForMod != null) {
+                // Tag-along library: announce who dragged it into the plan
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.dep_added",
+                    mod.displayName, mod.depForMod)));
+                continue;
+            }
+            num++;
             Component reasonComp = Component.translatable("stutteranalyzer.optimize.reason." + mod.id);
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mod_entry",
                 num, mod.displayName, reasonComp)));
         }
-        int remaining = 0;
-        if (remaining > 0) {
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.more", remaining)));
+        // Incompatible and dep-less mods get a personal goodbye; the rest share one line
+        int noFileCount = 0;
+        for (io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod mod : plan.skippedCandidates) {
+            if (mod.skipConflictWith != null) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped_conflict",
+                    mod.displayName, mod.skipConflictWith)));
+            } else if (mod.skipMissingDep != null) {
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.dep_skipped",
+                    mod.displayName, mod.skipMissingDep)));
+            } else {
+                noFileCount++;
+            }
         }
-        if (!plan.skippedCandidates.isEmpty()) {
+        if (noFileCount > 0) {
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
-                plan.skippedCandidates.size(), plan.loader, plan.mcVersion)));
+                noFileCount, plan.loader, plan.mcVersion)));
         }
         Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
             .withStyle(s -> s
