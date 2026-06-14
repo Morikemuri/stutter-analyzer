@@ -1,6 +1,6 @@
 # StutterAnalyzer
 
-**A Minecraft mod** - available for **Forge**, **NeoForge**, and **Fabric** - versions 1.20.1, 1.20.4, and 1.21.1
+**A Minecraft mod** - available for **Forge**, **NeoForge**, and **Fabric** - Minecraft 1.20.1 through 1.21.11 (17 builds)
 
 Catch game freezes. Figure out why they happen. Fix them.
 
@@ -29,17 +29,31 @@ No setup needed. Install, launch, play.
 
 ## Versions
 
-| Loader | Minecraft | Loader Version | Status |
-|--------|-----------|----------------|--------|
-| Forge 36.x | 1.20.1 | Forge 36.x | Stable |
-| Fabric | 1.20.1 | Fabric Loader 0.16.x | Stable |
-| Forge 49.x | 1.20.4 | Forge 49.x | Stable |
-| Fabric | 1.20.4 | Fabric Loader 0.16.x | Stable |
-| Forge 52.x | 1.21.1 | Forge 52.x | Stable |
-| NeoForge | 1.21.1 | NeoForge 21.1.77 | Stable |
-| Fabric | 1.21.1 | Fabric Loader 0.16.x | Stable |
+StutterAnalyzer ships for 3 loaders across 7 Minecraft versions - 17 builds in total.
 
-All versions share the same feature set and command interface.
+| Loader | Minecraft | Loader Version | Java | Status |
+|--------|-----------|----------------|------|--------|
+| Forge | 1.20.1 | 47.3.0 | 17 | Stable |
+| Forge | 1.20.4 | 49.2.7 | 17 | Stable |
+| Forge | 1.21.1 | 52.1.2 | 21 | Stable |
+| Forge | 1.21.4 | 54.1.14 | 21 | Stable |
+| Forge | 1.21.6 | 56.0.9 | 21 | Stable |
+| Forge | 1.21.9 | 59.0.5 | 21 | Stable |
+| Fabric | 1.20.1 | Loader 0.15.11 (API 0.92.2) | 17 | Stable |
+| Fabric | 1.20.4 | Loader 0.15.11 (API 0.97.3) | 17 | Stable |
+| Fabric | 1.21.1 | Loader 0.16.9 (API 0.116.12) | 21 | Stable |
+| Fabric | 1.21.4 | Loader 0.16.9 (API 0.119.4) | 21 | Stable |
+| Fabric | 1.21.6 | Loader 0.16.9 (API 0.128.2) | 21 | Stable |
+| Fabric | 1.21.9 | Loader 0.19.3 (API 0.134.1) | 21 | Stable |
+| Fabric | 1.21.11 | Loader 0.19.3 (API 0.141.4) | 21 | Stable |
+| NeoForge | 1.21.1 | 21.1.77 | 21 | Stable |
+| NeoForge | 1.21.4 | 21.4.157 | 21 | Stable |
+| NeoForge | 1.21.6 | 21.6.20-beta | 21 | Stable |
+| NeoForge | 1.21.11 | 21.11.42 | 21 | Stable |
+
+All versions share the same feature set and command interface. Each loader+version
+combination lives on its own branch, for example `forge-1.21.4`, `fabric-1.21.11`,
+or `neoforge-1.21.1`.
 
 ---
 
@@ -64,9 +78,9 @@ All versions share the same feature set and command interface.
 2. Put the StutterAnalyzer Forge `.jar` into your `.minecraft/mods/` folder
 3. Launch Minecraft
 
-### NeoForge (1.21.1)
+### NeoForge
 
-1. Install [NeoForge 21.1.77](https://neoforged.net/)
+1. Install the matching [NeoForge](https://neoforged.net/) version for your Minecraft version (see table above)
 2. Put the StutterAnalyzer NeoForge `.jar` into your `.minecraft/mods/` folder
 3. Launch Minecraft
 
@@ -154,8 +168,12 @@ StutterAnalyzer can scan your mod list and suggest compatible performance mods:
 
 | Command | What it does |
 |---------|--------------|
-| `/sa optimize suggest` | Scan in background and suggest compatible optimization mods |
-| `/sa optimize install` | Install the suggested mods (shows warning, requires confirmation) |
+| `/sa optimize suggest` | Scan in background and build one complete, dependency-safe plan |
+| `/sa optimize install` | Install the whole plan in one go (all-or-nothing, one restart) |
+
+The planner builds a single safe plan at once - it pulls in required dependencies,
+skips conflicting or unsafe mods (with a reason), never touches Fabric API, and
+installs everything or nothing. No more install-restart-install-restart waves.
 
 ---
 
@@ -189,15 +207,10 @@ See [PRIVACY.md](PRIVACY.md) for full details on what is collected and what is n
 
 ## Requirements
 
-| Loader | Minecraft | Java |
-|--------|-----------|------|
-| Forge 36.x | 1.20.1 | 17 |
-| Fabric | 1.20.1 | 17 |
-| Forge 49.x | 1.20.4 | 17 |
-| Fabric | 1.20.4 | 17 |
-| Forge 52.x | 1.21.1 | 21 |
-| NeoForge 21.1.77 | 1.21.1 | 21 |
-| Fabric | 1.21.1 | 21 |
+- **Minecraft 1.20.1 / 1.20.4** - Java 17
+- **Minecraft 1.21.1 / 1.21.4 / 1.21.6 / 1.21.9 / 1.21.11** - Java 21
+
+See the [Versions](#versions) table above for the exact loader version per build.
 
 ---
 
@@ -216,4 +229,4 @@ When reporting a problem with a freeze, run `/sa preview` to see the report summ
 ---
 
 **Author:** [Morikemuri](https://github.com/Morikemuri)
-Minecraft 1.20.1, 1.20.4, 1.21.1 - Forge, NeoForge, and Fabric
+Minecraft 1.20.1 - 1.21.11 - Forge, NeoForge, and Fabric
