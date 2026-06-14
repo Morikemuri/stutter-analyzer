@@ -49,20 +49,8 @@ public class LogContextClassifier {
 
     public static ContextResult detectContext() {
         try {
-            Path logFile = SAEnvironment.getLogFile();
-            if (logFile == null || !Files.exists(logFile)) return ContextResult.empty();
-
-            long fileSize = Files.size(logFile);
-            long readOffset = Math.max(0, fileSize - 131072L);
-            byte[] buf;
-            try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
-                raf.seek(readOffset);
-                int len = (int) (fileSize - readOffset);
-                buf = new byte[len];
-                raf.readFully(buf);
-            }
-
-            String tail = new String(buf, StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+            String tail = LogTailCache.tailLower(SAEnvironment.getLogFile());
+            if (tail.isEmpty()) return ContextResult.empty();
 
             boolean serverTick = matchesAny(tail, SERVER_TICK_PATTERNS);
             boolean watchdog   = matchesAny(tail, WATCHDOG_PATTERNS);

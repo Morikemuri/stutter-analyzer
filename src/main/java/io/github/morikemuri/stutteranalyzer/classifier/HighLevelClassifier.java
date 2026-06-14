@@ -82,18 +82,7 @@ public class HighLevelClassifier {
 
     private static int countLogMatches() {
         try {
-            Path logFile = SAEnvironment.getLogFile();
-            if (logFile == null || !Files.exists(logFile)) return 0;
-            long fileSize = Files.size(logFile);
-            long readOffset = Math.max(0, fileSize - 65536L);
-            byte[] buf;
-            try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
-                raf.seek(readOffset);
-                int len = (int) (fileSize - readOffset);
-                buf = new byte[len];
-                raf.readFully(buf);
-            }
-            String tail = new String(buf, StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+            String tail = LogTailCache.tailLower(SAEnvironment.getLogFile(), 65536);
             int count = 0;
             for (String pattern : WORLD_JOIN_LOG_PATTERNS) {
                 if (tail.contains(pattern)) count++;

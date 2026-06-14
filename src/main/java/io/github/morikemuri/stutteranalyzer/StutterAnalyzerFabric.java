@@ -113,6 +113,7 @@ public class StutterAnalyzerFabric implements ModInitializer {
 
         try {
             OptimizationModKnowledgeBase.load();
+            io.github.morikemuri.stutteranalyzer.knowledge.JsonRuleValidator.validateAll();
         } catch (Throwable t) {
             LOGGER.error("[StutterAnalyzer] Knowledge base failed to load: {}", t.getMessage(), t);
         }
