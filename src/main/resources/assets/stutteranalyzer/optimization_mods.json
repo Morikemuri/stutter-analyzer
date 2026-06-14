@@ -249,7 +249,8 @@
     "known_patterns": [],
     "notes": "",
     "install_priority": 0,
-    "install_safe": false
+    "install_safe": false,
+    "install_note": "Deprecated and not recommended on modern Minecraft. Its startup benefit is already covered by ModernFix where applicable."
   },
   "c2me": {
     "display_names": ["C2ME", "C2ME Fabric", "C2ME NeoForge"],

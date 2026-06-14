@@ -10,7 +10,7 @@
     "Auto-edit worlds."
   ],
   "global_good_recommendations": [
-    "Try reproducing with debug mode enabled.",
+    "Try reproducing and capturing it with /sa preview.",
     "Try reproducing while standing still.",
     "Try reproducing while moving into new terrain.",
     "Try reproducing with shaders disabled.",
@@ -90,9 +90,8 @@
       "No action needed unless FPS is low after refocusing."
     ],
     "UNKNOWN_FREEZE": [
-      "Enable debug mode and reproduce the freeze.",
-      "Export report and compare with a run without recently added mods.",
-      "Submit the report via /sa submit.",
+      "Reproduce the freeze while watching for the trigger.",
+      "Use /sa preview, then /sa submit; compare with a run without recently added mods.",
       "Attach Markdown and JSON files to GitHub."
     ],
     "PERIODIC_MINOR_MICRO_HITCH": [
@@ -108,11 +107,11 @@
     ],
     "UNCLASSIFIED_MICRO_HITCH": [
       "Usually harmless for a one-off minor hitch.",
-      "Monitor for recurrence. If it becomes frequent, enable debug mode.",
+      "Monitor for recurrence. Use /sa preview if it becomes frequent.",
       "Do not adjust GPU or render settings for a single minor hitch."
     ],
     "UNCLASSIFIED_FRAME_HITCH": [
-      "Enable debug mode if this recurs frequently.",
+      "Use /sa preview if this recurs frequently.",
       "Check GPU usage and server MSPT around the time of the hitch.",
       "Compare a report with and without recently added mods."
     ],
@@ -145,10 +144,30 @@
     ],
     "UNKNOWN_EXTREME_FREEZE": [
       "An extreme freeze >= 1000ms with no identifiable cause.",
-      "Enable debug mode and reproduce the freeze.",
-      "Export report and compare with a run without recently added mods.",
-      "Submit the report via /sa submit.",
+      "Reproduce the freeze while watching for the trigger.",
+      "Use /sa preview, then /sa submit; compare with a run without recently added mods.",
       "Attach Markdown and JSON files to GitHub."
+    ],
+    "SHADER_COMPILATION": [
+      "Possible shader compilation or warmup, not necessarily a problem.",
+      "Try disabling shaders first to confirm.",
+      "Test without Better Clouds or Euphoria Patcher.",
+      "If it only happens on first launch or first world join with shaders, it is likely one-time warmup.",
+      "Use /sa preview to inspect the event, /sa submit if it repeats."
+    ],
+    "DISK_IO": [
+      "Possible slow disk I/O, not a confirmed disk failure.",
+      "Move the Minecraft instance to an SSD if it is on an HDD.",
+      "Exclude the instance folder from antivirus scanning and avoid background indexing during play.",
+      "Check disk health if stalls are frequent.",
+      "Use /sa reports to compare saved reports over time."
+    ],
+    "ENTITY_OVERLOAD": [
+      "Possible entity overload from too many ticking entities.",
+      "Check the entity count near where it happens.",
+      "Use spark or Observable to find the hotspot if available.",
+      "Reduce mob farms or spawners; test entity-heavy mods one at a time.",
+      "Do not blame a specific mod without evidence."
     ]
   }
 }

@@ -10,7 +10,7 @@
     "sources": "https://github.com/Morikemuri/stutter-analyzer",
     "issues": "https://github.com/Morikemuri/stutter-analyzer/issues"
   },
-  "license": "ARR",
+  "license": "LicenseRef-ARR",
   "icon": "assets/stutteranalyzer/icon.png",
   "environment": "*",
   "entrypoints": {
