@@ -196,6 +196,17 @@ public class OptimizeInstaller {
 
     private static void doInstall(CommandSourceStack src, OptimizePlan plan, Path modsDir) {
         validatePlanDeps(src, plan, modsDir);
+
+        // Atomic guard: if dependency validation emptied the plan, or nothing in it is
+        // actually resolvable, install nothing. Better a clean "no-op" than a half-applied plan.
+        boolean anyResolvable = plan.recommended.stream()
+            .anyMatch(m -> m.resolvedUrl != null && !m.resolvedUrl.isEmpty());
+        if (plan.recommended.isEmpty() || !anyResolvable) {
+            LOGGER.info("[SA] Dry-run: no installable mods remain after validation - installing nothing");
+            send(src, Component.translatable("stutteranalyzer.optimize.install.none_safe"));
+            return;
+        }
+
         List<ManifestEntry> installedList = new ArrayList<>();
         List<ManifestEntry> failedList = new ArrayList<>();
         int successCount = 0;
