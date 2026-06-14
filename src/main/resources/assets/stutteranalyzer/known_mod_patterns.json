@@ -1,8 +1,15 @@
 {
+  "pattern_format_version": "1.1.0",
   "RUBIDIUM_LAVA_FLUID_RENDER_CRASH": {
     "display_name": "Rubidium Lava Fluid Render Crash",
     "safety_level": "SAFE_AUTO_GUARD",
+    "safe_advice_level": "auto_guard",
     "side": "client",
+    "affected_versions": ["<0.7.1"],
+    "fixed_versions": [">=0.7.1"],
+    "verified_fixed_version": "0.7.1",
+    "last_verified": "2026-06-14",
+    "confidence": 0.75,
     "strong_tokens": [
       "FluidRenderer.render",
       "ChunkBuilderMeshingTask",
@@ -23,6 +30,7 @@
   "DYNAMIC_FPS_BACKGROUND_FALSE_POSITIVE": {
     "display_name": "Dynamic FPS Background False Positive",
     "safety_level": "SAFE_AUTO_GUARD",
+    "safe_advice_level": "auto_guard",
     "side": "client",
     "strong_tokens": [],
     "required_mods": ["dynamic_fps"],
@@ -33,6 +41,7 @@
   "C2ME_CORRUPTED_CHUNK_CONTEXT": {
     "display_name": "C2ME Corrupted Chunk Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client_server",
     "strong_tokens": ["chunk loading", "corrupted chunk", "region file", "c2me", "async chunk"],
     "required_mods": ["c2me"],
@@ -43,6 +52,7 @@
   "C2ME_WORLDGEN_DEADLOCK_CONTEXT": {
     "display_name": "C2ME Worldgen Deadlock Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client_server",
     "strong_tokens": ["deadlock", "completablefuture", "worldgen", "chunk future", "c2me worker"],
     "required_mods": ["c2me"],
@@ -53,6 +63,7 @@
   "DISTANT_HORIZONS_LOD_STUTTER_OR_CACHE_IO": {
     "display_name": "Distant Horizons LOD Stutter or Cache I/O",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client",
     "strong_tokens": ["distant horizons", "lod", "cache", "disk io"],
     "required_mods": ["distanthorizons"],
@@ -63,6 +74,7 @@
   "IRIS_OCULUS_SHADER_PIPELINE_CONTEXT": {
     "display_name": "Iris/Oculus Shader Pipeline Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client",
     "strong_tokens": ["shader", "compile", "glsl", "pipeline", "shaderpack"],
     "required_mods": ["iris", "oculus"],
@@ -73,6 +85,7 @@
   "EMBEDDIUM_OCULUS_TAINT_CONTEXT": {
     "display_name": "Embeddium/Oculus Taint Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client",
     "strong_tokens": ["tainted", "embeddium instance tainted"],
     "required_mods": ["embeddium", "oculus"],
@@ -83,6 +96,7 @@
   "CHUNK_ANIMATOR_RENDERER_MIXIN_CONFLICT": {
     "display_name": "Chunk Animator Renderer Mixin Conflict",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client",
     "strong_tokens": ["InvalidInjectionException", "WorldRendererMixin", "chunk rendering failed injection"],
     "required_mods": ["chunk_animator"],
@@ -93,6 +107,7 @@
   "LIGHTING_ENGINE_OPTIMIZATION_CONTEXT": {
     "display_name": "Lighting Engine Optimization Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client_server",
     "strong_tokens": ["light propagation", "chunk lighting", "block updates", "starlight", "scalablelux", "phosphor"],
     "required_mods": ["starlight", "scalablelux", "phosphor"],
@@ -103,6 +118,7 @@
   "GPU_BACKEND_RENDER_CONTEXT": {
     "display_name": "GPU Backend Render Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client",
     "strong_tokens": ["gpu driver", "vulkan device", "opengl context", "swapchain", "buffer upload", "terrain geometry"],
     "required_mods": ["nvidium", "vulkanmod"],
@@ -113,6 +129,7 @@
   "MODERNFIX_MEMORY_RESOURCE_CONTEXT": {
     "display_name": "ModernFix Memory/Resource Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client_server",
     "strong_tokens": ["model baking", "dynamic resources", "modernfix", "startup freeze"],
     "required_mods": ["modernfix"],
@@ -123,6 +140,7 @@
   "FERRITECORE_MEMORY_CONTEXT": {
     "display_name": "FerriteCore Memory Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client_server",
     "strong_tokens": ["model memory", "state memory", "ferritecore"],
     "required_mods": ["ferritecore"],
@@ -133,6 +151,7 @@
   "LITHIUM_FAMILY_GAME_LOGIC_CONTEXT": {
     "display_name": "Lithium Family Game Logic Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client_server",
     "strong_tokens": ["entity ticking", "pathfinding", "block ticking", "hopper", "redstone", "lithium", "radium", "canary"],
     "required_mods": ["lithium", "radium", "canary"],
@@ -143,6 +162,7 @@
   "CULLING_RENDER_CONTEXT": {
     "display_name": "Culling Render Context",
     "safety_level": "WARN_ONLY",
+    "safe_advice_level": "warn_only",
     "side": "client",
     "strong_tokens": ["entity rendering", "block entity rendering", "culling", "invisible", "entity-heavy"],
     "required_mods": ["entity_culling", "moreculling"],

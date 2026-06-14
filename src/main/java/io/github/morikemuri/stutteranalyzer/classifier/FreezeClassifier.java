@@ -33,7 +33,7 @@ public class FreezeClassifier {
         double confidence = 0.0;
         String reason = "No pattern matched.";
         String evidence = "";
-        String recommendation = "Reproduce with debug mode enabled and export a report.";
+        String recommendation = "Reproduce the freeze, then send a report with /sa submit.";
         FreezeEvent.PeriodicMeta periodicMeta = null;
 
         double minConf = SAConfig.INSTANCE.minimumConfidence.get();
@@ -155,11 +155,11 @@ public class FreezeClassifier {
             confidence = 0.50;
             reason = "Medium frame hitch with no matching pattern.";
             evidence = "Hitch duration: " + durationMs + " ms.";
-            recommendation = "Enable debug mode if this recurs frequently. Check GPU and server tick around the time.";
+            recommendation = "If this recurs, check GPU load and server tick around that time.";
         } else if (confidence < minConf && SAConfig.INSTANCE.unknownFreezeEnabled.get()) {
             category = FreezeCategory.UNKNOWN_FREEZE;
             reason = "No pattern matched with sufficient confidence (score " + String.format("%.0f", confidence * 100) + "% < minimum " + String.format("%.0f", minConf * 100) + "%).";
-            recommendation = "Enable debug mode, reproduce the freeze, then export and submit the report.";
+            recommendation = "Reproduce the freeze, then send a report with /sa submit.";
         }
 
         if (category == FreezeCategory.UNKNOWN_FREEZE && durationMs >= 250) {
@@ -187,6 +187,35 @@ public class FreezeClassifier {
             }
         }
 
+        // Additive log-signal pass: only refine when nothing else matched, so it never
+        // overrides a confident classification. Wording stays cautious ("Possible") on purpose.
+        if (category == FreezeCategory.UNKNOWN_FREEZE && durationMs >= 100) {
+            String tail = LogTailCache.tailLower(SAEnvironment.getLogFile());
+            if (isClient && containsAny(tail, "iris", "oculus", "shaderpack", "compiling shader",
+                    "shader compilation", "program compile", "pipeline compile", "shader warmup",
+                    "better clouds", "euphoria patcher")) {
+                category = FreezeCategory.SHADER_COMPILATION;
+                confidence = 0.62;
+                reason = "Possible shader compilation or warmup near the freeze.";
+                evidence = "Shader-related activity (Iris/Oculus/shader pipeline) seen in the recent log.";
+                recommendation = "Possible cause: shader compilation/warmup. Try disabling shaders first; test without Better Clouds / Euphoria Patcher. If it only happens on first launch or first world join with shaders, it is likely one-time warmup.";
+            } else if (containsAny(tail, "saving chunks", "world save", "ms to save", "saving the world",
+                    "slow save", "file watcher", "took too long to save")) {
+                category = FreezeCategory.DISK_IO;
+                confidence = 0.60;
+                reason = "Possible disk I/O stall near the freeze.";
+                evidence = "Save/load or file activity seen in the recent log around the freeze.";
+                recommendation = "Possible cause: slow disk I/O. Likely fixes: move the instance to an SSD, check disk health, avoid background indexing/scanning, and consider excluding the Minecraft instance folder from antivirus scanning.";
+            } else if (containsAny(tail, "ticking entity", "entities loaded", "pathfind", "spawner",
+                    "too many entities", "entity count")) {
+                category = FreezeCategory.ENTITY_OVERLOAD;
+                confidence = 0.60;
+                reason = "Possible entity overload near the freeze.";
+                evidence = "Entity ticking / pathfinding / spawner activity seen in the recent log.";
+                recommendation = "Possible cause: too many ticking entities. Likely checks: look at the entity count, test entity-heavy mods, use spark or Observable if available, and reduce mob farms/spawners.";
+            }
+        }
+
         String side = isClient
             ? (isDedicatedServer ? "dedicated server" : "client-side")
             : (isDedicatedServer ? "dedicated server" : "integrated server");
@@ -200,21 +229,19 @@ public class FreezeClassifier {
         return s + "s";
     }
 
+    private static boolean containsAny(String tail, String... tokens) {
+        if (tail == null || tail.isEmpty()) return false;
+        for (String t : tokens) {
+            if (tail.contains(t)) return true;
+        }
+        return false;
+    }
+
     private static List<String> detectPossibleContext() {
         List<String> ctx = new ArrayList<>();
         try {
-            Path logFile = SAEnvironment.getLogFile();
-            if (logFile != null && Files.exists(logFile)) {
-                long fileSize = Files.size(logFile);
-                long offset = Math.max(0, fileSize - 32768L);
-                byte[] buf;
-                try (RandomAccessFile raf = new RandomAccessFile(logFile.toFile(), "r")) {
-                    raf.seek(offset);
-                    int len = (int) (fileSize - offset);
-                    buf = new byte[len];
-                    raf.readFully(buf);
-                }
-                String tail = new String(buf, StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+            String tail = LogTailCache.tailLower(SAEnvironment.getLogFile(), 32768);
+            if (!tail.isEmpty()) {
                 if (matchesContext(tail, new String[]{"skin", "cape", "tlskins", "sessionserver.mojang", "skins.minecraft"}))
                     ctx.add("SKIN_OR_CAPE_POLLING");
                 if (matchesContext(tail, new String[]{"stutteranalyzer", "stutter analyzer", "update check", "checking update"}))
@@ -244,7 +271,7 @@ public class FreezeClassifier {
         if (ctx.gcPauseEvidence())
             recs.add("Increase JVM heap size (-Xmx8G or more) and review GC settings");
         if (recs.isEmpty())
-            return "Enable debug mode, reproduce the freeze, then export and submit the report.";
+            return "Reproduce the freeze, then send a report with /sa submit.";
         return String.join(". ", recs) + ".";
     }
 }
