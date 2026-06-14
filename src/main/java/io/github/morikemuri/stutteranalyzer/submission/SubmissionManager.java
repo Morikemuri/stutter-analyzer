@@ -409,7 +409,7 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_crash")), false);
             return 1;
         }
-        return submitLocalRaw(src, ce.crashId, buildCrashMarkdown(ce), buildCrashJson(ce), buildCrashIssueBody(ce));
+        return submitLocalRaw(src, ce.crashId, SubmitPayloadBuilder.buildCrashMarkdown(ce), SubmitPayloadBuilder.buildCrashJson(ce), SubmitPayloadBuilder.buildCrashIssueBody(ce));
     }
 
     public static int submitGuardLast(CommandSourceStack src) {
@@ -418,7 +418,7 @@ public class SubmissionManager {
             src.sendSuccess(() -> CommandFeedback.warn(Component.translatable("stutteranalyzer.submit.no_guard")), false);
             return 1;
         }
-        return submitLocalRaw(src, rep.guardId, rep.toMarkdown(), "{}", buildGuardIssueBody(rep));
+        return submitLocalRaw(src, rep.guardId, rep.toMarkdown(), "{}", SubmitPayloadBuilder.buildGuardIssueBody(rep));
     }
 
     // ── Cloudflare submission ─────────────────────────────────────────────────
@@ -641,7 +641,7 @@ public class SubmissionManager {
         // Log submit debug info to latest.log only (not shown in chat for release)
         String endpoint = SAConfig.INSTANCE.cloudflareEndpoint.get();
         int timeoutSec = SAConfig.INSTANCE.uploadTimeoutSeconds.get();
-        StutterAnalyzerMod.LOGGER.info("[SA] Submit debug - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
+        StutterAnalyzerMod.LOGGER.info("[SA] Submit route trace - build={} endpoint={} timeout={}s payload={}KB upload_id={}",
             StutterAnalyzerMod.BUILD_ID, endpoint, timeoutSec, payloadKb, uploadId);
 
         src.sendSuccess(() -> CommandFeedback.info(net.minecraft.network.chat.Component.translatable("stutteranalyzer.submit.cloudflare_uploading")), false);
@@ -898,7 +898,7 @@ public class SubmissionManager {
     private static int submitLocalReport(CommandSourceStack src, FreezeReport report) {
         String markdown = report.toMarkdown();
         String json = report.toJson();
-        String issueBody = buildFreezeIssueBody(report);
+        String issueBody = SubmitPayloadBuilder.buildFreezeIssueBody(report);
         return submitLocalRaw(src, report.reportId, markdown, json, issueBody);
     }
 
@@ -1380,72 +1380,7 @@ public class SubmissionManager {
 
     // ── Issue body builders ───────────────────────────────────────────────────
 
-    private static String buildFreezeIssueBody(FreezeReport report) {
-        return "## StutterAnalyzer Freeze Report\n\n" +
-            "**Report ID:** `" + report.reportId + "`\n" +
-            "**Category:** " + report.event.category() + "\n" +
-            "**Duration:** " + report.event.durationMs() + " ms\n" +
-            "**Confidence:** " + report.event.confidencePct() + "%\n" +
-            "**Side:** " + report.event.side() + "\n\n" +
-            "## What were you doing?\n\n" +
-            "(describe the situation when the freeze occurred)\n\n" +
-            "## Attached files\n\n" +
-            "Please attach or paste the contents of `" + report.reportId + ".md`" +
-            " from `config/stutter-analyzer/submissions/`.\n\n" +
-            "---\n" +
-            "*Prepared via StutterAnalyzer*\n";
-    }
-
-    private static String buildCrashMarkdown(CrashEvent ce) {
-        return "# Crash Report Import\n\n" +
-            "**ID:** " + ce.crashId + "\n" +
-            "**Timestamp:** " + ce.timestamp + "\n" +
-            "**Type:** " + ce.crashType + "\n" +
-            "**Summary:** " + ce.summary + "\n" +
-            (ce.hasKnownPattern()
-                ? "\n**Known Pattern:** " + ce.bestMatch().patternId +
-                  " (" + ce.bestMatch().confidencePct() + "% confidence)\n"
-                : "\n**Pattern:** Unknown\n");
-    }
-
-    private static String buildCrashJson(CrashEvent ce) {
-        return "{\n" +
-            "  \"crash_id\": \"" + ce.crashId + "\",\n" +
-            "  \"timestamp\": \"" + ce.timestamp + "\",\n" +
-            "  \"type\": \"" + esc(ce.crashType) + "\",\n" +
-            "  \"summary\": \"" + esc(ce.summary) + "\",\n" +
-            "  \"known_pattern\": " + (ce.hasKnownPattern() ? "\"" + ce.bestMatch().patternId + "\"" : "null") + "\n" +
-            "}\n";
-    }
-
-    private static String buildCrashIssueBody(CrashEvent ce) {
-        return "## Crash Report\n\n" +
-            "**Crash ID:** `" + ce.crashId + "`\n" +
-            "**Type:** " + ce.crashType + "\n" +
-            "**Summary:** " + ce.summary + "\n\n" +
-            "## What were you doing?\n\n" +
-            "(describe the situation when the crash occurred)\n\n" +
-            "## Attached files\n\n" +
-            "Please attach or paste the contents of `" + ce.crashId + ".md`" +
-            " from `config/stutter-analyzer/submissions/`.\n\n" +
-            "---\n" +
-            "*Prepared via StutterAnalyzer /sa submit crash last*\n";
-    }
-
-    private static String buildGuardIssueBody(EmergencyGuardReport rep) {
-        return "## Emergency Guard Report\n\n" +
-            "**Guard ID:** `" + rep.guardId + "`\n" +
-            "**Pattern:** " + rep.patternId + "\n" +
-            "**Outcome:** " + rep.outcome.name() + "\n" +
-            "**Confidence:** " + (int)(rep.confidence * 100) + "%\n\n" +
-            "## What were you doing?\n\n" +
-            "(describe the situation)\n\n" +
-            "## Attached files\n\n" +
-            "Please attach or paste the contents of `" + rep.guardId + ".md`" +
-            " from `config/stutter-analyzer/submissions/`.\n\n" +
-            "---\n" +
-            "*Prepared via StutterAnalyzer /sa submit guard last*\n";
-    }
+    // Issue-body builders extracted to SubmitPayloadBuilder (0.6.0 stage 1).
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
