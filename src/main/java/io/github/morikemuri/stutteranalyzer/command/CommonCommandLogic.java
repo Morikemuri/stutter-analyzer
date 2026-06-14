@@ -938,6 +938,10 @@ public class CommonCommandLogic {
             "stutteranalyzer.optimize.risk." + plan.risk.name().toLowerCase());
         out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.plan_risk",
             plan.recommended.size(), riskLabel)));
+        if (plan.largePlan) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.large_plan",
+                plan.recommended.size())));
+        }
         int num = 0;
         for (io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod mod : plan.recommended) {
             if (mod.depForMod != null) {

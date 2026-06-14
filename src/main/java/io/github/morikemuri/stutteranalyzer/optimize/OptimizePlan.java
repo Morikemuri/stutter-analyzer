@@ -24,6 +24,7 @@ public class OptimizePlan {
     public String mcVersion = "";
     public boolean serverOnly;
     public int totalInstalledCount;
+    public boolean largePlan; // plan is unusually large - worth a glance before installing
     public long createdAt = System.currentTimeMillis();
 
     public boolean isEmpty() {

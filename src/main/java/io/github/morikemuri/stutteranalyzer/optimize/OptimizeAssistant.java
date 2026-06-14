@@ -32,10 +32,28 @@ public class OptimizeAssistant {
     private static final int CONNECT_TIMEOUT = 5000;
     private static final int READ_TIMEOUT = 10000;
 
+    // One optimize cycle = one complete safe plan = one restart. There is no artificial 5-6 wave
+    // cap any more (that is what forced players into 2-3 restarts). The only ceiling is a high
+    // safety cap to stop a runaway plan; dependency closure + whole-set conflict validation are
+    // what actually keep the plan safe.
+    private static final int PLAN_SAFETY_CAP = 25;
+    private static final int LARGE_PLAN_WARN_THRESHOLD = 15;
+
     private static int maxSuggestions(int installedCount) {
-        if (installedCount > 80)  return 3;
-        if (installedCount > 5)   return 5;
-        return 7;
+        return PLAN_SAFETY_CAP;
+    }
+
+    /** Fabric API is a platform dependency, never an optimization candidate or a download. */
+    private static boolean isFabricApi(OptimizeMod m) {
+        if (m == null) return false;
+        return isFabricApiId(m.id) || isFabricApiId(m.modrinthSlug)
+            || (m.aliases != null && m.aliases.stream().anyMatch(OptimizeAssistant::isFabricApiId));
+    }
+
+    private static boolean isFabricApiId(String s) {
+        if (s == null) return false;
+        String n = s.toLowerCase().replace("-", "").replace("_", "").replace(" ", "");
+        return n.equals("fabricapi") || n.equals("fabricapideprecated");
     }
 
     public static OptimizePlan buildPlan(
@@ -113,7 +131,7 @@ public class OptimizeAssistant {
             LOGGER.warn("[SA] Could not count mods folder jars: {}", e.getMessage());
         }
 
-        // Don't drip-feed a second install wave while restart is still required
+        // Don't suggest a new plan while a restart is still pending
         if (!pendingRestartNames.isEmpty()) {
             OptimizePlan earlyPlan = new OptimizePlan();
             earlyPlan.recommended    = new ArrayList<>();
@@ -125,7 +143,7 @@ public class OptimizeAssistant {
             earlyPlan.serverOnly  = isServer;
             earlyPlan.totalInstalledCount = modsJarCount;
             earlyPlan.risk        = OptimizePlan.RiskLevel.LOW;
-            earlyPlan.riskReason  = "Restart required before next wave.";
+            earlyPlan.riskReason  = "Restart Minecraft to load installed optimization mods.";
             writePlanJson(earlyPlan, gameDir);
             return earlyPlan;
         }
@@ -139,6 +157,15 @@ public class OptimizeAssistant {
         // Filter primary candidates (exclude loaded, pending, and conflicting mods) - no limit yet
         List<OptimizeMod> allCandidates = database.stream()
             .filter(m -> m.primarySuggestion)
+            .filter(m -> {
+                // Fabric API is a platform dependency, never something /sa optimize installs,
+                // downloads, or suggests. Drop it defensively even if a DB entry slips in.
+                if (isFabricApi(m)) {
+                    LOGGER.info("[SA] Ignoring Fabric API as optimize candidate ({})", m.id);
+                    return false;
+                }
+                return true;
+            })
             .filter(m -> m.supportsLoader(loader))
             .filter(m -> m.supportsEnvironment(isServer))
             .filter(m -> !m.alreadyInstalled(normalizedInstalled))
@@ -220,6 +247,10 @@ public class OptimizeAssistant {
         plan.mcVersion = mcVersion;
         plan.serverOnly = isServer;
         plan.totalInstalledCount = modsJarCount;
+        plan.largePlan = ready.size() > LARGE_PLAN_WARN_THRESHOLD;
+        if (plan.largePlan) {
+            LOGGER.info("[SA] Large optimization plan: {} mods - one install, one restart", ready.size());
+        }
         scoreRisk(plan);
         writePlanJson(plan, gameDir);
         return plan;
@@ -245,6 +276,12 @@ public class OptimizeAssistant {
         for (String depId : requires) {
             String depNorm = depId.toLowerCase();
             if (!visited.add(depNorm)) continue; // been there, resolved that (cycle guard)
+
+            // Fabric API is provided by the platform - never resolve or download it as a dep.
+            if (isFabricApiId(depId)) {
+                LOGGER.info("[SA] Dependency {} is Fabric API - treated as platform-provided", depId);
+                continue;
+            }
 
             // Already loaded, pending restart, or otherwise known to be present?
             if (expandedInstalled.contains(depNorm)
@@ -473,9 +510,20 @@ public class OptimizeAssistant {
                 JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
                 for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
                     String modKey = entry.getKey();
-                    if (!entry.getValue().isJsonObject()) continue;
+                    if (!entry.getValue().isJsonObject()) {
+                        LOGGER.warn("[SA] Skipping optimization entry '{}': not a JSON object", modKey);
+                        continue;
+                    }
                     JsonObject obj = entry.getValue().getAsJsonObject();
 
+                    // Validate + parse each entry in isolation: one malformed entry must not
+                    // truncate or break the whole database (it would drop every later entry).
+                    String invalid = OptimizationDbValidator.validate(modKey, obj);
+                    if (invalid != null) {
+                        LOGGER.warn("[SA] Skipping invalid optimization entry '{}': {}", modKey, invalid);
+                        continue;
+                    }
+                  try {
                     int priority = obj.has("install_priority")
                         ? obj.get("install_priority").getAsInt() : 0;
 
@@ -532,6 +580,9 @@ public class OptimizeAssistant {
                     }
 
                     result.add(mod);
+                  } catch (Exception perEntry) {
+                    LOGGER.warn("[SA] Skipping malformed optimization entry '{}': {}", modKey, perEntry.getMessage());
+                  }
                 }
             }
         } catch (Exception e) {
