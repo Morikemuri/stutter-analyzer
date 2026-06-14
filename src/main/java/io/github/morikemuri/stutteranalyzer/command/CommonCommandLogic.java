@@ -938,24 +938,47 @@ public class CommonCommandLogic {
             "stutteranalyzer.optimize.risk." + plan.risk.name().toLowerCase());
         out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.plan_risk",
             plan.recommended.size(), riskLabel)));
-        int shown = plan.recommended.size();
-        for (int i = 0; i < shown; i++) {
-            io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod mod = plan.recommended.get(i);
-            int num = i + 1;
+        if (plan.largePlan) {
+            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.large_plan",
+                plan.recommended.size())));
+        }
+        int num = 0;
+        for (io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod mod : plan.recommended) {
+            if (mod.depForMod != null) {
+                // Tag-along library: announce who dragged it into the plan
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.dep_added",
+                    mod.displayName, mod.depForMod)));
+                continue;
+            }
+            num++;
             out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.mod_entry",
                 num, mod.displayName,
                 Component.translatable("stutteranalyzer.optimize.reason." + mod.id))));
         }
-        int remaining = 0;
-        if (remaining > 0) {
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.more", remaining)));
-        }
         if (!plan.skippedCandidates.isEmpty()) {
-            String skippedNames = plan.skippedCandidates.stream()
-                .map(m -> m.displayName).collect(Collectors.joining(", "));
-            out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
-                skippedNames, plan.loader, plan.mcVersion)));
-            StutterAnalyzerFabric.LOGGER.info("[SA] Skipped candidates (no Modrinth file): {}", skippedNames);
+            // Incompatible and dep-less mods get a personal goodbye; the rest share one line
+            List<io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod> noFile = new ArrayList<>();
+            for (io.github.morikemuri.stutteranalyzer.optimize.OptimizeMod m : plan.skippedCandidates) {
+                if (m.skipConflictWith != null) {
+                    out.add(CommandFeedback.info(Component.translatable(
+                        "stutteranalyzer.optimize.skipped_conflict", m.displayName, m.skipConflictWith)));
+                } else if (m.skipMissingDep != null) {
+                    out.add(CommandFeedback.info(Component.translatable(
+                        "stutteranalyzer.optimize.skipped_missing_dep", m.displayName, m.skipMissingDep)));
+                } else {
+                    noFile.add(m);
+                }
+            }
+            if (!noFile.isEmpty()) {
+                String skippedNames = noFile.stream()
+                    .map(m -> m.displayName).collect(Collectors.joining(", "));
+                out.add(CommandFeedback.info(Component.translatable("stutteranalyzer.optimize.skipped",
+                    skippedNames, plan.loader, plan.mcVersion)));
+            }
+            StutterAnalyzerFabric.LOGGER.info("[SA] Skipped candidates: {}",
+                plan.skippedCandidates.stream()
+                    .map(m -> m.displayName + (m.skipReason != null ? " (" + m.skipReason + ")" : ""))
+                    .collect(Collectors.joining(", ")));
         }
         Component installBtn = Component.translatable("stutteranalyzer.optimize.btn.install")
             .withStyle(s -> s
