@@ -57,7 +57,8 @@ public class FreezeDetector {
 
         // Step 4: Rate-limit minor/medium. Severe/extreme always go through.
         boolean isSevereOrExtreme = frameMs >= SAConfig.INSTANCE.severeFrameMs.get();
-        if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
+        boolean modeWantsAlert = AlertManager.modeWouldAlert(frameMs);
+        if (!isSevereOrExtreme && !modeWantsAlert && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
             if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
                 StutterAnalyzerNeo.LOGGER.info("[SA DEBUG] Full classification rate-limited ({}/{}ms)",
                     System.currentTimeMillis() - lastReportTime, REPORT_RATE_LIMIT_MS);
@@ -77,7 +78,8 @@ public class FreezeDetector {
         if (!SAConfig.INSTANCE.enableServerTickDetection.get()) return;
         if (mspt < SAConfig.INSTANCE.warningMspt.get()) return;
         boolean isSevereOrExtreme = mspt >= SAConfig.INSTANCE.severeFrameMs.get();
-        if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
+        boolean modeWantsAlert = AlertManager.modeWouldAlert(mspt);
+        if (!isSevereOrExtreme && !modeWantsAlert && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
 
         SafeExecutor.run("FreezeDetector", () -> {
             List<RecentEventBuffer.GameEvent> recent = buffer.recentSeconds(30);
