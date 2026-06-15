@@ -305,7 +305,7 @@
   "stutteranalyzer.optimize.dep_present": "Зависимость уже установлена: %s",
   "stutteranalyzer.optimize.install.none_safe": "Нет безопасных совместимых оптимизационных модов для установки.",
   "stutteranalyzer.optimize.large_plan": "Большой план (%s мод.) - одна установка, один перезапуск. Глянь его перед установкой.",
-  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings"
+  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings",
   "stutteranalyzer.optimize.skipped_conflict": "Пропущено %s: несовместимо с %s.",
   "stutteranalyzer.optimize.skipped_missing_dep": "Пропущено %s: нет совместимого %s.",
   "stutteranalyzer.optimize.mod_entry": "%s. %s - %s",
