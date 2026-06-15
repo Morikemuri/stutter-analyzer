@@ -420,9 +420,10 @@
     "safe_report_language": "installed context",
     "known_patterns": [],
     "notes": "Renders GUI elements less often to save GPU time.",
-    "install_priority": 38,
-    "install_safe": true,
+    "install_priority": 0,
+    "install_safe": false,
     "install_reason": "Renders HUD/GUI less frequently, reducing GPU overhead.",
+    "install_note": "Not auto-installed: needs tr7zw Transition Lib, which ships bundled per-mod and is not declared in Modrinth dependency metadata, so the planner cannot guarantee it loads. Install manually if you want it.",
     "install_modrinth": "exordium",
     "install_conflicts": []
   },
