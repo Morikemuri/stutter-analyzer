@@ -74,4 +74,18 @@ public class AlertManager {
     public static AlertMode currentMode() {
         return AlertMode.fromString(SAConfig.INSTANCE.alertMode.get());
     }
+
+    /**
+     * True if the current alert mode would produce a direct chat alert for this duration,
+     * ignoring cooldowns. Used so the detector's report rate-limit does not silently drop
+     * a stutter the user explicitly asked to be alerted about (cooldowns still apply later).
+     */
+    public static boolean modeWouldAlert(long durationMs) {
+        AlertMode mode = currentMode();
+        if (mode == AlertMode.OFF) return false;
+        return mode.shouldAlertDirect(durationMs,
+            SAConfig.INSTANCE.mediumFrameMs.get(),
+            SAConfig.INSTANCE.severeFrameMs.get(),
+            SAConfig.INSTANCE.extremeFrameMs.get());
+    }
 }
