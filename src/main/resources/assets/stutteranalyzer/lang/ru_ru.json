@@ -304,7 +304,7 @@
   "stutteranalyzer.optimize.dep_added": "Добавлена зависимость: %s для %s.",
   "stutteranalyzer.optimize.dep_present": "Зависимость уже установлена: %s",
   "stutteranalyzer.optimize.large_plan": "Большой план (%s мод.) - одна установка, один перезапуск. Глянь его перед установкой.",
-  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings"
+  "stutteranalyzer.optimize.reason.moonlight": "библиотека для Fast Paintings",
   "stutteranalyzer.optimize.mod_entry": "%s. %s - %s",
   "stutteranalyzer.optimize.more": "+%s ещё",
   "stutteranalyzer.optimize.run_install": "Напиши /sa optimize install для установки.",
