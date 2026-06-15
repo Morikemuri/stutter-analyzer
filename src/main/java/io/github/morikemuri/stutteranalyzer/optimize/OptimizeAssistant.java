@@ -631,7 +631,18 @@ public class OptimizeAssistant {
                 JsonArray versions = JsonParser.parseReader(reader).getAsJsonArray();
                 if (versions.size() == 0) return;
 
-                JsonObject version = versions.get(0).getAsJsonObject();
+                // Stable releases only - never install beta/alpha/dev files (spec rule).
+                JsonObject version = null;
+                for (JsonElement ve : versions) {
+                    JsonObject vo = ve.getAsJsonObject();
+                    String vtype = vo.has("version_type") ? vo.get("version_type").getAsString() : "release";
+                    if ("release".equals(vtype)) { version = vo; break; }
+                }
+                if (version == null) {
+                    LOGGER.info("[SA] No stable release of {} for {} {} - skipping (beta/alpha only)",
+                        mod.modrinthSlug, loader, mcVersion);
+                    return;
+                }
                 JsonArray files = version.has("files") ? version.getAsJsonArray("files") : null;
                 if (files == null || files.size() == 0) return;
 
