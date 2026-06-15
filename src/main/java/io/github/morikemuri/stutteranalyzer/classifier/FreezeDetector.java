@@ -55,9 +55,15 @@ public class FreezeDetector {
             StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Real client frame spike detected: {}ms severity={}", frameMs, severity);
         }
 
-        // Step 4: Rate-limit minor/medium. Severe/extreme always go through.
+        // Step 4: Rate-limit minor/medium. Severe/extreme always go through, and so does
+        // anything the user's alert mode opted into - otherwise frequent severe freezes keep
+        // lastReportTime fresh and medium spikes get dropped before they can ever alert
+        // (F3 still counts them, so "med.spikes 2/60" with an empty chat). Cooldowns in
+        // AlertManager still throttle the actual chat output.
         boolean isSevereOrExtreme = frameMs >= SAConfig.INSTANCE.severeFrameMs.get();
-        if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
+        boolean modeWantsAlert = AlertManager.modeWouldAlert(frameMs);
+        if (!isSevereOrExtreme && !modeWantsAlert
+                && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) {
             if (SAConfig.INSTANCE.logDetectionPipeline.get()) {
                 StutterAnalyzerFabric.LOGGER.info("[SA DEBUG] Full classification rate-limited ({}/{}ms)",
                     System.currentTimeMillis() - lastReportTime, REPORT_RATE_LIMIT_MS);
@@ -77,7 +83,9 @@ public class FreezeDetector {
         if (!SAConfig.INSTANCE.enableServerTickDetection.get()) return;
         if (mspt < SAConfig.INSTANCE.warningMspt.get()) return;
         boolean isSevereOrExtreme = mspt >= SAConfig.INSTANCE.severeFrameMs.get();
-        if (!isSevereOrExtreme && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
+        boolean modeWantsAlert = AlertManager.modeWouldAlert(mspt);
+        if (!isSevereOrExtreme && !modeWantsAlert
+                && System.currentTimeMillis() - lastReportTime < REPORT_RATE_LIMIT_MS) return;
 
         SafeExecutor.run("FreezeDetector", () -> {
             List<RecentEventBuffer.GameEvent> recent = buffer.recentSeconds(30);
